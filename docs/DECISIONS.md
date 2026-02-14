@@ -21,8 +21,8 @@
   - **DEV**: `proceso de admision 3.0 Dev`
   - **PROD**: `proceso de admision 3.0 Prod`
 - **IDs**:
-  - **DEV**: `1tpjJ5HmEz5lowjzGMvWEOOsukWuv9lptjo3QDOxsvpqpMUEgw3ge5Thp`
-  - **PROD**: `[ID_SPREADSHEET_PROD - PENDIENTE]`
+  - **DEV**: `18jo3Na2fVaCop6S3AA4Cws_QWPJ3q-rFMkEH5QhUGb8`
+  - **PROD**: `1LufXiDNC5KhcAJtZQZ6VApfCyTWLrFuswapgb-oogqA`
 - **Motivo**: Pruebas sin afectar datos reales, sincronización independiente
 - **Status**: ✅ APROBADO (DEV CREADO, esperando PROD)
 
