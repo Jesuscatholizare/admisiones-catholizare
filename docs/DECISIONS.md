@@ -17,11 +17,14 @@
 
 #### D2: Separación DEV/PROD en Sheets
 - **Decisión**: 2 Spreadsheets independientes (DEV + PROD)
-- **URLs**:
-  - **DEV**: `[ID_SPREADSHEET_DEV]` → COMPLETAR AL CREAR SHEETS
-  - **PROD**: `[ID_SPREADSHEET_PROD]` → COMPLETAR AL CREAR SHEETS
+- **Nombres**:
+  - **DEV**: `proceso de admision 3.0 Dev`
+  - **PROD**: `proceso de admision 3.0 Prod`
+- **IDs**:
+  - **DEV**: `1tpjJ5HmEz5lowjzGMvWEOOsukWuv9lptjo3QDOxsvpqpMUEgw3ge5Thp`
+  - **PROD**: `[ID_SPREADSHEET_PROD - PENDIENTE]`
 - **Motivo**: Pruebas sin afectar datos reales, sincronización independiente
-- **Status**: ✅ APROBADO
+- **Status**: ✅ APROBADO (DEV CREADO, esperando PROD)
 
 #### D3: Integración con OpenAI
 - **Decisión**: OpenAI API para calificar preguntas abiertas
@@ -89,8 +92,42 @@
 - **Regex**: `^[^\s@]+@[^\s@]+\.[^\s@]+$`
 - **Status**: ✅ APROBADO
 
+#### D11: Requisitos de Seguridad en Tests
+- **Decisión**: Tests con protección anti-fraude:
+  - Anti-copia: Bloquear Ctrl+C/V/X
+  - Anti-ventana: Máximo 3 cambios de tab/ventana
+  - Anti-IA: OpenAI evalúa probabilidad de IA en respuestas
+  - Timer: 2 horas máximo por test (auto-envío al expirar)
+- **Motivo**: Garantizar integridad de evaluación psicológica
+- **Status**: ✅ APROBADO
+- **Implementación**: Fase 7 (Dashboard) incluye lógica JS + backend
+
+#### D12: Sistema de Autenticación
+- **Decisión**: Híbrido Admin + Candidatos
+  - Admin: Basado en Google (Opción 1, sin contraseña)
+  - Candidatos: Con contraseña SHA-256 (Opción 2)
+- **Nuevas hojas**: Usuarios, Sessions, Login_Audit
+- **Seguridad**: Hash SHA-256, límite intentos (5), bloqueo temporal (30 min)
+- **Motivo**: Admin desde red corporativa, candidatos externos
+- **Status**: ⏳ PENDIENTE DECISIÓN USUARIO (confirmación)
+- **Decisión final va a DECISIONS.md cuando usuario confirme**
+
+#### D13: Pestaña de Resultados
+- **Decisión**: Nueva hoja "Resultados" consolidada
+- **Contenido**: Calificaciones finales, estado (APROBADO/RECHAZADO), timeline
+- **Generación**: Al aprobar Test 3, calcula promedio automáticamente
+- **Criterio**: Promedio ≥ 75 = APROBADO, < 75 = RECHAZADO
+- **Email**: Candidato recibe resultado automáticamente
+- **Motivo**: Consolidar información final, auditoría completa
+- **Status**: ✅ APROBADO
+- **Implementación**: Fase 8 (Testing), función generateAndApproveResult()
+
 ## Próximas Decisiones (Pendientes)
+- [ ] ¿Contraseña para admin o solo Google login? → USER CONFIRM
+- [ ] ¿Bloqueo móviles o permitir tests desde celular? → USER CONFIRM
+- [ ] Umbral de probabilidad IA para alerta (70% es correcto?)
 - [ ] Costo estimado de OpenAI API → evaluar si usar gpt-3.5-turbo en lugar de gpt-4o
 - [ ] Definir SLO de entrega de emails (¿1 min? ¿5 min?)
 - [ ] Politica de retención de datos (¿cuánto tiempo guardar registros?)
 - [ ] Backup strategy (manual vs automático)
+- [ ] ¿Certificados digitales al finalizar?

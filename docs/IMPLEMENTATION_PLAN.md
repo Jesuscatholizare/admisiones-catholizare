@@ -6,20 +6,26 @@ Este documento detalla **qué se implementará en cada fase**, con objetivos, en
 
 ---
 
-## 🎯 Fase 0: Preparación (ACTUAL)
-**Status**: ✅ EN PROGRESO
+## 🎯 Fase 0: Preparación (COMPLETADA)
+**Status**: ✅ COMPLETADA
 
 ### Objetivos
 - ✅ Documentar completamente el sistema (CONTEXT, ARCHITECTURE, DECISIONS, WORKFLOW)
 - ✅ Crear guía de setup para Google Sheets
 - ✅ Crear README y este plan
+- ✅ Documentar requisitos de seguridad (anti-fraude)
+- ✅ Documentar autenticación (roles, contraseñas)
+- ✅ Documentar pestaña de Resultados
 
 ### Entregables
 - ✅ `docs/CONTEXT.md` — Objetivo, fases, estructura
 - ✅ `docs/ARCHITECTURE.md` — Stack técnico, módulos, flujo
-- ✅ `docs/DECISIONS.md` — 10 decisiones clave
+- ✅ `docs/DECISIONS.md` — 13 decisiones (incluyendo seguridad, auth, resultados)
 - ✅ `docs/WORKFLOW.md` — Cómo trabajar con Claude-GitHub
 - ✅ `docs/SETUP.md` — Pasos para crear Spreadsheet
+- ✅ `docs/SECURITY_REQUIREMENTS.md` — Anti-copia, anti-ventana, anti-IA, timer
+- ✅ `docs/AUTHENTICATION.md` — Roles, contraseñas, Google login
+- ✅ `docs/RESULTS_TAB.md` — Consolidación de resultados finales
 - ✅ `README.md` — Puerta de entrada
 - ✅ `docs/IMPLEMENTATION_PLAN.md` — Este archivo
 
@@ -27,9 +33,15 @@ Este documento detalla **qué se implementará en cada fase**, con objetivos, en
 - [x] Toda documentación está clara y sin ambigüedades
 - [x] Usuario entiende qué se va a construir
 - [x] Usuario tiene instrucciones paso a paso para crear Spreadsheet
+- [x] Requisitos de seguridad están documentados
+- [x] Sistema de autenticación está definido
+- [x] Pestaña de resultados está especificada
 
 ### Próximo Paso
-👉 **USUARIO**: Crea el Spreadsheet DEV siguiendo `docs/SETUP.md`
+👉 **USUARIO**:
+1. Confirma decisiones en AUTHENTICATION.md (¿contraseña admin sí/no?)
+2. Confirma decisiones en SECURITY_REQUIREMENTS.md (móviles sí/no?)
+3. Confirma que Spreadsheets están listos: "proceso de admision 3.0 Dev" ✅ LISTO
 
 ---
 
@@ -708,6 +720,27 @@ Gráficos simples:
 - Tasa de aprobación por test
 ```
 
+#### 7.4 Pestaña "Resultados" (NUEVA)
+```
+Vista consolidada de candidatos completados:
+- Tabla: ID, Nombre, Email, T1, T2, T3, Promedio, Estado
+- Filtros por estado (APROBADO/RECHAZADO) y fechas
+- Estadísticas rápidas (Total, % Aprobación, Promedio)
+- Detalle de candidato completado
+- Indicadores de riesgo (copias, cambios ventana, probabilidad IA)
+- Botones: Descargar Certificado, Enviar Email
+
+Función: generateAndApproveResult()
+  - Al aprobar Test 3, genera registro en hoja "Resultados"
+  - Calcula promedio automático
+  - Determina APROBADO (≥75) o RECHAZADO (<75)
+  - Envía email al candidato
+```
+
+**Archivo**: `apps-script-dev/Code.gs`
+**Líneas**: ~1800-1900
+**Dependencias**: Hojas `Test_*`, `Resultados`, función sendNotification()
+
 ---
 
 ### Entregables
@@ -768,9 +801,33 @@ Gráficos simples:
   - [ ] Detalles se cargan correctamente
   - [ ] Acciones funcionan (pausar, aprobar, rechazar)
 
+- [ ] **Seguridad**
+  - [ ] Anti-copia funciona (Ctrl+C/V/X bloqueados)
+  - [ ] Tab switching detectado (máx 3)
+  - [ ] Timer funciona (cuenta atrás 2 horas)
+  - [ ] Auto-envío al agotar tiempo
+  - [ ] OpenAI detecta respuestas IA
+  - [ ] Indicadores de riesgo en Dashboard
+
+- [ ] **Autenticación**
+  - [ ] Login de candidato funciona (contraseña)
+  - [ ] Admin login automático (Google)
+  - [ ] Sessions expiran correctamente (8 horas)
+  - [ ] Bloqueo tras 5 intentos fallidos
+  - [ ] Logs en Login_Audit
+
+- [ ] **Resultados**
+  - [ ] Hoja "Resultados" se genera al aprobar Test 3
+  - [ ] Promedio se calcula correctamente
+  - [ ] Estado (APROBADO/RECHAZADO) es correcto
+  - [ ] Email de resultado se envía
+  - [ ] Pestaña "Resultados" visible en Dashboard
+  - [ ] Estadísticas rápidas mostradas
+  - [ ] Filtros y reportes funcionan
+
 ### Checklist PROD
 
-Después de copiar Code.gs a PROD, repetir todas las pruebas.
+Después de copiar Code.gs a PROD, repetir todas las pruebas (incluyendo seguridad, autenticación, resultados).
 
 ---
 
