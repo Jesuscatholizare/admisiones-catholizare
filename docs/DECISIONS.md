@@ -21,10 +21,11 @@
   - **DEV**: `proceso de admision 3.0 Dev`
   - **PROD**: `proceso de admision 3.0 Prod`
 - **IDs**:
-  - **DEV**: `18jo3Na2fVaCop6S3AA4Cws_QWPJ3q-rFMkEH5QhUGb8`
-  - **PROD**: `1LufXiDNC5KhcAJtZQZ6VApfCyTWLrFuswapgb-oogqA`
+  - **DEV**: `18jo3Na2fVaCop6S3AA4Cws_QWPJ3q-rFMkEH5QhUGb8` ✅ CONFIRMADO
+  - **PROD**: `1LufXiDNC5KhcAJtZQZ6VApfCyTWLrFuswapgb-oogqA` ✅ CREADO
+- **Hojas completadas**: Candidatos, Test_1, Test_2, Test_3, Pausas, Timeline, Notificaciones, Config, Usuarios, Sessions, Login_Audit ✅
 - **Motivo**: Pruebas sin afectar datos reales, sincronización independiente
-- **Status**: ✅ APROBADO (DEV CREADO, esperando PROD)
+- **Status**: ✅ APROBADO (DEV 100% LISTO)
 
 #### D3: Integración con OpenAI
 - **Decisión**: OpenAI API para calificar preguntas abiertas
@@ -102,15 +103,15 @@
 - **Status**: ✅ APROBADO
 - **Implementación**: Fase 7 (Dashboard) incluye lógica JS + backend
 
-#### D12: Sistema de Autenticación
+#### D12: Sistema de Autenticación (CONFIRMADO)
 - **Decisión**: Híbrido Admin + Candidatos
-  - Admin: Basado en Google (Opción 1, sin contraseña)
+  - Admin: Basado en Google (Opción 1+2 - algunos con contraseña, otros sin)
   - Candidatos: Con contraseña SHA-256 (Opción 2)
-- **Nuevas hojas**: Usuarios, Sessions, Login_Audit
+- **Hojas creadas**: Usuarios, Sessions, Login_Audit ✅ LISTO
 - **Seguridad**: Hash SHA-256, límite intentos (5), bloqueo temporal (30 min)
-- **Motivo**: Admin desde red corporativa, candidatos externos
-- **Status**: ⏳ PENDIENTE DECISIÓN USUARIO (confirmación)
-- **Decisión final va a DECISIONS.md cuando usuario confirme**
+- **Acceso móvil**: SÍ permitido (candidatos pueden usar celular/tablet)
+- **Motivo**: Admin mix (algunos Google, otros contraseña), candidatos externos
+- **Status**: ✅ APROBADO Y CONFIRMADO POR USUARIO
 
 #### D13: Pestaña de Resultados
 - **Decisión**: Nueva hoja "Resultados" consolidada
@@ -122,12 +123,36 @@
 - **Status**: ✅ APROBADO
 - **Implementación**: Fase 8 (Testing), función generateAndApproveResult()
 
+#### D14: Categorización de Candidatos Aprobados (NUEVO - CRÍTICO)
+- **Decisión**: Candidatos aprobados se categorizan en 3 niveles
+- **Categorías**:
+  - **Junior**: Promedio 75-79 (fundamentos sólidos)
+  - **Senior**: Promedio 80-89 (muy competente)
+  - **Expert**: Promedio 90+ (excepcional)
+- **Cálculo**: Se determina automáticamente al generar resultado (promedio de 3 tests)
+- **Almacenamiento**: Nueva columna "Categoria" en hoja "Resultados"
+- **Motivo**: Permitir asignación a roles diferenciados en RCCC
+- **Status**: ✅ APROBADO
+
+#### D15: Estados Finales de Candidatos (NUEVO - CRÍTICO)
+- **Decisión**: 4 estados finales posibles
+  - **APROBADO_JUNIOR** (75-79)
+  - **APROBADO_SENIOR** (80-89)
+  - **APROBADO_EXPERT** (90+)
+  - **RECHAZADO** (cualquier test no aprobado por admin)
+  - **INCONCLUISO** (20+ días sin interacción antes de completar)
+- **Rechazados**: Personas que no pasaron algún test o fueron rechazadas al final
+- **Inconclusos**: Candidatos que abandonaron después de 20 días de última interacción
+  - Job programado: Cada día verifica Timeline
+  - Si última interacción > 20 días y estado != Completado → marca como INCONCLUSO
+  - Envía email: "Tu proceso se ha cancelado por inactividad"
+- **Almacenamiento**: Columna "Estado_Final" en "Resultados" y "Candidatos"
+- **Status**: ✅ APROBADO
+
 ## Próximas Decisiones (Pendientes)
-- [ ] ¿Contraseña para admin o solo Google login? → USER CONFIRM
-- [ ] ¿Bloqueo móviles o permitir tests desde celular? → USER CONFIRM
-- [ ] Umbral de probabilidad IA para alerta (70% es correcto?)
 - [ ] Costo estimado de OpenAI API → evaluar si usar gpt-3.5-turbo en lugar de gpt-4o
 - [ ] Definir SLO de entrega de emails (¿1 min? ¿5 min?)
 - [ ] Politica de retención de datos (¿cuánto tiempo guardar registros?)
 - [ ] Backup strategy (manual vs automático)
 - [ ] ¿Certificados digitales al finalizar?
+- [ ] ¿Cómo accede candidato a los tests? (Email link, dashboard, formulario, WebApp)
