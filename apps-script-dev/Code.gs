@@ -1766,6 +1766,407 @@ function getExamData(token, exam) {
 }
 
 // ================================
+// MÓDULO: GENERACIÓN DE RESULTADOS
+// ================================
+
+/**
+ * Genera resultado final cuando admin aprueba Test 3
+ * Calcula promedio, categoriza candidato, envía email
+ */
+function generateAndApproveResult(candidateId, adminNotes = '') {
+  try {
+    // 1. Obtener calificaciones de los 3 tests
+    const test1Score = getTestScore(candidateId, 'Test_1');
+    const test2Score = getTestScore(candidateId, 'Test_2');
+    const test3Score = getTestScore(candidateId, 'Test_3');
+
+    // Validar que todos los tests estén calificados
+    if (test1Score === null || test2Score === null || test3Score === null) {
+      Logger.log(`[generateAndApproveResult] No todos los tests están calificados para ${candidateId}`);
+      return {
+        success: false,
+        error: 'No todos los tests están calificados. Completa los 3 exámenes primero.'
+      };
+    }
+
+    // 2. Calcular promedio
+    const averageScore = (test1Score + test2Score + test3Score) / 3;
+
+    // 3. Determinar estado final y categoría
+    const minScore = CONFIG.exam_e1_min_score || 75;
+    const finalStatus = averageScore >= minScore ? 'APROBADO' : 'RECHAZADO';
+    const category = categorizeCandidateByScore(averageScore);
+
+    // 4. Obtener datos del candidato
+    const candidate = getCandidateData(candidateId);
+    if (!candidate) {
+      return { success: false, error: 'Candidato no encontrado' };
+    }
+
+    // 5. Calcular duración total
+    const registrationDate = new Date(candidate.fecha_registro);
+    const completionDate = new Date();
+    const daysDuration = Math.floor((completionDate - registrationDate) / (1000 * 60 * 60 * 24));
+
+    // 6. Crear/actualizar fila en "Resultados"
+    const resultsSheet = SS.getSheetByName('Resultados');
+    if (!resultsSheet) {
+      Logger.log('[generateAndApproveResult] Hoja "Resultados" no encontrada');
+      return { success: false, error: 'Hoja de resultados no configurada' };
+    }
+
+    // Buscar si ya existe resultado
+    const existingResult = findResultRow(candidateId);
+    const newRow = [
+      candidateId,
+      candidate.nombre,
+      candidate.email,
+      candidate.telefono,
+      test1Score,
+      test2Score,
+      test3Score,
+      Math.round(averageScore * 100) / 100,  // Promedio con 2 decimales
+      finalStatus,
+      category,  // Nueva columna para categoría
+      adminNotes,
+      candidate.fecha_registro,
+      completionDate.toISOString(),
+      daysDuration,
+      finalStatus === 'APROBADO' ? 'SÍ' : 'NO',  // Email enviado (se actualiza después)
+      completionDate.toISOString()
+    ];
+
+    if (existingResult) {
+      // Actualizar resultado existente
+      for (let j = 1; j <= newRow.length; j++) {
+        resultsSheet.getRange(existingResult + 1, j).setValue(newRow[j - 1]);
+      }
+    } else {
+      // Crear nuevo resultado
+      resultsSheet.appendRow(newRow);
+    }
+
+    // 7. Actualizar estado de candidato
+    updateCandidateStatus(candidateId, 'completed');
+    updateCandidateFinalStatus(candidateId, finalStatus, category);
+
+    // 8. Registrar en Timeline
+    addTimelineEvent(candidateId, 'RESULTADO_GENERADO', {
+      test1: test1Score,
+      test2: test2Score,
+      test3: test3Score,
+      promedio: averageScore,
+      estado: finalStatus,
+      categoria: category,
+      admin_notes: adminNotes
+    });
+
+    // 9. Enviar email con resultado
+    const emailResult = sendFinalResultEmail(
+      candidate.email,
+      candidate.nombre,
+      {
+        test1: test1Score,
+        test2: test2Score,
+        test3: test3Score,
+        average: averageScore,
+        status: finalStatus,
+        category: category,
+        registrationDate: candidate.fecha_registro,
+        completionDate: completionDate.toISOString(),
+        daysDuration: daysDuration
+      }
+    );
+
+    // 10. Actualizar estado de email
+    if (emailResult && emailResult.success) {
+      const resultsSheet2 = SS.getSheetByName('Resultados');
+      const resultRow = findResultRow(candidateId);
+      if (resultRow) {
+        resultsSheet2.getRange(resultRow + 1, 15).setValue('SÍ');  // Email_Enviado
+      }
+    }
+
+    Logger.log(`[generateAndApproveResult] ✅ Resultado generado para ${candidateId}: ${finalStatus} (${category})`);
+
+    return {
+      success: true,
+      candidateId: candidateId,
+      averageScore: averageScore,
+      finalStatus: finalStatus,
+      category: category,
+      emailSent: emailResult ? emailResult.success : false
+    };
+
+  } catch (error) {
+    Logger.log(`[generateAndApproveResult Error] ${error.message}`);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Obtiene calificación de un examen específico
+ */
+function getTestScore(candidateId, testSheet) {
+  try {
+    const sheet = SS.getSheetByName(testSheet);
+    if (!sheet) return null;
+
+    const data = sheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === candidateId) {
+        // La columna 11 contiene la calificación numérica
+        const score = parseFloat(data[i][11]);
+        return isNaN(score) ? null : score;
+      }
+    }
+    return null;
+  } catch (error) {
+    Logger.log(`[getTestScore Error] ${error.message}`);
+    return null;
+  }
+}
+
+/**
+ * Obtiene datos del candidato
+ */
+function getCandidateData(candidateId) {
+  try {
+    const sheet = SS.getSheetByName('Candidatos');
+    if (!sheet) return null;
+
+    const data = sheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === candidateId) {
+        return {
+          id: data[i][0],
+          nombre: data[i][1],
+          email: data[i][2],
+          telefono: data[i][3],
+          fecha_registro: data[i][8]
+        };
+      }
+    }
+    return null;
+  } catch (error) {
+    Logger.log(`[getCandidateData Error] ${error.message}`);
+    return null;
+  }
+}
+
+/**
+ * Busca si ya existe un resultado para este candidato
+ */
+function findResultRow(candidateId) {
+  try {
+    const sheet = SS.getSheetByName('Resultados');
+    if (!sheet) return null;
+
+    const data = sheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === candidateId) {
+        return i;
+      }
+    }
+    return null;
+  } catch (error) {
+    Logger.log(`[findResultRow Error] ${error.message}`);
+    return null;
+  }
+}
+
+/**
+ * Categoriza candidato basado en promedio final
+ */
+function categorizeCandidateByScore(score) {
+  const juniorMin = CONFIG.category_junior_min || 75;
+  const juniorMax = CONFIG.category_junior_max || 79;
+  const seniorMin = CONFIG.category_senior_min || 80;
+  const seniorMax = CONFIG.category_senior_max || 89;
+  const expertMin = CONFIG.category_expert_min || 90;
+
+  if (score >= expertMin) {
+    return 'EXPERT';
+  } else if (score >= seniorMin && score <= seniorMax) {
+    return 'SENIOR';
+  } else if (score >= juniorMin && score <= juniorMax) {
+    return 'JUNIOR';
+  } else {
+    return 'REJECTED';
+  }
+}
+
+/**
+ * Actualiza el estado final del candidato en hoja Candidatos
+ */
+function updateCandidateFinalStatus(candidateId, finalStatus, category) {
+  try {
+    const sheet = SS.getSheetByName('Candidatos');
+    const data = sheet.getDataRange().getValues();
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === candidateId) {
+        // Columna 13: Estado Final (APROBADO_JUNIOR, APROBADO_SENIOR, APROBADO_EXPERT, RECHAZADO, INCONCLUISO)
+        const finalStatusValue = finalStatus === 'APROBADO'
+          ? `APROBADO_${category}`
+          : 'RECHAZADO';
+
+        sheet.getRange(i + 1, 13).setValue(finalStatusValue);
+        sheet.getRange(i + 1, 14).setValue(new Date().toISOString());
+        break;
+      }
+    }
+  } catch (error) {
+    Logger.log(`[updateCandidateFinalStatus Error] ${error.message}`);
+  }
+}
+
+/**
+ * Envía email final con resultado
+ */
+function sendFinalResultEmail(email, name, resultData) {
+  try {
+    const {
+      test1, test2, test3, average, status, category,
+      registrationDate, completionDate, daysDuration
+    } = resultData;
+
+    const statusColor = status === 'APROBADO' ? '#4CAF50' : '#f44336';
+    const statusText = status === 'APROBADO' ? '✅ APROBADO' : '❌ RECHAZADO';
+    const categoryText = category ? `(${category.toUpperCase()})` : '';
+
+    const htmlBody = `
+      <html>
+      <head><style>
+        body { font-family: Arial, sans-serif; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header {
+          background: ${statusColor};
+          color: white;
+          padding: 30px;
+          text-align: center;
+          border-radius: 8px 8px 0 0;
+        }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+        .score-box {
+          background: white;
+          padding: 20px;
+          margin: 20px 0;
+          border-radius: 8px;
+          text-align: center;
+          border-left: 4px solid ${statusColor};
+        }
+        .score-item { margin: 10px 0; }
+        .score-label { color: #666; font-size: 0.9em; }
+        .score-value { font-size: 2em; font-weight: bold; color: ${statusColor}; }
+        .average-box { background: ${statusColor}; color: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .average-value { font-size: 3em; font-weight: bold; }
+        table { width: 100%; margin: 20px 0; border-collapse: collapse; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #f5f5f5; font-weight: bold; color: #001A55; }
+        .next-steps { background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 20px 0; }
+        .footer { color: #666; font-size: 0.9em; text-align: center; margin-top: 20px; }
+      </style></head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Tu Resultado Final</h1>
+            <p>Red de Psicólogos Católicos</p>
+          </div>
+          <div class="content">
+            <p>Estimado(a) <strong>${name}</strong>,</p>
+            <p>Nos complace informarte que hemos completado la evaluación de tu proceso de selección.</p>
+
+            <div class="score-box">
+              <div class="score-label">RESULTADO FINAL</div>
+              <div class="score-value" style="color: ${statusColor};">${statusText} ${categoryText}</div>
+            </div>
+
+            <h3>📊 Calificaciones Detalladas</h3>
+            <table>
+              <tr>
+                <th>Evaluación</th>
+                <th>Calificación</th>
+              </tr>
+              <tr>
+                <td>Evaluación 1</td>
+                <td><strong>${test1}/100</strong></td>
+              </tr>
+              <tr>
+                <td>Evaluación 2</td>
+                <td><strong>${test2}/100</strong></td>
+              </tr>
+              <tr>
+                <td>Evaluación 3</td>
+                <td><strong>${test3}/100</strong></td>
+              </tr>
+            </table>
+
+            <div class="average-box">
+              <div style="color: rgba(255,255,255,0.8); margin-bottom: 5px;">PROMEDIO FINAL</div>
+              <div class="average-value">${Math.round(average * 100) / 100}</div>
+            </div>
+
+            ${status === 'APROBADO' ? `
+            <div class="next-steps">
+              <h3>✅ ¡Felicitaciones!</h3>
+              <p>Has superado el proceso de evaluación con éxito. Perteneces a la categoría <strong>${category}</strong>.</p>
+              <p>El siguiente paso es una entrevista personal. Nos comunicaremos contigo en los próximos días para agendar.</p>
+            </div>
+            ` : `
+            <div class="next-steps">
+              <h3>📋 Información Importante</h3>
+              <p>Lamentamos informarte que en esta ocasión tu resultado fue negativo. Si deseas recibir retroalimentación sobre tu desempeño, por favor contacta a nuestro equipo de admisiones.</p>
+              <p><strong>Email de contacto:</strong> ${CONFIG.email_admin || 'admin@rccc.org'}</p>
+            </div>
+            `}
+
+            <h3>📅 Resumen del Proceso</h3>
+            <table>
+              <tr>
+                <th>Concepto</th>
+                <th>Valor</th>
+              </tr>
+              <tr>
+                <td>Fecha de Registro</td>
+                <td>${registrationDate}</td>
+              </tr>
+              <tr>
+                <td>Fecha de Finalización</td>
+                <td>${completionDate.substring(0, 10)}</td>
+              </tr>
+              <tr>
+                <td>Duración Total</td>
+                <td>${daysDuration} días</td>
+              </tr>
+            </table>
+
+            <div class="footer">
+              <p>Sistema de Admisiones RCCC<br>
+              Red de Psicólogos Católicos</p>
+              <p style="margin-top: 20px; color: #999; font-size: 0.8em;">
+                Este es un mensaje automático. Por favor no responder a este email.
+              </p>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const subject = status === 'APROBADO'
+      ? `✅ Resultado: APROBADO - Sistema RCCC`
+      : `📋 Resultado: RECHAZADO - Sistema RCCC`;
+
+    return sendEmail(email, subject, htmlBody);
+
+  } catch (error) {
+    Logger.log(`[sendFinalResultEmail Error] ${error.message}`);
+    return { success: false, error: error.message };
+  }
+}
+
+// ================================
 // TRIGGER: DETECTAR INCONCLUSOS
 // ================================
 
