@@ -386,6 +386,47 @@ function acceptTerms(candidateId) {
 }
 
 /**
+ * Obtiene lista de candidatos para el dashboard administrativo
+ */
+function getCandidatesForAdmin() {
+  try {
+    const sheet = SS.getSheetByName('Candidatos');
+    if (!sheet) {
+      return { success: false, error: 'Sheet Candidatos not found', candidates: [] };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const candidates = [];
+
+    // Header row starts at index 0
+    // Columns: A=candidato_id, B=nombre, C=email, D=telefono, E=fecha_registro, F=scheduled_date, G=status, H=last_interaction, I=final_status, J=final_category, K=admin_assigned_category
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0]) {
+        candidates.push({
+          candidato_id: data[i][0],
+          nombre: data[i][1],
+          email: data[i][2],
+          telefono: data[i][3],
+          fecha_registro: data[i][4],
+          scheduled_date: data[i][5],
+          status: data[i][6],
+          last_interaction: data[i][7],
+          final_status: data[i][8],
+          final_category: data[i][9],
+          admin_assigned_category: data[i][10]
+        });
+      }
+    }
+
+    return { success: true, candidates: candidates };
+  } catch (error) {
+    Logger.log(`[getCandidatesForAdmin Error] ${error.message}`);
+    return { success: false, error: error.message, candidates: [] };
+  }
+}
+
+/**
  * Admin aprueba examen E1/E2/E3
  */
 function approveExamAdmin(candidateId, exam) {

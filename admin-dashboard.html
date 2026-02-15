@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Panel Administrativo — RCCC</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #001A55 0%, #0966FF 100%);
+            color: white;
+            padding: 20px 30px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 1.8em;
+            font-weight: 600;
+        }
+
+        .header-info {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            font-size: 0.9em;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .control-group label {
+            font-weight: 600;
+            color: #001A55;
+            font-size: 0.9em;
+        }
+
+        input[type="text"],
+        input[type="date"],
+        select {
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.9em;
+            font-family: inherit;
+        }
+
+        input[type="text"]:focus,
+        input[type="date"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #0966FF;
+            box-shadow: 0 0 0 3px rgba(9, 102, 255, 0.1);
+        }
+
+        button {
+            padding: 10px 16px;
+            background: linear-gradient(135deg, #001A55 0%, #0966FF 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-size: 0.9em;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(9, 102, 255, 0.3);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .candidates-table {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: #f8f9fa;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #001A55;
+            font-size: 0.9em;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .status-registered {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .status-pending_review_e1 {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .status-awaiting_terms_acceptance {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .status-pending_review_e2 {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .status-pending_review_e3 {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .status-awaiting_interview {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .status-approved_junior,
+        .status-approved_senior,
+        .status-approved_expert {
+            background: #c8e6c9;
+            color: #1b5e20;
+        }
+
+        .status-handoff_completed {
+            background: #80deea;
+            color: #00838f;
+        }
+
+        .status-rejected {
+            background: #ffcdd2;
+            color: #c62828;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-btn {
+            padding: 6px 12px;
+            font-size: 0.85em;
+            background: #0966FF;
+            border: none;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+            background: #0855dd;
+            box-shadow: 0 2px 6px rgba(9, 102, 255, 0.3);
+        }
+
+        .action-btn.reject {
+            background: #dc3545;
+        }
+
+        .action-btn.reject:hover {
+            background: #c82333;
+        }
+
+        .action-btn.handoff {
+            background: #28a745;
+        }
+
+        .action-btn.handoff:hover {
+            background: #218838;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            margin: auto;
+            padding: 40px;
+            border-radius: 16px;
+            max-width: 600px;
+            width: 90%;
+            box-shadow: 0 10px 50px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.3s;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 15px;
+        }
+
+        .modal-header h2 {
+            color: #001A55;
+            font-size: 1.5em;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #999;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #001A55;
+            font-size: 0.95em;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.95em;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #0966FF;
+            box-shadow: 0 0 0 3px rgba(9, 102, 255, 0.1);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+            justify-content: flex-end;
+        }
+
+        .modal-actions button {
+            padding: 12px 24px;
+            font-size: 0.95em;
+        }
+
+        .btn-cancel {
+            background: #e0e0e0 !important;
+            color: #333 !important;
+        }
+
+        .btn-cancel:hover {
+            background: #d0d0d0 !important;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
+        }
+
+        .btn-reject {
+            background: #dc3545 !important;
+        }
+
+        .btn-approve {
+            background: #28a745 !important;
+        }
+
+        .btn-handoff {
+            background: #007bff !important;
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .message.show {
+            display: block;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #0966FF;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            border-left: 4px solid #0966FF;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: 700;
+            color: #001A55;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .action-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 12px 16px;
+            font-weight: 600;
+            color: #666;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            color: #0966FF;
+            border-bottom-color: #0966FF;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎯 Panel Administrativo — RCCC</h1>
+        <div class="header-info">
+            <span>Último refresco: <strong id="lastRefresh">—</strong></span>
+            <button onclick="loadCandidates()" style="background: rgba(255,255,255,0.2); margin-left: 10px;">🔄 Recargar</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Statistics -->
+        <div class="stats" id="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="totalCandidates">0</div>
+                <div class="stat-label">Candidatos Totales</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="pendingCount">0</div>
+                <div class="stat-label">En Revisión</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="approvedCount">0</div>
+                <div class="stat-label">Aprobados</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="rejectedCount">0</div>
+                <div class="stat-label">Rechazados</div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <div class="control-group">
+                <label for="filterStatus">Filtrar por Estado:</label>
+                <select id="filterStatus" onchange="loadCandidates()">
+                    <option value="">Todos</option>
+                    <option value="registered">Registrado</option>
+                    <option value="pending_review_E1">Revisión E1</option>
+                    <option value="awaiting_terms_acceptance">Esperando Términos</option>
+                    <option value="pending_review_E2">Revisión E2</option>
+                    <option value="pending_review_E3">Revisión E3</option>
+                    <option value="awaiting_interview">Esperando Entrevista</option>
+                    <option value="approved_junior">Aprobado Junior</option>
+                    <option value="approved_senior">Aprobado Senior</option>
+                    <option value="approved_expert">Aprobado Expert</option>
+                    <option value="handoff_completed">Handoff Completado</option>
+                    <option value="rejected">Rechazado</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="searchCandidate">Buscar:</label>
+                <input type="text" id="searchCandidate" placeholder="Nombre o Email..." onkeyup="loadCandidates()">
+            </div>
+            <button onclick="loadCandidates()" style="flex: 1; max-width: 150px;">🔍 Buscar</button>
+        </div>
+
+        <!-- Candidates Table -->
+        <div class="candidates-table">
+            <div id="message" class="message"></div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Candidato</th>
+                        <th>Email</th>
+                        <th>Estado</th>
+                        <th>Categoría</th>
+                        <th>Registro</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="candidatesBody">
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 40px;">
+                            <div class="loading"></div> Cargando candidatos...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Advanced Actions Modal -->
+    <div id="advancedActionsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>⚙️ Acciones Avanzadas</h2>
+                <button class="close-btn" onclick="closeAdvancedActionsModal()">×</button>
+            </div>
+
+            <div id="modalMessage" class="message"></div>
+
+            <div class="action-tabs">
+                <button class="tab-btn active" onclick="switchTab('approve')">✅ Aprobar Examen</button>
+                <button class="tab-btn" onclick="switchTab('reject')">❌ Rechazar Examen</button>
+                <button class="tab-btn" onclick="switchTab('categorize')">🏆 Categorizar</button>
+                <button class="tab-btn" onclick="switchTab('handoff')">🚀 Handoff</button>
+                <button class="tab-btn" onclick="switchTab('resend')">📧 Reenviar Email</button>
+            </div>
+
+            <!-- Approve Exam Tab -->
+            <div id="approve-tab" class="tab-content active">
+                <div class="form-group">
+                    <label>Candidato:</label>
+                    <input type="text" id="approveCandidate" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="approveExam">Examen a Aprobar:</label>
+                    <select id="approveExam">
+                        <option value="">Seleccionar...</option>
+                        <option value="E1">Examen E1</option>
+                        <option value="E2">Examen E2</option>
+                        <option value="E3">Examen E3</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Notas (opcional):</label>
+                    <textarea id="approveNotes" placeholder="Agregar notas sobre esta aprobación..."></textarea>
+                </div>
+            </div>
+
+            <!-- Reject Exam Tab -->
+            <div id="reject-tab" class="tab-content">
+                <div class="form-group">
+                    <label>Candidato:</label>
+                    <input type="text" id="rejectCandidate" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="rejectExam">Examen a Rechazar:</label>
+                    <select id="rejectExam">
+                        <option value="">Seleccionar...</option>
+                        <option value="E1">Examen E1</option>
+                        <option value="E2">Examen E2</option>
+                        <option value="E3">Examen E3</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="rejectReason">Razón del Rechazo:</label>
+                    <textarea id="rejectReason" placeholder="Explicar brevemente por qué se rechaza..." required></textarea>
+                </div>
+            </div>
+
+            <!-- Categorize Tab -->
+            <div id="categorize-tab" class="tab-content">
+                <div class="form-group">
+                    <label>Candidato:</label>
+                    <input type="text" id="categorizeCandidate" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="categorySelect">Asignar Categoría:</label>
+                    <select id="categorySelect">
+                        <option value="">Seleccionar...</option>
+                        <option value="JUNIOR">🥉 Junior</option>
+                        <option value="SENIOR">🥈 Senior</option>
+                        <option value="EXPERT">🥇 Expert</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Notas de Categorización:</label>
+                    <textarea id="categoryNotes" placeholder="Justificación de la categoría asignada..."></textarea>
+                </div>
+            </div>
+
+            <!-- Handoff Tab -->
+            <div id="handoff-tab" class="tab-content">
+                <div class="form-group">
+                    <label>Candidato:</label>
+                    <input type="text" id="handoffCandidate" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Categoría Actual:</label>
+                    <input type="text" id="handoffCategory" readonly>
+                </div>
+                <div style="background: #fff3e0; padding: 15px; border-radius: 6px; margin-bottom: 20px; border-left: 4px solid #f57c00;">
+                    <strong>⚠️ Advertencia:</strong><br>
+                    El handoff transferirá al candidato al spreadsheet de Onboarding. Esta acción no se puede deshacer fácilmente.
+                </div>
+                <div class="form-group">
+                    <label>Confirmación:</label>
+                    <textarea id="handoffConfirmation" placeholder="Escribe 'CONFIRMAR HANDOFF' para continuar..." required></textarea>
+                </div>
+            </div>
+
+            <!-- Resend Email Tab -->
+            <div id="resend-tab" class="tab-content">
+                <div class="form-group">
+                    <label>Candidato:</label>
+                    <input type="text" id="resendCandidate" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="emailType">Email a Reenviar:</label>
+                    <select id="emailType">
+                        <option value="">Seleccionar...</option>
+                        <option value="EML-01">EML-01: Bienvenida + E1</option>
+                        <option value="EML-02">EML-02: Aceptación de Términos</option>
+                        <option value="EML-04">EML-04: Examen E2</option>
+                        <option value="EML-05">EML-05: Examen E3</option>
+                        <option value="EML-06">EML-06: Entrevista Personal</option>
+                        <option value="EML-07">EML-07: Aprobación Final</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Notas:</label>
+                    <textarea id="resendNotes" placeholder="Razón por la que se reenvía este email..."></textarea>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeAdvancedActionsModal()">Cancelar</button>
+                <button id="actionBtn" class="btn-approve" onclick="executeAction()">
+                    <span id="actionBtnText">Ejecutar Acción</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentCandidate = null;
+        let currentTab = 'approve';
+        let candidates = [];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadCandidates();
+            setInterval(loadCandidates, 60000); // Auto-refresh every minute
+        });
+
+        function loadCandidates() {
+            const filterStatus = document.getElementById('filterStatus').value;
+            const search = document.getElementById('searchCandidate').value.toLowerCase();
+
+            const tbody = document.getElementById('candidatesBody');
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px;"><div class="loading"></div> Cargando candidatos...</td></tr>';
+
+            // Call Apps Script to get candidates
+            google.script.run.withSuccessHandler((data) => {
+                candidates = data.candidates || [];
+
+                // Update statistics
+                const total = candidates.length;
+                const pending = candidates.filter(c => c.status.includes('pending') || c.status.includes('awaiting')).length;
+                const approved = candidates.filter(c => c.status.includes('approved')).length;
+                const rejected = candidates.filter(c => c.status === 'rejected').length;
+
+                document.getElementById('totalCandidates').textContent = total;
+                document.getElementById('pendingCount').textContent = pending;
+                document.getElementById('approvedCount').textContent = approved;
+                document.getElementById('rejectedCount').textContent = rejected;
+                document.getElementById('lastRefresh').textContent = new Date().toLocaleTimeString('es-ES');
+
+                // Filter candidates
+                let filtered = candidates;
+                if (filterStatus) {
+                    filtered = filtered.filter(c => c.status === filterStatus);
+                }
+                if (search) {
+                    filtered = filtered.filter(c =>
+                        c.nombre.toLowerCase().includes(search) ||
+                        c.email.toLowerCase().includes(search)
+                    );
+                }
+
+                // Render table
+                if (filtered.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color: #999;">No se encontraron candidatos</td></tr>';
+                } else {
+                    tbody.innerHTML = filtered.map(candidate => `
+                        <tr>
+                            <td><strong>${candidate.nombre}</strong></td>
+                            <td>${candidate.email}</td>
+                            <td>
+                                <span class="status-badge status-${candidate.status.toLowerCase()}">
+                                    ${formatStatus(candidate.status)}
+                                </span>
+                            </td>
+                            <td>${candidate.admin_assigned_category || '—'}</td>
+                            <td>${new Date(candidate.fecha_registro).toLocaleDateString('es-ES')}</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="action-btn" onclick="openAdvancedActionsModal('${candidate.candidato_id}', '${candidate.nombre}', '${candidate.status}', '${candidate.admin_assigned_category || ''}')">
+                                        ⚙️ Acciones
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            }).withFailureHandler((error) => {
+                console.error('Error:', error);
+                document.getElementById('candidatesBody').innerHTML = `
+                    <tr><td colspan="6" style="text-align: center; padding: 20px; color: red;">
+                        Error al cargar candidatos. Verifica la consola.
+                    </td></tr>
+                `;
+            }).getCandidatesForAdmin();
+        }
+
+        function formatStatus(status) {
+            const statusMap = {
+                'registered': '📝 Registrado',
+                'pending_review_E1': '⏳ Revisión E1',
+                'awaiting_terms_acceptance': '📋 Esperando Términos',
+                'pending_review_E2': '⏳ Revisión E2',
+                'pending_review_E3': '⏳ Revisión E3',
+                'awaiting_interview': '📅 Esperando Entrevista',
+                'approved_junior': '✅ Aprobado Junior',
+                'approved_senior': '✅ Aprobado Senior',
+                'approved_expert': '✅ Aprobado Expert',
+                'handoff_completed': '✅ Handoff Completado',
+                'rejected': '❌ Rechazado'
+            };
+            return statusMap[status] || status;
+        }
+
+        function openAdvancedActionsModal(candidateId, name, status, category) {
+            currentCandidate = { candidateId, name, status, category };
+
+            // Reset form
+            document.getElementById('approveCandidate').value = name;
+            document.getElementById('rejectCandidate').value = name;
+            document.getElementById('categorizeCandidate').value = name;
+            document.getElementById('handoffCandidate').value = name;
+            document.getElementById('handoffCategory').value = category || 'No asignada';
+            document.getElementById('resendCandidate').value = name;
+
+            // Clear inputs
+            document.getElementById('approveExam').value = '';
+            document.getElementById('rejectExam').value = '';
+            document.getElementById('rejectReason').value = '';
+            document.getElementById('categorySelect').value = '';
+            document.getElementById('categoryNotes').value = '';
+            document.getElementById('handoffConfirmation').value = '';
+            document.getElementById('emailType').value = '';
+            document.getElementById('resendNotes').value = '';
+
+            // Clear messages
+            document.getElementById('modalMessage').className = 'message';
+            document.getElementById('modalMessage').textContent = '';
+
+            document.getElementById('advancedActionsModal').classList.add('show');
+        }
+
+        function closeAdvancedActionsModal() {
+            document.getElementById('advancedActionsModal').classList.remove('show');
+            currentCandidate = null;
+        }
+
+        function switchTab(tab) {
+            // Update buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Update content
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(`${tab}-tab`).classList.add('active');
+
+            currentTab = tab;
+
+            // Update action button
+            const actionBtn = document.getElementById('actionBtn');
+            const actionBtnText = document.getElementById('actionBtnText');
+
+            switch(tab) {
+                case 'approve':
+                    actionBtn.className = 'btn-approve';
+                    actionBtnText.textContent = 'Aprobar Examen';
+                    break;
+                case 'reject':
+                    actionBtn.className = 'btn-reject';
+                    actionBtnText.textContent = 'Rechazar Examen';
+                    break;
+                case 'categorize':
+                    actionBtn.className = 'btn-approve';
+                    actionBtnText.textContent = 'Asignar Categoría';
+                    break;
+                case 'handoff':
+                    actionBtn.className = 'btn-handoff';
+                    actionBtnText.textContent = 'Confirmar Handoff';
+                    break;
+                case 'resend':
+                    actionBtn.className = 'btn-approve';
+                    actionBtnText.textContent = 'Reenviar Email';
+                    break;
+            }
+        }
+
+        function executeAction() {
+            if (!currentCandidate) {
+                showMessage('Error: No se seleccionó candidato', 'error');
+                return;
+            }
+
+            const candidateId = currentCandidate.candidateId;
+            const msg = document.getElementById('modalMessage');
+            const btn = document.getElementById('actionBtn');
+            const originalText = btn.innerHTML;
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> Procesando...';
+
+            switch(currentTab) {
+                case 'approve': {
+                    const exam = document.getElementById('approveExam').value;
+                    if (!exam) {
+                        showMessage('Selecciona un examen', 'error', 'modal');
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                        return;
+                    }
+                    google.script.run.withSuccessHandler((result) => {
+                        if (result.success) {
+                            showMessage(`✅ Examen ${exam} aprobado correctamente`, 'success', 'modal');
+                            setTimeout(() => {
+                                closeAdvancedActionsModal();
+                                loadCandidates();
+                            }, 2000);
+                        } else {
+                            showMessage(`Error: ${result.error}`, 'error', 'modal');
+                            btn.innerHTML = originalText;
+                            btn.disabled = false;
+                        }
+                    }).withFailureHandler((error) => {
+                        showMessage(`Error: ${error}`, 'error', 'modal');
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                    }).approveExamAdmin(candidateId, exam);
+                    break;
+                }
+
+                case 'reject': {
+                    const exam = document.getElementById('rejectExam').value;
+                    const reason = document.getElementById('rejectReason').value;
+                    if (!exam || !reason) {
+                        showMessage('Completa todos los campos', 'error', 'modal');
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                        return;
+                    }
+                    google.script.run.withSuccessHandler((result) => {
+                        if (result.success) {
+                            showMessage(`❌ Examen ${exam} rechazado correctamente`, 'success', 'modal');
+                            setTimeout(() => {
+                                closeAdvancedActionsModal();
+                                loadCandidates();
+                            }, 2000);
+                        } else {
+                            showMessage(`Error: ${result.error}`, 'error', 'modal');
+                            btn.innerHTML = originalText;
+                            btn.disabled = false;
+                        }
+                    }).withFailureHandler((error) => {
+                        showMessage(`Error: ${error}`, 'error', 'modal');
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                    }).rejectExamAdmin(candidateId, exam, reason);
+                    break;
+                }
+
+                case 'categorize': {
+                    const category = document.getElementById('categorySelect').value;
+                    if (!category) {
+                        showMessage('Selecciona una categoría', 'error', 'modal');
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                        return;
+                    }
+                    google.script.run.withSuccessHandler((result) => {
+                        if (result.success) {
+                            showMessage(`✅ Candidato categorizado como ${category}`, 'success', 'modal');
+                            setTimeout(() => {
+                                closeAdvancedActionsModal();
+                                loadCandidates();
+                            }, 2000);
+                        } else {
+                            showMessage(`Error: ${result.error}`, 'error', 'modal');
+                            btn.innerHTML = originalText;
+                            btn.disabled = false;
+                        }
+                    }).withFailureHandler((error) => {
+                        showMessage(`Error: ${error}`, 'error', 'modal');
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                    }).assignCategoryAndApprove(candidateId, category);
+                    break;
+                }
+
+                case 'handoff': {
+                    const confirmation = document.getElementById('handoffConfirmation').value;
+                    if (confirmation.toUpperCase() !== 'CONFIRMAR HANDOFF') {
+                        showMessage('Escribe "CONFIRMAR HANDOFF" para continuar', 'error', 'modal');
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                        return;
+                    }
+                    google.script.run.withSuccessHandler((result) => {
+                        if (result.success) {
+                            showMessage(`✅ Handoff completado correctamente`, 'success', 'modal');
+                            setTimeout(() => {
+                                closeAdvancedActionsModal();
+                                loadCandidates();
+                            }, 2000);
+                        } else {
+                            showMessage(`Error: ${result.error}`, 'error', 'modal');
+                            btn.innerHTML = originalText;
+                            btn.disabled = false;
+                        }
+                    }).withFailureHandler((error) => {
+                        showMessage(`Error: ${error}`, 'error', 'modal');
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                    }).performHandoff(candidateId);
+                    break;
+                }
+
+                case 'resend': {
+                    const emailType = document.getElementById('emailType').value;
+                    if (!emailType) {
+                        showMessage('Selecciona un email para reenviar', 'error', 'modal');
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                        return;
+                    }
+                    // Implementation for resend would go here
+                    showMessage('🚀 Función de reenvío en desarrollo', 'info', 'modal');
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    break;
+                }
+            }
+        }
+
+        function showMessage(text, type, target = 'main') {
+            const msgElement = target === 'modal'
+                ? document.getElementById('modalMessage')
+                : document.getElementById('message');
+            msgElement.textContent = text;
+            msgElement.className = `message show ${type}`;
+        }
+
+        // Close modal on outside click
+        document.getElementById('advancedActionsModal').addEventListener('click', (e) => {
+            if (e.target.id === 'advancedActionsModal') {
+                closeAdvancedActionsModal();
+            }
+        });
+    </script>
+
+    <!-- Google Apps Script API -->
+    <script>
+        // This will be injected by Google Apps Script when deployed as a web app
+        // For now, we'll need to set up the connection properly
+    </script>
+</body>
+</html>
