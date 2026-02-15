@@ -48,9 +48,11 @@ const CONFIG = {
   get email_from() { return getConfig('EMAIL_FROM'); },
   get email_admin() { return getConfig('EMAIL_ADMIN'); },
   get email_support() { return getConfig('EMAIL_SUPPORT'); },
+  get email_handoff() { return getConfig('EMAIL_HANDOFF', 'catholizare@gmail.com'); },
   get brevo_groups() { return getConfig('BREVO_GROUPS', {}); },
   get timezone() { return getConfig('TIMEZONE', 'America/Bogota'); },
   get app_name() { return getConfig('APP_NAME', 'RCCC Evaluaciones'); },
+  get handoff_spreadsheet_id() { return getConfig('HANDOFF_SPREADSHEET_ID', '1YgbnsB0_oLbSlYBUNqhe2V9QqlbEu8nGotYTWHHXW4I'); },
 
   // Examen E1
   get exam_e1_duration() { return getConfig('EXAM_E1_DURATION_MIN', 120); },
@@ -71,6 +73,14 @@ const CONFIG = {
   get category_senior_min() { return getConfig('CATEGORY_SENIOR_MIN', 80); },
   get category_senior_max() { return getConfig('CATEGORY_SENIOR_MAX', 89); },
   get category_expert_min() { return getConfig('CATEGORY_EXPERT_MIN', 90); },
+
+  // Brevo Listas
+  get brevo_list_interesados() { return getConfig('BREVO_LIST_INTERESADOS', 3); },
+  get brevo_list_rechazados() { return getConfig('BREVO_LIST_RECHAZADOS', 4); },
+  get brevo_list_aprobados() { return getConfig('BREVO_LIST_APROBADOS', 5); },
+  get brevo_list_junior() { return getConfig('BREVO_LIST_JUNIOR', 6); },
+  get brevo_list_senior() { return getConfig('BREVO_LIST_SENIOR', 7); },
+  get brevo_list_expert() { return getConfig('BREVO_LIST_EXPERT', 8); },
 
   // Otros
   get inactive_days() { return getConfig('INACTIVE_DAYS_THRESHOLD', 20); }
@@ -206,7 +216,15 @@ function handleRegistration(data) {
       fecha_agendada: scheduled_date
     });
 
-    // Enviar email de bienvenida
+    // Agregar a lista Brevo "interesados"
+    addContactToBrevoList(
+      candidate.email,
+      candidate.name.split(' ')[0] || '',
+      candidate.name.split(' ').slice(1).join(' ') || '',
+      CONFIG.brevo_list_interesados
+    );
+
+    // Enviar email de bienvenida (EML-01)
     sendWelcomeEmail(candidate.email, candidate.name, token, candidate_id, scheduled_date);
 
     // Notificar admin
@@ -287,8 +305,9 @@ function handleExamSubmit(data) {
       flags: JSON.stringify(flags)
     });
 
-    // Actualizar status
-    updateCandidateStatus(candidate_id, `pausado_${exam.toLowerCase()}`);
+    // Actualizar status a pending_review (E1, E2 o E3)
+    const newStatus = `pending_review_${exam}`;
+    updateCandidateStatus(candidate_id, newStatus);
     updateLastInteraction(candidate_id);
 
     // Timeline
@@ -313,6 +332,264 @@ function handleExamSubmit(data) {
   } catch (error) {
     Logger.log(`[ERROR handleExamSubmit] ${error.message}`);
     return jsonResponse(false, `Error: ${error.message}`);
+  }
+}
+
+// ================================
+// MÓDULO: FLUJO DE ADMIN
+// ================================
+
+/**
+ * Candidato acepta términos → Genera Token E2
+ */
+function acceptTerms(candidateId) {
+  try {
+    const sheet = SS.getSheetByName('Candidatos');
+    const data = sheet.getDataRange().getValues();
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === candidateId) {
+        // Obtener datos del candidato
+        const email = data[i][3];
+        const name = data[i][2];
+
+        // Actualizar estado a awaiting_terms_acceptance → pending_review_E2 (tras generar token)
+        // Primero update status
+        sheet.getRange(i + 1, 11).setValue('pending_review_E2'); // Nueva columna para status
+
+        // Generar Token E2
+        const token = generateToken(candidateId, 'E2');
+        const scheduled_date = new Date().toISOString().split('T')[0]; // Hoy mismo
+
+        saveToken(token, candidateId, 'E2', email, name, scheduled_date);
+
+        // Enviar Email E2 (EML-04)
+        sendEmailE2(email, name, token, candidateId);
+
+        // Timeline
+        addTimelineEvent(candidateId, 'TERMINOS_ACEPTADOS', {
+          email: email,
+          token_e2_generado: token
+        });
+
+        Logger.log(`[acceptTerms] ${candidateId} accepted terms, E2 token generated`);
+        return { success: true, token: token };
+      }
+    }
+
+    return { success: false, error: 'Candidato no encontrado' };
+
+  } catch (error) {
+    Logger.log(`[acceptTerms Error] ${error.message}`);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Admin aprueba examen E1/E2/E3
+ */
+function approveExamAdmin(candidateId, exam) {
+  try {
+    const sheet = SS.getSheetByName('Candidatos');
+    const data = sheet.getDataRange().getValues();
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === candidateId) {
+        const email = data[i][3];
+        const name = data[i][2];
+
+        if (exam === 'E1') {
+          // Enviar Email Términos (EML-02)
+          sheet.getRange(i + 1, 11).setValue('awaiting_terms_acceptance');
+          sendEmailTerms(email, name, candidateId);
+
+        } else if (exam === 'E2') {
+          // Generar Token E3
+          const token = generateToken(candidateId, 'E3');
+          const scheduled_date = new Date().toISOString().split('T')[0];
+          saveToken(token, candidateId, 'E3', email, name, scheduled_date);
+
+          sheet.getRange(i + 1, 11).setValue('pending_review_E3');
+          sendEmailE3(email, name, token, candidateId);
+
+        } else if (exam === 'E3') {
+          // Cambiar a awaiting_interview
+          sheet.getRange(i + 1, 11).setValue('awaiting_interview');
+          sendEmailAwaitingInterview(email, name, candidateId);
+        }
+
+        addTimelineEvent(candidateId, `EXAMEN_${exam}_APROBADO_ADMIN`, {
+          exam: exam,
+          fecha: new Date().toISOString()
+        });
+
+        Logger.log(`[approveExamAdmin] ${candidateId} - ${exam} approved`);
+        return { success: true };
+      }
+    }
+
+    return { success: false, error: 'Candidato no encontrado' };
+
+  } catch (error) {
+    Logger.log(`[approveExamAdmin Error] ${error.message}`);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Admin rechaza examen
+ */
+function rejectExamAdmin(candidateId, exam, reason) {
+  try {
+    const sheet = SS.getSheetByName('Candidatos');
+    const data = sheet.getDataRange().getValues();
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === candidateId) {
+        const email = data[i][3];
+        const name = data[i][2];
+
+        // Cambiar a rejected
+        sheet.getRange(i + 1, 11).setValue('rejected');
+
+        // Agregar a lista Brevo rechazados
+        moveContactBetweenLists(
+          email,
+          CONFIG.brevo_list_interesados,
+          CONFIG.brevo_list_rechazados
+        );
+
+        // Enviar email de rechazo
+        sendEmailRejected(email, name, exam, reason);
+
+        addTimelineEvent(candidateId, `EXAMEN_${exam}_RECHAZADO_ADMIN`, {
+          exam: exam,
+          razon: reason
+        });
+
+        Logger.log(`[rejectExamAdmin] ${candidateId} - ${exam} rejected`);
+        return { success: true };
+      }
+    }
+
+    return { success: false };
+
+  } catch (error) {
+    Logger.log(`[rejectExamAdmin Error] ${error.message}`);
+    return { success: false };
+  }
+}
+
+/**
+ * Admin asigna categoría (JUNIOR/SENIOR/EXPERT) y aprueba
+ * Esto mueve el contacto a la lista correspondiente
+ */
+function assignCategoryAndApprove(candidateId, category) {
+  try {
+    const sheet = SS.getSheetByName('Candidatos');
+    const data = sheet.getDataRange().getValues();
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === candidateId) {
+        const email = data[i][3];
+        const name = data[i][2];
+
+        // Determinar list ID según categoría
+        let toListId;
+        if (category === 'JUNIOR') toListId = CONFIG.brevo_list_junior;
+        else if (category === 'SENIOR') toListId = CONFIG.brevo_list_senior;
+        else if (category === 'EXPERT') toListId = CONFIG.brevo_list_expert;
+        else toListId = CONFIG.brevo_list_aprobados;
+
+        // Mover contacto a lista de su categoría
+        moveContactBetweenLists(
+          email,
+          CONFIG.brevo_list_interesados,
+          toListId
+        );
+
+        // Actualizar candidato
+        sheet.getRange(i + 1, 11).setValue('approved_' + category.toLowerCase());
+        sheet.getRange(i + 1, 13).setValue(category); // admin_assigned_category
+
+        // Enviar email de aprobación final (EML-07)
+        sendEmailApproved(email, name, category);
+
+        addTimelineEvent(candidateId, 'CANDIDATO_CATEGORIZADO_APROBADO', {
+          category: category,
+          lista_brevo: toListId
+        });
+
+        Logger.log(`[assignCategoryAndApprove] ${candidateId} - ${category}`);
+        return { success: true, category: category };
+      }
+    }
+
+    return { success: false };
+
+  } catch (error) {
+    Logger.log(`[assignCategoryAndApprove Error] ${error.message}`);
+    return { success: false };
+  }
+}
+
+/**
+ * Handoff: Transferir candidato a Spreadsheet Onboarding
+ */
+function performHandoff(candidateId) {
+  try {
+    const sheet = SS.getSheetByName('Candidatos');
+    const data = sheet.getDataRange().getValues();
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === candidateId) {
+        // Obtener datos del candidato
+        const email = data[i][3];
+        const name = data[i][2];
+        const phone = data[i][4];
+        const category = data[i][13] || '';
+
+        // Acceder a spreadsheet de Onboarding
+        const onboardingSpreadsheet = SpreadsheetApp.openById(CONFIG.handoff_spreadsheet_id);
+        const handoffSheet = onboardingSpreadsheet.getSheetByName('Candidatos') ||
+                           onboardingSpreadsheet.getSheets()[0];
+
+        // Agregar fila en Onboarding
+        const handoffRow = [
+          candidateId,
+          name,
+          email,
+          phone,
+          category,
+          'onboarding_pending',
+          new Date().toISOString(),
+          'Transferido desde Sistema de Selección'
+        ];
+
+        handoffSheet.appendRow(handoffRow);
+
+        // Actualizar status en Selección
+        sheet.getRange(i + 1, 11).setValue('handoff_completed');
+
+        // Notificar a email de Handoff
+        sendHandoffNotification(email, name, category);
+
+        addTimelineEvent(candidateId, 'HANDOFF_COMPLETADO', {
+          email_notificacion: CONFIG.email_handoff,
+          spreadsheet_id: CONFIG.handoff_spreadsheet_id,
+          category: category
+        });
+
+        Logger.log(`[performHandoff] ${candidateId} transferred to onboarding`);
+        return { success: true };
+      }
+    }
+
+    return { success: false };
+
+  } catch (error) {
+    Logger.log(`[performHandoff Error] ${error.message}`);
+    return { success: false, error: error.message };
   }
 }
 
@@ -410,120 +687,203 @@ function markTokenAsUsed(token) {
 // MÓDULO: OPENAI
 // ================================
 
+/**
+ * Carga banco de preguntas desde sheet "Preguntas"
+ * Estructura CSV: Cuestionario, N, id, type, category, ai_check, texto, option_1...5, correct, rubric_max_points, rubric_criteria, rubric_red_flags, rubric_raw
+ */
+function getQuestionsForExam(exam) {
+  try {
+    const sheet = SS.getSheetByName('Preguntas');
+    if (!sheet) {
+      Logger.log(`[getQuestionsForExam] Hoja "Preguntas" no encontrada`);
+      return [];
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const questions = [];
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === exam) {
+        questions.push({
+          n: data[i][1],
+          id: data[i][2],
+          type: data[i][3],                 // "multiple" o "open"
+          category: data[i][4],
+          ai_check: data[i][5] === 'TRUE' || data[i][5] === true,
+          texto: data[i][6],
+          options: [data[i][7], data[i][8], data[i][9], data[i][10], data[i][11]].filter(o => o),
+          correct: data[i][12],             // "option_1", "option_2", etc.
+          rubric_max_points: data[i][14] || 2,
+          rubric_criteria: data[i][16] || '',
+          rubric_red_flags: data[i][17] || '',
+          rubric_raw: data[i][18] || ''
+        });
+      }
+    }
+
+    Logger.log(`[getQuestionsForExam] Cargadas ${questions.length} preguntas para ${exam}`);
+    return questions;
+  } catch (error) {
+    Logger.log(`[getQuestionsForExam Error] ${error.message}`);
+    return [];
+  }
+}
+
+/**
+ * Califica examen con lógica inteligente: múltiple (automática) + abierta (OpenAI)
+ */
 function gradeExam(exam, answers) {
-  const apiKey = CONFIG.openai_api_key;
-  if (!apiKey) {
-    Logger.log('[gradeExam] No OpenAI API key configured');
+  try {
+    const questions = getQuestionsForExam(exam);
+    if (!questions.length) {
+      Logger.log(`[gradeExam] No questions found for ${exam}`);
+      return {
+        score: 0,
+        scores: {},
+        ai_detected: 0,
+        flags: ['ERROR: No questions found']
+      };
+    }
+
+    const results = {
+      score: 0,
+      scores: {},
+      ai_detected: 0,
+      flags: []
+    };
+
+    let totalScore = 0;
+    let maxScore = 0;
+    let aiDetectCount = 0;
+
+    // Evaluar cada pregunta
+    for (const question of questions) {
+      const answer = answers[question.id] || '';
+      maxScore += question.rubric_max_points;
+
+      if (!answer || answer.toString().trim() === '') {
+        results.scores[question.id] = {
+          score: 0,
+          feedback: 'Respuesta vacía',
+          type: question.type
+        };
+        continue;
+      }
+
+      try {
+        if (question.type === 'multiple') {
+          // MÚLTIPLE: Comparar directamente (2pts o 0pts, sin penalización)
+          if (answer === question.correct) {
+            totalScore += question.rubric_max_points;
+            results.scores[question.id] = {
+              score: question.rubric_max_points,
+              feedback: '✓ Correcto',
+              type: 'multiple'
+            };
+          } else {
+            results.scores[question.id] = {
+              score: 0,
+              feedback: '✗ Incorrecto',
+              correct_answer: question.correct,
+              type: 'multiple'
+            };
+          }
+
+        } else if (question.type === 'open') {
+          // ABIERTA: OpenAI evalúa con rúbrica
+          const aiScore = evaluateOpenWithRubric(
+            question,
+            answer.toString()
+          );
+          totalScore += aiScore.score;
+          results.scores[question.id] = aiScore;
+
+          // Detectar IA si está configurado
+          if (question.ai_check && aiScore.ai_probability > 60) {
+            aiDetectCount++;
+            results.flags.push(`Q${question.n}: Posible IA (${aiScore.ai_probability}%)`);
+          }
+        }
+      } catch (e) {
+        Logger.log(`[gradeExam Question Error] Q${question.id}: ${e.message}`);
+        results.scores[question.id] = {
+          score: 0,
+          feedback: `Error: ${e.message}`,
+          type: question.type
+        };
+      }
+    }
+
+    results.score = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
+    results.ai_detected = aiDetectCount;
+    results.maxScore = maxScore;
+    results.totalScore = totalScore;
+
+    Logger.log(`[gradeExam Complete] ${exam}: ${results.score}% | Detected: ${aiDetectCount} | Flags: ${results.flags.length}`);
+    return results;
+
+  } catch (error) {
+    Logger.log(`[gradeExam Fatal Error] ${error.message}`);
     return {
       score: 0,
       scores: {},
       ai_detected: 0,
-      flags: ['ERROR: No API key']
+      flags: [`FATAL ERROR: ${error.message}`]
     };
   }
-
-  const results = {
-    score: 0,
-    scores: {},
-    ai_detected: 0,
-    flags: []
-  };
-
-  let totalScore = 0;
-  let maxScore = 0;
-  let aiDetectCount = 0;
-
-  // Evaluar cada respuesta con OpenAI
-  for (const [questionId, answer] of Object.entries(answers)) {
-    maxScore += 100;
-
-    if (!answer || answer.toString().trim() === '') {
-      results.scores[questionId] = {
-        score: 0,
-        ai_probability: 0,
-        feedback: 'Respuesta vacía'
-      };
-      continue;
-    }
-
-    try {
-      // Evaluar respuesta y detectar IA
-      const gradeData = callOpenAIForGrading(exam, questionId, answer.toString());
-
-      if (gradeData) {
-        const score = gradeData.score || 0;
-        const aiProbability = gradeData.ai_probability || 0;
-
-        totalScore += score;
-        results.scores[questionId] = gradeData;
-
-        // Marcar como IA si probabilidad > 60%
-        if (aiProbability > 60) {
-          aiDetectCount++;
-          results.flags.push(`Q${questionId}: Posible contenido generado por IA (${aiProbability}%)`);
-        }
-
-        // Alertar si respuesta muy breve o genérica
-        if (answer.length < 20) {
-          results.flags.push(`Q${questionId}: Respuesta muy breve`);
-        }
-      }
-    } catch (e) {
-      Logger.log(`[gradeExam Error] ${e.message}`);
-      results.flags.push(`Error calificando Q${questionId}`);
-      results.scores[questionId] = { score: 0, feedback: 'Error en evaluación' };
-    }
-  }
-
-  results.score = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
-  results.ai_detected = aiDetectCount;
-
-  Logger.log(`[gradeExam] ${exam}: Score=${results.score}, AI_Detections=${aiDetectCount}, Flags=${results.flags.length}`);
-  return results;
 }
 
 /**
- * Llama a OpenAI para evaluar una respuesta individual
+ * Evalúa respuesta abierta con OpenAI según rúbrica
  */
-function callOpenAIForGrading(exam, questionId, answer) {
-  const apiKey = CONFIG.openai_api_key;
-  const model = CONFIG.openai_model || 'gpt-4o-mini';
-
-  // Prompt para evaluación psicológica y detección de IA
-  const systemPrompt = `Eres un evaluador experto en selección psicológica para la Red de Psicólogos Católicos (RCCC).
-Debes evaluar respuestas de candidatos en examenes psicológicos con criterios de:
-1. Coherencia y reflexión personal
-2. Claridad en la comunicación
-3. Profundidad del análisis
-4. Alineación con valores católicos
-
-Responde SIEMPRE en JSON con este formato:
-{
-  "score": <0-100>,
-  "ai_probability": <0-100>,
-  "feedback": "<resumen corto>",
-  "strengths": ["fortaleza1", "fortaleza2"],
-  "concerns": ["preocupación1"]
-}`;
-
-  const userPrompt = `Examen: ${exam}
-Pregunta: ${questionId}
-Respuesta del candidato: "${answer}"
-
-Evalúa esta respuesta considerando:
-- ¿Es auténtica y reflexiva o parece generada por IA?
-- ¿Muestra comprensión real del tema?
-- ¿La escritura es natural o demasiado formal/genérica?`;
-
+function evaluateOpenWithRubric(question, answer) {
   try {
+    const apiKey = CONFIG.openai_api_key;
+    if (!apiKey) {
+      return {
+        score: 0,
+        ai_probability: 0,
+        feedback: 'Error: No OpenAI API key',
+        type: 'open'
+      };
+    }
+
+    const prompt = `Eres evaluador de respuestas psicológicas para la Red de Psicólogos Católicos.
+
+PREGUNTA: ${question.texto}
+
+RESPUESTA DEL CANDIDATO: "${answer}"
+
+RÚBRICA DE EVALUACIÓN:
+${question.rubric_criteria}
+
+RED FLAGS (Penalizaciones): ${question.rubric_red_flags}
+
+EVALÚA en JSON:
+{
+  "score": <0-${question.rubric_max_points}>,
+  "ai_probability": <0-100>,
+  "rubric_level": "excelente|aceptable|rechazada",
+  "reasoning": "<breve justificación>",
+  "feedback": "<mensaje para el candidato>"
+}
+
+Devuelve SOLO el JSON sin explicación adicional.`;
+
     const payload = {
-      model: model,
+      model: CONFIG.openai_model || 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
+        {
+          role: 'system',
+          content: 'Eres un evaluador académico experto. Responde SIEMPRE en JSON válido.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
       ],
-      temperature: 0.7,
-      max_tokens: 300
+      temperature: 0.3,
+      max_tokens: 200
     };
 
     const options = {
@@ -537,27 +897,157 @@ Evalúa esta respuesta considerando:
     };
 
     const response = UrlFetchApp.fetch('https://api.openai.com/v1/chat/completions', options);
-    const result = JSON.parse(response.getContentText());
+    const httpCode = response.getResponseCode();
 
-    if (response.getResponseCode() !== 200) {
-      Logger.log(`[OpenAI Error] ${response.getResponseCode()}: ${response.getContentText()}`);
-      return null;
+    if (httpCode !== 200) {
+      Logger.log(`[OpenAI Error] ${httpCode}: ${response.getContentText()}`);
+      return {
+        score: 0,
+        ai_probability: 0,
+        feedback: `OpenAI Error ${httpCode}`,
+        type: 'open'
+      };
     }
 
+    const result = JSON.parse(response.getContentText());
     if (result.choices && result.choices[0]) {
       const content = result.choices[0].message.content;
       const parsed = JSON.parse(content);
-      return parsed;
+
+      return {
+        score: Math.min(parseInt(parsed.score) || 0, question.rubric_max_points),
+        ai_probability: parseInt(parsed.ai_probability) || 0,
+        rubric_level: parsed.rubric_level || 'unknown',
+        reasoning: parsed.reasoning || '',
+        feedback: parsed.feedback || '',
+        type: 'open'
+      };
     }
 
-    return null;
+    return {
+      score: 0,
+      ai_probability: 0,
+      feedback: 'OpenAI: No response',
+      type: 'open'
+    };
+
   } catch (error) {
-    Logger.log(`[callOpenAIForGrading Error] ${error.message}`);
-    return null;
+    Logger.log(`[evaluateOpenWithRubric Error] ${error.message}`);
+    return {
+      score: 0,
+      ai_probability: 0,
+      feedback: `Error: ${error.message}`,
+      type: 'open'
+    };
   }
 }
 
 // ================================
+// MÓDULO: BREVO - GESTIÓN DE LISTAS
+// ================================
+
+/**
+ * Agrega/mueve contacto a una lista de Brevo
+ */
+function addContactToBrevoList(email, firstName, lastName, listId) {
+  try {
+    const apiKey = CONFIG.brevo_api_key;
+    if (!apiKey) {
+      Logger.log('[addContactToBrevoList] No Brevo API key');
+      return { success: false, error: 'No API key' };
+    }
+
+    const payload = {
+      email: email,
+      firstName: firstName || '',
+      lastName: lastName || '',
+      updateEnabled: true,  // Actualiza si existe
+      listIds: [listId]
+    };
+
+    const options = {
+      method: 'post',
+      headers: {
+        'api-key': apiKey,
+        'Content-Type': 'application/json'
+      },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+
+    const response = UrlFetchApp.fetch('https://api.brevo.com/v3/contacts', options);
+    const httpCode = response.getResponseCode();
+
+    if (httpCode === 201 || httpCode === 204) {
+      Logger.log(`[Brevo] Contacto ${email} agregado a lista ${listId}`);
+      return { success: true };
+    } else {
+      Logger.log(`[Brevo Error] ${httpCode}: ${response.getContentText()}`);
+      return { success: false, error: `HTTP ${httpCode}` };
+    }
+  } catch (error) {
+    Logger.log(`[addContactToBrevoList Error] ${error.message}`);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Mueve contacto de una lista a otra (usado cuando se asigna categoría)
+ */
+function moveContactBetweenLists(email, fromListId, toListId) {
+  try {
+    const apiKey = CONFIG.brevo_api_key;
+    if (!apiKey) return { success: false };
+
+    // Remover de lista antigua
+    const removePayload = {
+      emails: [email]
+    };
+
+    const removeOptions = {
+      method: 'post',
+      headers: {
+        'api-key': apiKey,
+        'Content-Type': 'application/json'
+      },
+      payload: JSON.stringify(removePayload),
+      muteHttpExceptions: true
+    };
+
+    UrlFetchApp.fetch(
+      `https://api.brevo.com/v3/contacts/lists/${fromListId}/contacts/remove`,
+      removeOptions
+    );
+
+    // Agregar a nueva lista
+    const addPayload = {
+      emails: [email]
+    };
+
+    const addOptions = {
+      method: 'post',
+      headers: {
+        'api-key': apiKey,
+        'Content-Type': 'application/json'
+      },
+      payload: JSON.stringify(addPayload),
+      muteHttpExceptions: true
+    };
+
+    const response = UrlFetchApp.fetch(
+      `https://api.brevo.com/v3/contacts/lists/${toListId}/contacts/add`,
+      addOptions
+    );
+
+    Logger.log(`[Brevo] Contacto ${email}: ${fromListId} → ${toListId}`);
+    return { success: response.getResponseCode() === 204 };
+
+  } catch (error) {
+    Logger.log(`[moveContactBetweenLists Error] ${error.message}`);
+    return { success: false };
+  }
+}
+
 // MÓDULO: EMAILS (BREVO + RESEND)
 // ================================
 
@@ -2164,6 +2654,129 @@ function sendFinalResultEmail(email, name, resultData) {
     Logger.log(`[sendFinalResultEmail Error] ${error.message}`);
     return { success: false, error: error.message };
   }
+}
+
+/**
+ * EML-02: Email de Términos (después E1 aprobado)
+ */
+function sendEmailTerms(email, name, candidateId) {
+  const htmlBody = `
+    <html><body style="font-family: Arial; color: #333;">
+      <h2>Aceptación de Términos - Red de Psicólogos Católicos</h2>
+      <p>Estimado(a) ${name},</p>
+      <p>¡Felicitaciones! Tu examen E1 ha sido aprobado.</p>
+      <p>Antes de continuar con el Examen E2, necesitamos que aceptes nuestros términos y condiciones.</p>
+      <p><strong><a href="https://profesionales.catholizare.com/terminos/?uid=${candidateId}" style="background: #0966FF; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px;">Leer y Aceptar Términos</a></strong></p>
+      <p>Una vez aceptados, recibirás tu Examen E2.</p>
+    </body></html>
+  `;
+  return sendEmail(email, '✅ Aceptación de Términos - RCCC', htmlBody);
+}
+
+/**
+ * EML-03: Email de Rechazo de E1/E2/E3
+ */
+function sendEmailRejected(email, name, exam, reason) {
+  const htmlBody = `
+    <html><body style="font-family: Arial; color: #333;">
+      <h2>Resultado de Evaluación</h2>
+      <p>Estimado(a) ${name},</p>
+      <p>Lamentamos informarte que tu resultado en el ${exam} no fue favorable para continuar en esta ocasión.</p>
+      <p><strong>Motivo:</strong> ${reason || 'No alcanzó el puntaje mínimo requerido.'}</p>
+      <p>Si tienes preguntas, contacta a: ${CONFIG.email_admin}</p>
+    </body></html>
+  `;
+  return sendEmail(email, `❌ Resultado ${exam} - RCCC`, htmlBody);
+}
+
+/**
+ * EML-04: Email para E2 (después aceptar términos)
+ */
+function sendEmailE2(email, name, token, candidateId) {
+  const htmlBody = `
+    <html><body style="font-family: Arial; color: #333;">
+      <h2>Examen E2 - Red de Psicólogos Católicos</h2>
+      <p>Estimado(a) ${name},</p>
+      <p>Agradecemos tu aceptación de nuestros términos.</p>
+      <p>Ahora tienes acceso a tu <strong>Examen E2</strong>:</p>
+      <p><strong><a href="https://profesionales.catholizare.com/examen/?token=${token}&exam=E2" style="background: #0966FF; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px;">Acceder a Examen E2</a></strong></p>
+      <p><strong>Duración:</strong> 2 horas<br><strong>Fecha límite:</strong> 30 días desde hoy</p>
+    </body></html>
+  `;
+  return sendEmail(email, '📝 Examen E2 - RCCC', htmlBody);
+}
+
+/**
+ * EML-05: Email para E3 (después E2 aprobado)
+ */
+function sendEmailE3(email, name, token, candidateId) {
+  const htmlBody = `
+    <html><body style="font-family: Arial; color: #333;">
+      <h2>Examen E3 - Fase Final</h2>
+      <p>Estimado(a) ${name},</p>
+      <p>¡Excelente! Has aprobado el Examen E2.</p>
+      <p>Aquí viene la fase final del proceso de selección:</p>
+      <p><strong><a href="https://profesionales.catholizare.com/examen/?token=${token}&exam=E3" style="background: #0966FF; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px;">Acceder a Examen E3</a></strong></p>
+      <p>Este es el último paso antes de nuestra evaluación final.</p>
+    </body></html>
+  `;
+  return sendEmail(email, '📋 Examen E3 - RCCC', htmlBody);
+}
+
+/**
+ * EML-06: Email Entrevista (después E3 aprobado)
+ */
+function sendEmailAwaitingInterview(email, name, candidateId) {
+  const htmlBody = `
+    <html><body style="font-family: Arial; color: #333;">
+      <h2>¡Siguiente Paso: Entrevista Personal!</h2>
+      <p>Estimado(a) ${name},</p>
+      <p>¡Felicitaciones! Has completado satisfactoriamente los tres exámenes.</p>
+      <p>El siguiente paso es una <strong>entrevista personal</strong> con nuestro equipo.</p>
+      <p>Nos comunicaremos contigo en los próximos días para agendar una cita.</p>
+      <p>Gracias por tu dedicación en este proceso.</p>
+    </body></html>
+  `;
+  return sendEmail(email, '📅 Entrevista Personal - RCCC', htmlBody);
+}
+
+/**
+ * EML-07: Email Bienvenida Final (después aprobación definitiva)
+ */
+function sendEmailApproved(email, name, category) {
+  const categoryLabel = {
+    'JUNIOR': 'Nivel Junior',
+    'SENIOR': 'Nivel Senior',
+    'EXPERT': 'Nivel Expert'
+  };
+
+  const htmlBody = `
+    <html><body style="font-family: Arial; color: #333;">
+      <h2 style="color: #4CAF50;">¡Bienvenido a la Red!</h2>
+      <p>Estimado(a) ${name},</p>
+      <p>¡Excelente noticia! <strong>¡Has sido aprobado(a)</strong> para formar parte de la Red de Psicólogos Católicos.</p>
+      <p><strong>Tu Nivel:</strong> ${categoryLabel[category] || category}</p>
+      <p>En los próximos días recibirás instrucciones para completar tu proceso de onboarding.</p>
+      <p>Bienvenido(a) a nuestra comunidad de profesionales.</p>
+    </body></html>
+  `;
+  return sendEmail(email, `✅ ¡Aprobado! Bienvenido a RCCC - ${categoryLabel[category]}`, htmlBody);
+}
+
+/**
+ * Email de Notificación para Handoff
+ */
+function sendHandoffNotification(email, name, category) {
+  const htmlBody = `
+    <html><body style="font-family: Arial; color: #333;">
+      <h2>Proceso de Onboarding Iniciado</h2>
+      <p>Estimado(a) ${name},</p>
+      <p>Tu candidatura ha sido transferida al proceso de onboarding.</p>
+      <p>El equipo de incorporación se comunicará contigo en breve.</p>
+      <p>Categoría asignada: <strong>${category}</strong></p>
+    </body></html>
+  `;
+  return sendEmail(CONFIG.email_handoff, `🎉 Handoff Completado: ${name} (${category})`, htmlBody);
 }
 
 // ================================
