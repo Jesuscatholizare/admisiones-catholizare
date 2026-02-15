@@ -411,6 +411,17 @@ function markTokenAsUsed(token) {
 // ================================
 
 function gradeExam(exam, answers) {
+  const apiKey = CONFIG.openai_api_key;
+  if (!apiKey) {
+    Logger.log('[gradeExam] No OpenAI API key configured');
+    return {
+      score: 0,
+      scores: {},
+      ai_detected: 0,
+      flags: ['ERROR: No API key']
+    };
+  }
+
   const results = {
     score: 0,
     scores: {},
@@ -420,26 +431,273 @@ function gradeExam(exam, answers) {
 
   let totalScore = 0;
   let maxScore = 0;
+  let aiDetectCount = 0;
 
+  // Evaluar cada respuesta con OpenAI
   for (const [questionId, answer] of Object.entries(answers)) {
+    maxScore += 100;
+
     if (!answer || answer.toString().trim() === '') {
-      maxScore += 10;
-      results.scores[questionId] = 0;
+      results.scores[questionId] = {
+        score: 0,
+        ai_probability: 0,
+        feedback: 'Respuesta vacía'
+      };
       continue;
     }
 
-    totalScore += 8;
-    maxScore += 10;
-    results.scores[questionId] = 8;
+    try {
+      // Evaluar respuesta y detectar IA
+      const gradeData = callOpenAIForGrading(exam, questionId, answer.toString());
+
+      if (gradeData) {
+        const score = gradeData.score || 0;
+        const aiProbability = gradeData.ai_probability || 0;
+
+        totalScore += score;
+        results.scores[questionId] = gradeData;
+
+        // Marcar como IA si probabilidad > 60%
+        if (aiProbability > 60) {
+          aiDetectCount++;
+          results.flags.push(`Q${questionId}: Posible contenido generado por IA (${aiProbability}%)`);
+        }
+
+        // Alertar si respuesta muy breve o genérica
+        if (answer.length < 20) {
+          results.flags.push(`Q${questionId}: Respuesta muy breve`);
+        }
+      }
+    } catch (e) {
+      Logger.log(`[gradeExam Error] ${e.message}`);
+      results.flags.push(`Error calificando Q${questionId}`);
+      results.scores[questionId] = { score: 0, feedback: 'Error en evaluación' };
+    }
   }
 
-  results.score = Math.round((totalScore / maxScore) * 100);
+  results.score = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
+  results.ai_detected = aiDetectCount;
+
+  Logger.log(`[gradeExam] ${exam}: Score=${results.score}, AI_Detections=${aiDetectCount}, Flags=${results.flags.length}`);
   return results;
 }
 
+/**
+ * Llama a OpenAI para evaluar una respuesta individual
+ */
+function callOpenAIForGrading(exam, questionId, answer) {
+  const apiKey = CONFIG.openai_api_key;
+  const model = CONFIG.openai_model || 'gpt-4o-mini';
+
+  // Prompt para evaluación psicológica y detección de IA
+  const systemPrompt = `Eres un evaluador experto en selección psicológica para la Red de Psicólogos Católicos (RCCC).
+Debes evaluar respuestas de candidatos en examenes psicológicos con criterios de:
+1. Coherencia y reflexión personal
+2. Claridad en la comunicación
+3. Profundidad del análisis
+4. Alineación con valores católicos
+
+Responde SIEMPRE en JSON con este formato:
+{
+  "score": <0-100>,
+  "ai_probability": <0-100>,
+  "feedback": "<resumen corto>",
+  "strengths": ["fortaleza1", "fortaleza2"],
+  "concerns": ["preocupación1"]
+}`;
+
+  const userPrompt = `Examen: ${exam}
+Pregunta: ${questionId}
+Respuesta del candidato: "${answer}"
+
+Evalúa esta respuesta considerando:
+- ¿Es auténtica y reflexiva o parece generada por IA?
+- ¿Muestra comprensión real del tema?
+- ¿La escritura es natural o demasiado formal/genérica?`;
+
+  try {
+    const payload = {
+      model: model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      temperature: 0.7,
+      max_tokens: 300
+    };
+
+    const options = {
+      method: 'post',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+
+    const response = UrlFetchApp.fetch('https://api.openai.com/v1/chat/completions', options);
+    const result = JSON.parse(response.getContentText());
+
+    if (response.getResponseCode() !== 200) {
+      Logger.log(`[OpenAI Error] ${response.getResponseCode()}: ${response.getContentText()}`);
+      return null;
+    }
+
+    if (result.choices && result.choices[0]) {
+      const content = result.choices[0].message.content;
+      const parsed = JSON.parse(content);
+      return parsed;
+    }
+
+    return null;
+  } catch (error) {
+    Logger.log(`[callOpenAIForGrading Error] ${error.message}`);
+    return null;
+  }
+}
+
 // ================================
-// MÓDULO: EMAILS
+// MÓDULO: EMAILS (BREVO + RESEND)
 // ================================
+
+/**
+ * Envía email usando Brevo (primario) o Resend (fallback)
+ */
+function sendEmail(to, subject, htmlBody, templateId = null) {
+  const brevoKey = CONFIG.brevo_api_key;
+  const resendKey = CONFIG.resend_api_key;
+
+  // Intentar con Brevo primero
+  if (brevoKey) {
+    const brevoResult = sendViaBrevo(to, subject, htmlBody, brevoKey);
+    if (brevoResult.success) {
+      logNotificationEvent(to, subject, 'BREVO', 'SENT');
+      return { success: true, provider: 'BREVO', messageId: brevoResult.messageId };
+    }
+    Logger.log(`[Email] Brevo falló: ${brevoResult.error}`);
+  }
+
+  // Fallback a Resend
+  if (resendKey) {
+    const resendResult = sendViaResend(to, subject, htmlBody, resendKey);
+    if (resendResult.success) {
+      logNotificationEvent(to, subject, 'RESEND', 'SENT');
+      return { success: true, provider: 'RESEND', messageId: resendResult.messageId };
+    }
+    Logger.log(`[Email] Resend falló: ${resendResult.error}`);
+  }
+
+  // Fallback a MailApp como último recurso
+  try {
+    MailApp.sendEmail(to, subject, htmlBody.replace(/<[^>]*>/g, ''), { htmlBody: htmlBody });
+    logNotificationEvent(to, subject, 'MAILAPP', 'SENT');
+    Logger.log(`[Email] Enviado vía MailApp a ${to}`);
+    return { success: true, provider: 'MAILAPP' };
+  } catch (e) {
+    logNotificationEvent(to, subject, 'FAILED', 'ERROR: ' + e.message);
+    Logger.log(`[Email] Error crítico: ${e.message}`);
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Envía email vía Brevo API
+ */
+function sendViaBrevo(to, subject, htmlBody, apiKey) {
+  try {
+    const sender = {
+      name: 'RCCC Evaluaciones',
+      email: CONFIG.email_from || 'noreply@rccc.org'
+    };
+
+    const payload = {
+      to: [{ email: to }],
+      sender: sender,
+      subject: subject,
+      htmlContent: htmlBody
+    };
+
+    const options = {
+      method: 'post',
+      headers: {
+        'api-key': apiKey,
+        'Content-Type': 'application/json'
+      },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+
+    const response = UrlFetchApp.fetch('https://api.brevo.com/v3/smtp/email', options);
+    const result = JSON.parse(response.getContentText());
+
+    if (response.getResponseCode() === 201) {
+      Logger.log(`[Brevo] Email enviado. ID: ${result.messageId}`);
+      return { success: true, messageId: result.messageId };
+    } else {
+      return { success: false, error: `Brevo: ${response.getResponseCode()}` };
+    }
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Envía email vía Resend API (fallback)
+ */
+function sendViaResend(to, subject, htmlBody, apiKey) {
+  try {
+    const payload = {
+      from: CONFIG.email_from || 'noreply@rccc.org',
+      to: to,
+      subject: subject,
+      html: htmlBody
+    };
+
+    const options = {
+      method: 'post',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+
+    const response = UrlFetchApp.fetch('https://api.resend.com/emails', options);
+    const result = JSON.parse(response.getContentText());
+
+    if (response.getResponseCode() === 200) {
+      Logger.log(`[Resend] Email enviado. ID: ${result.id}`);
+      return { success: true, messageId: result.id };
+    } else {
+      return { success: false, error: `Resend: ${response.getResponseCode()}` };
+    }
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Registra intentos de envío de email en Timeline
+ */
+function logNotificationEvent(email, subject, provider, status) {
+  try {
+    const sheet = SS.getSheetByName('Notificaciones');
+    if (sheet) {
+      sheet.appendRow([
+        new Date(),
+        email,
+        subject,
+        provider,
+        status,
+        new Date().toISOString()
+      ]);
+    }
+  } catch (error) {
+    Logger.log(`[logNotificationEvent Error] ${error.message}`);
+  }
+}
 
 function sendWelcomeEmail(email, name, token, candidate_id, scheduled_date) {
   try {
@@ -452,22 +710,48 @@ function sendWelcomeEmail(email, name, token, candidate_id, scheduled_date) {
     });
 
     const htmlBody = `
-      <h2>¡Bienvenido ${name}!</h2>
-      <p>Tu registro ha sido exitoso.</p>
-      <p>Tu examen E1 está agendado para: <strong>${formatted_date}</strong></p>
-      <p><a href="${exam_url}"><button>Acceder al Examen</button></a></p>
-      <p>Si el botón no funciona, copia este enlace:<br>${exam_url}</p>
+      <html>
+      <head><style>
+        body { font-family: Arial, sans-serif; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #001A55 0%, #0966FF 100%); color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background: #f9f9f9; padding: 20px; }
+        .btn { display: inline-block; background: #0966FF; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin: 20px 0; }
+        .footer { color: #666; font-size: 12px; margin-top: 20px; }
+      </style></head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>¡Bienvenido ${name}!</h1>
+            <p>Red de Psicólogos Católicos</p>
+          </div>
+          <div class="content">
+            <p>Tu registro ha sido exitoso en nuestro sistema de evaluación.</p>
+            <p><strong>Tu examen E1 está agendado para:</strong><br>${formatted_date}</p>
+            <p>Accede al examen haciendo clic en el botón:</p>
+            <a href="${exam_url}" class="btn">Acceder al Examen E1</a>
+            <p style="font-size: 12px;">Si el botón no funciona, copia este enlace:<br><code>${exam_url}</code></p>
+            <hr>
+            <p style="color: #666; font-size: 12px;">
+              <strong>Instrucciones importantes:</strong><br>
+              • Duración: 2 horas<br>
+              • No se permite copiar/pegar<br>
+              • Máximo 3 cambios de ventana<br>
+              • Si excedes el tiempo, se enviará automáticamente
+            </p>
+          </div>
+          <div class="footer">
+            <p>Sistema de Admisiones RCCC</p>
+          </div>
+        </div>
+      </body>
+      </html>
     `;
 
-    MailApp.sendEmail({
-      to: email,
-      subject: `¡Bienvenido a ${CONFIG.app_name}!`,
-      htmlBody: htmlBody
-    });
-
-    Logger.log(`[Email] Bienvenida enviada a ${email}`);
+    return sendEmail(email, `¡Bienvenido a ${CONFIG.app_name}!`, htmlBody);
   } catch (error) {
-    Logger.log(`[Email Error] ${error.message}`);
+    Logger.log(`[sendWelcomeEmail Error] ${error.message}`);
+    return { success: false, error: error.message };
   }
 }
 
@@ -570,41 +854,80 @@ function saveExamResult(candidate_id, exam, resultData) {
 function notifyAdminNewCandidate(name, email, candidate_id, scheduled_date) {
   try {
     const htmlBody = `
-      <h2>🆕 Nuevo Candidato Registrado</h2>
-      <p><strong>Nombre:</strong> ${name}</p>
-      <p><strong>Email:</strong> ${email}</p>
-      <p><strong>ID:</strong> ${candidate_id}</p>
-      <p><strong>Examen agendado:</strong> ${scheduled_date}</p>
+      <html>
+      <head><style>
+        body { font-family: Arial, sans-serif; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #4CAF50; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background: #f9f9f9; padding: 20px; }
+        .field { margin: 10px 0; }
+        .label { font-weight: bold; color: #001A55; }
+      </style></head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🆕 Nuevo Candidato Registrado</h1>
+          </div>
+          <div class="content">
+            <div class="field"><span class="label">Nombre:</span> ${name}</div>
+            <div class="field"><span class="label">Email:</span> ${email}</div>
+            <div class="field"><span class="label">ID Candidato:</span> ${candidate_id}</div>
+            <div class="field"><span class="label">Examen agendado:</span> ${scheduled_date}</div>
+            <hr>
+            <p style="color: #666; font-size: 12px;">Sistema de Admisiones RCCC</p>
+          </div>
+        </div>
+      </body>
+      </html>
     `;
 
-    MailApp.sendEmail({
-      to: CONFIG.email_admin,
-      subject: `🆕 Nuevo Candidato: ${name}`,
-      htmlBody: htmlBody
-    });
+    return sendEmail(CONFIG.email_admin, `🆕 Nuevo Candidato: ${name}`, htmlBody);
   } catch (error) {
     Logger.log(`[notifyAdminNewCandidate Error] ${error.message}`);
+    return { success: false, error: error.message };
   }
 }
 
 function notifyAdminExamCompleted(name, email, exam, score, verdict, flags) {
   try {
+    const verdictColor = verdict === 'pass' ? '#4CAF50' : (verdict === 'review' ? '#FF9800' : '#f44336');
+    const verdictText = verdict === 'pass' ? 'APROBADO ✅' : (verdict === 'review' ? 'REVISAR ⚠️' : 'NO APROBADO ❌');
+
     const htmlBody = `
-      <h2>📝 Examen ${exam} Completado</h2>
-      <p><strong>Candidato:</strong> ${name}</p>
-      <p><strong>Email:</strong> ${email}</p>
-      <p><strong>Puntaje:</strong> ${score}%</p>
-      <p><strong>Veredicto:</strong> ${verdict.toUpperCase()}</p>
-      <p><strong>Flags:</strong> ${flags.join(', ') || 'Ninguno'}</p>
+      <html>
+      <head><style>
+        body { font-family: Arial, sans-serif; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: ${verdictColor}; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background: #f9f9f9; padding: 20px; }
+        .field { margin: 10px 0; }
+        .label { font-weight: bold; color: #001A55; }
+        .score { font-size: 2em; text-align: center; color: ${verdictColor}; margin: 20px 0; }
+        .flags { background: #fff3cd; border-left: 4px solid #ffc107; padding: 10px; margin: 10px 0; }
+      </style></head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>📝 Examen ${exam} Completado</h1>
+          </div>
+          <div class="content">
+            <div class="field"><span class="label">Candidato:</span> ${name}</div>
+            <div class="field"><span class="label">Email:</span> ${email}</div>
+            <div class="score">${score}%</div>
+            <div class="field" style="text-align: center; font-size: 1.2em; color: ${verdictColor};"><strong>${verdictText}</strong></div>
+            ${flags && flags.length > 0 ? `<div class="flags"><strong>Alertas:</strong><br>${flags.join('<br>')}</div>` : ''}
+            <hr>
+            <p style="color: #666; font-size: 12px;">Sistema de Admisiones RCCC</p>
+          </div>
+        </div>
+      </body>
+      </html>
     `;
 
-    MailApp.sendEmail({
-      to: CONFIG.email_admin,
-      subject: `📝 ${exam} Completado - ${name}`,
-      htmlBody: htmlBody
-    });
+    return sendEmail(CONFIG.email_admin, `📝 ${exam} Completado - ${name}`, htmlBody);
   } catch (error) {
     Logger.log(`[notifyAdminExamCompleted Error] ${error.message}`);
+    return { success: false, error: error.message };
   }
 }
 
@@ -878,25 +1201,542 @@ function renderAdminDashboard() {
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1">
-      <title>Dashboard Admin</title>
+      <title>Dashboard Admin - RCCC</title>
       <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; background: #f5f5f5; }
-        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-        h1 { color: #001A55; margin-bottom: 20px; }
+        html, body { height: 100%; }
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+          background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
+          color: #333;
+        }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+        /* Header */
+        .header {
+          background: linear-gradient(135deg, #001A55 0%, #0966FF 100%);
+          color: white;
+          padding: 30px;
+          border-radius: 12px;
+          margin-bottom: 30px;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header h1 { margin-bottom: 10px; }
+        .header p { opacity: 0.9; }
+
+        /* Stats Grid */
+        .stats-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 20px;
+          margin-bottom: 30px;
+        }
+        .stat-card {
+          background: white;
+          padding: 20px;
+          border-radius: 8px;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          text-align: center;
+        }
+        .stat-number { font-size: 2.5em; font-weight: bold; color: #0966FF; }
+        .stat-label { color: #666; margin-top: 10px; font-size: 0.9em; }
+
+        /* Tabs */
+        .tabs {
+          display: flex;
+          gap: 10px;
+          margin-bottom: 20px;
+          border-bottom: 2px solid #ddd;
+        }
+        .tab {
+          padding: 12px 24px;
+          background: none;
+          border: none;
+          cursor: pointer;
+          color: #666;
+          font-size: 1em;
+          border-bottom: 3px solid transparent;
+          transition: all 0.3s;
+        }
+        .tab.active {
+          color: #0966FF;
+          border-bottom-color: #0966FF;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Filters */
+        .filters {
+          display: flex;
+          gap: 10px;
+          margin-bottom: 20px;
+          flex-wrap: wrap;
+        }
+        .filter-input {
+          padding: 10px 15px;
+          border: 1px solid #ddd;
+          border-radius: 6px;
+          flex: 1;
+          min-width: 150px;
+        }
+
+        /* Table */
+        .table-container {
+          background: white;
+          border-radius: 8px;
+          overflow: hidden;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+        }
+        th {
+          background: #f5f5f5;
+          padding: 15px;
+          text-align: left;
+          font-weight: 600;
+          color: #001A55;
+          border-bottom: 2px solid #ddd;
+        }
+        td {
+          padding: 15px;
+          border-bottom: 1px solid #eee;
+        }
+        tr:hover { background: #fafafa; }
+
+        /* Status badges */
+        .badge {
+          display: inline-block;
+          padding: 4px 12px;
+          border-radius: 20px;
+          font-size: 0.85em;
+          font-weight: 600;
+        }
+        .badge.pass { background: #d4edda; color: #155724; }
+        .badge.fail { background: #f8d7da; color: #721c24; }
+        .badge.review { background: #fff3cd; color: #856404; }
+
+        /* Buttons */
+        button {
+          padding: 10px 20px;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+          font-weight: 600;
+          transition: all 0.2s;
+        }
+        .btn-primary {
+          background: #0966FF;
+          color: white;
+        }
+        .btn-primary:hover { background: #001A55; }
+        .btn-secondary {
+          background: #6c757d;
+          color: white;
+        }
+        .btn-secondary:hover { background: #5a6268; }
+
+        /* Modal */
+        .modal {
+          display: none;
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0, 0, 0, 0.5);
+          z-index: 1000;
+          justify-content: center;
+          align-items: center;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+          background: white;
+          padding: 30px;
+          border-radius: 12px;
+          max-width: 600px;
+          width: 90%;
+          max-height: 80vh;
+          overflow-y: auto;
+        }
+        .modal-header { font-size: 1.5em; margin-bottom: 20px; }
+        .modal-body { margin-bottom: 20px; }
+        .modal-footer { display: flex; gap: 10px; justify-content: flex-end; }
+
+        .loading { text-align: center; color: #999; padding: 40px; }
+        .error { color: #721c24; background: #f8d7da; padding: 15px; border-radius: 6px; margin-bottom: 20px; }
       </style>
     </head>
     <body>
       <div class="container">
-        <h1>Dashboard Admin</h1>
-        <p>Bienvenido al panel de administración.</p>
-        <p style="margin-top: 20px; color: #666;">Funcionalidad en desarrollo...</p>
+        <div class="header">
+          <h1>Dashboard Admin</h1>
+          <p>Red de Psicólogos Católicos - Sistema de Selección de Candidatos</p>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-number" id="total-candidates">0</div>
+            <div class="stat-label">Candidatos Totales</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="completed-exams">0</div>
+            <div class="stat-label">Exámenes Completados</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="approved-candidates">0</div>
+            <div class="stat-label">Aprobados</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="pending-review">0</div>
+            <div class="stat-label">Pendientes de Revisión</div>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <button class="tab active" onclick="showTab('candidates')">Candidatos</button>
+          <button class="tab" onclick="showTab('exams')">Exámenes</button>
+          <button class="tab" onclick="showTab('results')">Resultados</button>
+        </div>
+
+        <!-- TAB: Candidatos -->
+        <div id="candidates" class="tab-content active">
+          <div class="filters">
+            <input type="text" class="filter-input" id="search-candidate" placeholder="Buscar por nombre o email...">
+            <select class="filter-input" id="filter-status">
+              <option value="">Todos los estados</option>
+              <option value="registered">Registrado</option>
+              <option value="in_progress">En Progreso</option>
+              <option value="completed">Completado</option>
+              <option value="incomplete">Incompleto</option>
+            </select>
+          </div>
+          <div class="table-container">
+            <table id="candidates-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Nombre</th>
+                  <th>Email</th>
+                  <th>Estado</th>
+                  <th>Fecha Registro</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="candidates-body">
+                <tr><td colspan="6" class="loading">Cargando candidatos...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- TAB: Exámenes -->
+        <div id="exams" class="tab-content">
+          <div class="filters">
+            <select class="filter-input" id="filter-exam">
+              <option value="">Todos los exámenes</option>
+              <option value="E1">Examen E1</option>
+              <option value="E2">Examen E2</option>
+              <option value="E3">Examen E3</option>
+            </select>
+            <select class="filter-input" id="filter-verdict">
+              <option value="">Todos los resultados</option>
+              <option value="pass">Aprobado</option>
+              <option value="fail">No Aprobado</option>
+              <option value="review">Por Revisar</option>
+            </select>
+          </div>
+          <div class="table-container">
+            <table id="exams-table">
+              <thead>
+                <tr>
+                  <th>Candidato</th>
+                  <th>Examen</th>
+                  <th>Puntaje</th>
+                  <th>Veredicto</th>
+                  <th>Fecha</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="exams-body">
+                <tr><td colspan="6" class="loading">Cargando exámenes...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- TAB: Resultados -->
+        <div id="results" class="tab-content">
+          <div class="table-container">
+            <table id="results-table">
+              <thead>
+                <tr>
+                  <th>Candidato</th>
+                  <th>Prom. E1</th>
+                  <th>Prom. E2</th>
+                  <th>Prom. E3</th>
+                  <th>Promedio Final</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="results-body">
+                <tr><td colspan="7" class="loading">Cargando resultados...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
+
+      <!-- Modal para detalles -->
+      <div id="detailModal" class="modal">
+        <div class="modal-content">
+          <div class="modal-header">Detalles del Candidato</div>
+          <div class="modal-body" id="modal-body">
+            <!-- Contenido dinámico -->
+          </div>
+          <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeModal()">Cerrar</button>
+          </div>
+        </div>
+      </div>
+
+      <script>
+        // Cargar datos iniciales
+        function loadDashboard() {
+          google.script.run.withSuccessHandler(updateStats).getDashboardStats();
+          google.script.run.withSuccessHandler(loadCandidates).getAllCandidates();
+        }
+
+        function showTab(tabName) {
+          // Ocultar todos los tabs
+          document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+          document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+
+          // Mostrar tab seleccionado
+          document.getElementById(tabName).classList.add('active');
+          event.target.classList.add('active');
+
+          if (tabName === 'exams') {
+            google.script.run.withSuccessHandler(loadExams).getAllExams();
+          } else if (tabName === 'results') {
+            google.script.run.withSuccessHandler(loadResults).getAllResults();
+          }
+        }
+
+        function updateStats(stats) {
+          document.getElementById('total-candidates').textContent = stats.totalCandidates || 0;
+          document.getElementById('completed-exams').textContent = stats.completedExams || 0;
+          document.getElementById('approved-candidates').textContent = stats.approvedCandidates || 0;
+          document.getElementById('pending-review').textContent = stats.pendingReview || 0;
+        }
+
+        function loadCandidates(data) {
+          const tbody = document.getElementById('candidates-body');
+          if (!data || data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6">No hay candidatos</td></tr>';
+            return;
+          }
+          tbody.innerHTML = data.map(c => \`
+            <tr>
+              <td>\${c.id}</td>
+              <td>\${c.nombre}</td>
+              <td>\${c.email}</td>
+              <td><span class="badge \${c.estado === 'completed' ? 'pass' : 'fail'}">\${c.estado}</span></td>
+              <td>\${c.fecha_registro}</td>
+              <td><button class="btn-primary" onclick="showCandidateDetails('\${c.id}')">Ver</button></td>
+            </tr>
+          \`).join('');
+        }
+
+        function loadExams(data) {
+          const tbody = document.getElementById('exams-body');
+          if (!data || data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6">No hay exámenes</td></tr>';
+            return;
+          }
+          tbody.innerHTML = data.map(e => \`
+            <tr>
+              <td>\${e.nombre}</td>
+              <td>\${e.exam}</td>
+              <td>\${e.score}%</td>
+              <td><span class="badge \${e.verdict}">\${e.verdict}</span></td>
+              <td>\${e.fecha}</td>
+              <td><button class="btn-primary" onclick="reviewExam('\${e.id}', '\${e.exam}')">Revisar</button></td>
+            </tr>
+          \`).join('');
+        }
+
+        function loadResults(data) {
+          const tbody = document.getElementById('results-body');
+          if (!data || data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7">No hay resultados</td></tr>';
+            return;
+          }
+          tbody.innerHTML = data.map(r => \`
+            <tr>
+              <td>\${r.nombre}</td>
+              <td>\${r.e1 || '-'}</td>
+              <td>\${r.e2 || '-'}</td>
+              <td>\${r.e3 || '-'}</td>
+              <td><strong>\${r.promedio || '-'}</strong></td>
+              <td><span class="badge \${r.estado === 'APROBADO' ? 'pass' : 'fail'}">\${r.estado}</span></td>
+              <td><button class="btn-primary" onclick="approveResult('\${r.id}')">Aprobar</button></td>
+            </tr>
+          \`).join('');
+        }
+
+        function showCandidateDetails(candidateId) {
+          google.script.run.withSuccessHandler(showModal).getCandidateDetails(candidateId);
+        }
+
+        function showModal(html) {
+          document.getElementById('modal-body').innerHTML = html;
+          document.getElementById('detailModal').classList.add('active');
+        }
+
+        function closeModal() {
+          document.getElementById('detailModal').classList.remove('active');
+        }
+
+        function reviewExam(candidateId, exam) {
+          alert('Funcionalidad en desarrollo: Revisar ' + exam);
+        }
+
+        function approveResult(resultId) {
+          if (confirm('¿Confirmar aprobación de resultado?')) {
+            google.script.run.withSuccessHandler(loadDashboard).approveResult(resultId);
+            alert('Resultado aprobado');
+          }
+        }
+
+        // Cargar al abrir
+        window.addEventListener('load', loadDashboard);
+      </script>
     </body>
     </html>
   `;
 
-  return HtmlService.createHtmlOutput(html).setWidth(1200).setHeight(600);
+  return HtmlService.createHtmlOutput(html).setWidth(1400).setHeight(1000);
+}
+
+/**
+ * Funciones backend para el dashboard
+ */
+function getDashboardStats() {
+  const candidatosSheet = SS.getSheetByName('Candidatos');
+  const data = candidatosSheet.getDataRange().getValues();
+
+  let totalCandidates = data.length - 1;
+  let completedExams = 0;
+  let approvedCandidates = 0;
+  let pendingReview = 0;
+
+  for (let i = 1; i < data.length; i++) {
+    const status = data[i][10];
+    if (status === 'completed') completedExams++;
+    if (status === 'approved') approvedCandidates++;
+    if (status === 'review') pendingReview++;
+  }
+
+  return {
+    totalCandidates,
+    completedExams,
+    approvedCandidates,
+    pendingReview
+  };
+}
+
+function getAllCandidates() {
+  const sheet = SS.getSheetByName('Candidatos');
+  const data = sheet.getDataRange().getValues();
+
+  return data.slice(1).map(row => ({
+    id: row[0],
+    nombre: row[1],
+    email: row[2],
+    telefono: row[3],
+    estado: row[10],
+    fecha_registro: row[8]
+  }));
+}
+
+function getAllExams() {
+  const sheets = ['Test_1', 'Test_2', 'Test_3'];
+  const exams = [];
+
+  for (const sheetName of sheets) {
+    try {
+      const sheet = SS.getSheetByName(sheetName);
+      const data = sheet.getDataRange().getValues();
+
+      for (let i = 1; i < data.length; i++) {
+        exams.push({
+          id: data[i][0],
+          nombre: data[i][0],
+          exam: sheetName.replace('Test_', 'E'),
+          score: data[i][11],
+          verdict: data[i][10],
+          fecha: data[i][3]
+        });
+      }
+    } catch (e) {
+      Logger.log(`Error reading ${sheetName}: ${e.message}`);
+    }
+  }
+
+  return exams;
+}
+
+function getAllResults() {
+  const sheet = SS.getSheetByName('Resultados');
+  if (!sheet) return [];
+
+  const data = sheet.getDataRange().getValues();
+  return data.slice(1).map(row => ({
+    id: row[0],
+    nombre: row[1],
+    e1: row[4],
+    e2: row[5],
+    e3: row[6],
+    promedio: row[7],
+    estado: row[8]
+  }));
+}
+
+function getCandidateDetails(candidateId) {
+  const sheet = SS.getSheetByName('Candidatos');
+  const data = sheet.getDataRange().getValues();
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === candidateId) {
+      return \`
+        <p><strong>ID:</strong> \${data[i][0]}</p>
+        <p><strong>Nombre:</strong> \${data[i][1]}</p>
+        <p><strong>Email:</strong> \${data[i][2]}</p>
+        <p><strong>Teléfono:</strong> \${data[i][3]}</p>
+        <p><strong>Estado:</strong> \${data[i][10]}</p>
+        <p><strong>Fecha Registro:</strong> \${data[i][8]}</p>
+      \`;
+    }
+  }
+  return '<p>Candidato no encontrado</p>';
+}
+
+function approveResult(resultId) {
+  const sheet = SS.getSheetByName('Resultados');
+  if (!sheet) return false;
+
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === resultId) {
+      sheet.getRange(i + 1, 10).setValue('APROBADO');
+      sheet.getRange(i + 1, 16).setValue(new Date());
+      return true;
+    }
+  }
+  return false;
 }
 
 // ================================
