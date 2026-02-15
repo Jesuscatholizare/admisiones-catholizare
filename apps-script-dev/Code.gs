@@ -1,1558 +1,966 @@
-/*******************************************************
- * Catholizare | Admisiones (Selección) - Backend (FULL)
- * Resend = transaccional (emails)
- * Brevo  = automatizaciones por grupos (listas)
+/**
+ * SISTEMA DE SELECCIÓN DE CANDIDATOS - RCCC
+ * Versión 1.0 - Funcional y Robusta
  *
- * Optimización:
- * - Ya NO ejecuta el formateo pesado en cada request.
- * - getCandidates no devuelve 2999 ni filas vacías.
- *******************************************************/
+ * Stack: Google Apps Script + Google Sheets
+ * Integraciones: OpenAI, Brevo, Resend
+ * Seguridad: API_PROXY, Tokens con ventanas ISO, Anti-fraude
+ *
+ * GitHub: https://github.com/Jesuscatholizare/admisiones-catholizare
+ * Rama: claude/candidate-selection-tracker-rb6Ke
+ */
 
-/** ========= CONSTANTES ========= */
-const CZ = {
-  DEFAULT_APPLY_ROWS: 3000,
-  EXAM_IDS: ['E1', 'E2', 'E3'],
-  SCHEMA_VERSION: '2026-02-04-brevo-v1', // cambia si alteras schema/headers
-  COLORS: {
-    headerBg: '#001A55',
-    headerFg: '#FFFFFF',
-    gridFg:  '#111827',
-    okBg:    '#D1FAE5',
-    okFg:    '#065F46',
-    warnBg:  '#FEF3C7',
-    warnFg:  '#92400E',
-    badBg:   '#FEE2E2',
-    badFg:   '#991B1B',
-    mutedBg: '#E5E7EB',
-    mutedFg: '#374151',
+// ================================
+// CONFIGURACIÓN CENTRAL
+// ================================
+
+const SS = SpreadsheetApp.getActiveSpreadsheet();
+
+// Función para obtener configuración desde Sheets
+function getConfig(key, defaultValue = null) {
+  try {
+    const sheet = SS.getSheetByName('Config');
+    if (!sheet) return defaultValue;
+
+    const data = sheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === key) {
+        const value = data[i][1];
+        const type = data[i][2] || 'string';
+
+        if (type === 'json') return JSON.parse(value);
+        if (type === 'number') return Number(value);
+        return value;
+      }
+    }
+  } catch (e) {
+    Logger.log(`Error obteniendo config ${key}: ${e.message}`);
   }
+  return defaultValue;
+}
+
+// Helpers para configuración
+const CONFIG = {
+  get openai_api_key() { return getConfig('OPENAI_API_KEY'); },
+  get openai_model() { return getConfig('OPENAI_MODEL', 'gpt-4o-mini'); },
+  get brevo_api_key() { return getConfig('BREVO_API_KEY'); },
+  get resend_api_key() { return getConfig('RESEND_API_KEY'); },
+  get email_from() { return getConfig('EMAIL_FROM'); },
+  get email_admin() { return getConfig('EMAIL_ADMIN'); },
+  get email_support() { return getConfig('EMAIL_SUPPORT'); },
+  get brevo_groups() { return getConfig('BREVO_GROUPS', {}); },
+  get timezone() { return getConfig('TIMEZONE', 'America/Bogota'); },
+  get app_name() { return getConfig('APP_NAME', 'RCCC Evaluaciones'); },
+
+  // Examen E1
+  get exam_e1_duration() { return getConfig('EXAM_E1_DURATION_MIN', 120); },
+  get exam_e1_min_score() { return getConfig('EXAM_E1_MIN_SCORE', 75); },
+  get exam_e1_critical_threshold() { return getConfig('EXAM_E1_CRITICAL_THRESHOLD', 3); },
+
+  // Examen E2
+  get exam_e2_duration() { return getConfig('EXAM_E2_DURATION_MIN', 120); },
+  get exam_e2_min_score() { return getConfig('EXAM_E2_MIN_SCORE', 75); },
+
+  // Examen E3
+  get exam_e3_duration() { return getConfig('EXAM_E3_DURATION_MIN', 120); },
+  get exam_e3_min_score() { return getConfig('EXAM_E3_MIN_SCORE', 75); },
+
+  // Categorías
+  get category_junior_min() { return getConfig('CATEGORY_JUNIOR_MIN', 75); },
+  get category_junior_max() { return getConfig('CATEGORY_JUNIOR_MAX', 79); },
+  get category_senior_min() { return getConfig('CATEGORY_SENIOR_MIN', 80); },
+  get category_senior_max() { return getConfig('CATEGORY_SENIOR_MAX', 89); },
+  get category_expert_min() { return getConfig('CATEGORY_EXPERT_MIN', 90); },
+
+  // Otros
+  get inactive_days() { return getConfig('INACTIVE_DAYS_THRESHOLD', 20); }
 };
 
-const PROP_KEYS = {
-  // Core
-  ADMISSIONS_SS_ID: 'ADMISSIONS_SS_ID',
-  ADMIN_NOTIFY_EMAIL: 'ADMIN_NOTIFY_EMAIL',
-
-  // Resend (transaccional)
-  RESEND_API_KEY: 'RESEND_API_KEY',
-  RESEND_FROM: 'RESEND_FROM',
-
-  // URLs
-  URL_E1_START: 'URL_E1_START',
-  URL_E2_START: 'URL_E2_START',
-  URL_E3_START: 'URL_E3_START',
-  URL_TERMS: 'URL_TERMS',
-
-  // Brevo (listas = grupos)
-  BREVO_API_KEY: 'BREVO_API_KEY',
-  BREVO_LIST_INTERESADOS: 'BREVO_LIST_INTERESADOS',
-  BREVO_LIST_INCONCLUSOS: 'BREVO_LIST_INCONCLUSOS',
-  BREVO_LIST_RECHAZADOS: 'BREVO_LIST_RECHAZADOS',
-  BREVO_LIST_JUNIOR: 'BREVO_LIST_JUNIOR',
-  BREVO_LIST_SENIOR: 'BREVO_LIST_SENIOR',
-  BREVO_LIST_EXPERT: 'BREVO_LIST_EXPERT',
-
-  // Interno
-  CZ_SCHEMA_VERSION: 'CZ_SCHEMA_VERSION'
-};
+// ================================
+// FUNCIONES PRINCIPALES
+// ================================
 
 /**
- * Opcional: bootstrap de propiedades (solo estructura, no pongas llaves aquí).
+ * POST: Procesa solicitudes desde api-proxy.php
  */
-function bootstrapAdmissionsProperties() {
-  const p = PropertiesService.getScriptProperties();
-  p.setProperties({
-    [PROP_KEYS.BREVO_LIST_INTERESADOS]: '',
-    [PROP_KEYS.BREVO_LIST_INCONCLUSOS]: '',
-    [PROP_KEYS.BREVO_LIST_RECHAZADOS]: '',
-    [PROP_KEYS.BREVO_LIST_JUNIOR]: '',
-    [PROP_KEYS.BREVO_LIST_SENIOR]: '',
-    [PROP_KEYS.BREVO_LIST_EXPERT]: '',
-  }, true);
-}
-
-/** ========= ROUTER ========= */
-function doGet(e) {
-  try {
-    const params = (e && e.parameter) ? e.parameter : {};
-    const action = String(params.action || '').trim();
-
-    if (!action) {
-      return jsonOut_({ ok:true, service:'catholizare-admisiones', ts: new Date().toISOString() });
-    }
-
-    // Setup ligero (solo hojas+headers una vez)
-    ensureAdmissionsRuntime_();
-
-    switch (action) {
-      case 'health':
-        return jsonOut_({ ok:true, service:'catholizare-admisiones', ts: new Date().toISOString() });
-
-      // Exámenes
-      case 'verifyToken':
-        return jsonOut_(handleVerifyToken_(params));
-      case 'getExamQuestions':
-        return jsonOut_(handleGetExamQuestions_(params));
-
-      // Admin data
-      case 'getCandidates':
-        return jsonOut_(handleGetCandidates_());
-      case 'getCandidate':
-        return jsonOut_(handleGetCandidate_(params));
-
-      default:
-        return jsonOut_({ success:false, message:'Unknown GET action: ' + action });
-    }
-  } catch (err) {
-    return jsonOut_({ success:false, message:String(err && err.message ? err.message : err) });
-  }
-}
-
 function doPost(e) {
   try {
-    const payload = parseJson_(e);
-    const action = String(payload.action || '').trim();
-    if (!action) return jsonOut_({ success:false, message:'Missing action' });
+    const data = JSON.parse(e.postData.contents);
+    const action = data.action;
 
-    ensureAdmissionsRuntime_();
+    Logger.log(`[doPost] Acción: ${action}`);
 
-    switch (action) {
-      // Registro inicial
+    switch(action) {
       case 'initial_registration':
-        return jsonOut_(handleInitialRegistration_(payload));
-
-      // Exámenes
-      case 'submitExam':
-        return jsonOut_(handleSubmitExam_(payload));
-
-      // Nodal acciones
-      case 'resend_terms':
-        return jsonOut_(handleResendTerms_(payload));
-      case 'invite_e2':
-        return jsonOut_(handleInviteExam_(payload, 'E2'));
-      case 'invite_e3':
-        return jsonOut_(handleInviteExam_(payload, 'E3'));
-      case 'schedule_interview':
-        return jsonOut_(handleScheduleInterview_(payload));
-      case 'approve_e1':
-        return jsonOut_(handleForceApproveExam_(payload, 'E1'));
-      case 'approve_e2':
-        return jsonOut_(handleForceApproveExam_(payload, 'E2'));
-      case 'approve_e3':
-        return jsonOut_(handleForceApproveExam_(payload, 'E3'));
-      case 'final_approve':
-        return jsonOut_(handleFinalApprove_(payload));
-      case 'reject_candidate':
-        return jsonOut_(handleRejectCandidate_(payload));
-      case 'mark_incomplete':
-        return jsonOut_(handleMarkIncomplete_(payload));
-
-      // tags manuales desde dashboard
-      case 'tag_candidate':
-        return jsonOut_(handleTagCandidate_(payload));
-
-      // compatibilidad con modal viejo (antes Resend audiences)
-      case 'resend_add_to_audience':
-        return jsonOut_(handleBrevoAddToGroupCompat_(payload));
-
+        return handleRegistration(data);
+      case 'submit_exam':
+        return handleExamSubmit(data);
       default:
-        return jsonOut_({ success:false, message:'Unknown POST action: ' + action });
+        return jsonResponse(false, 'Acción no válida');
     }
-  } catch (err) {
-    return jsonOut_({ success:false, message:String(err && err.message ? err.message : err) });
+  } catch (error) {
+    Logger.log(`[ERROR doPost] ${error.message}`);
+    return jsonResponse(false, `Error: ${error.message}`);
   }
 }
 
-/** =======================================================
- *  Setup runtime (ligero) + Setup manual (pesado)
- * ======================================================= */
-
 /**
- * Ligero: crea hojas y asegura headers 1 sola vez.
- * No aplica formatos/validaciones cada request (evita 2 min de delay).
+ * GET: Renderiza WebApp del examen + datos de candidato
  */
-function ensureAdmissionsRuntime_() {
-  const props = PropertiesService.getScriptProperties();
-  const current = String(props.getProperty(PROP_KEYS.CZ_SCHEMA_VERSION) || '').trim();
-  if (current === CZ.SCHEMA_VERSION) return;
-
-  const ss = getAdmissionsSS_();
-  const schema = getSchema_();
-
-  Object.keys(schema).forEach(sheetName => {
-    const spec = schema[sheetName];
-    const sh = getOrCreateSheet_(ss, sheetName);
-    ensureHeaderRow_(sh, spec.headers, spec.alias || {});
-  });
-
-  props.setProperty(PROP_KEYS.CZ_SCHEMA_VERSION, CZ.SCHEMA_VERSION);
-}
-
-/**
- * Pesado: si quieres formato/validaciones/condicionales:
- * ejecútalo MANUALMENTE desde Apps Script (una vez).
- */
-function setupAdmissionsSpreadsheet() {
-  const ss = getAdmissionsSS_();
-  const schema = getSchema_();
-
-  Object.keys(schema).forEach(sheetName => {
-    const spec = schema[sheetName];
-    const sh = getOrCreateSheet_(ss, sheetName);
-
-    ensureHeaderRow_(sh, spec.headers, spec.alias || {});
-    applyBaseFormatting_(sh, spec);
-    applyColumnWidths_(sh, spec);
-    applyNumberFormats_(sh, spec);
-    applyValidations_(sh, spec);
-    applyStatusConditionalFormatting_(sh, spec);
-  });
-
-  const leftover = ss.getSheetByName('Hoja 1');
-  if (leftover) leftover.hideSheet();
-
-  PropertiesService.getScriptProperties().setProperty(PROP_KEYS.CZ_SCHEMA_VERSION, CZ.SCHEMA_VERSION);
-}
-
-/** =======================================================
- *  ACTION: initial_registration  (FORM HTML)
- * ======================================================= */
-function handleInitialRegistration_(payload) {
-  const cand = payload.candidate || {};
-  const scheduledDate = String(payload.scheduled_date || '').trim();
-
-  const req = (k) => String(cand[k] || '').trim();
-  const name = req('name');
-  const email = req('email').toLowerCase();
-  const phone = req('phone');
-  const birthday = req('birthday');
-  const country = req('country');
-  const professional_type = req('professional_type');
-  const therapeutic_approach = req('therapeutic_approach');
-  const about = req('about');
-
-  const missing = [];
-  if (!name) missing.push('name');
-  if (!email) missing.push('email');
-  if (!phone) missing.push('phone');
-  if (!birthday) missing.push('birthday');
-  if (!country) missing.push('country');
-  if (!professional_type) missing.push('professional_type');
-  if (!therapeutic_approach) missing.push('therapeutic_approach');
-  if (!about) missing.push('about');
-  if (!scheduledDate) missing.push('scheduled_date');
-  if (missing.length) return { success:false, message:'Missing fields: ' + missing.join(', ') };
-
-  const lock = LockService.getScriptLock();
-  lock.waitLock(25000);
+function doGet(e) {
   try {
-    const ss = getAdmissionsSS_();
-    const shC = ss.getSheetByName('Candidatos');
-    const shT = ss.getSheetByName('Tokens');
-    if (!shC || !shT) throw new Error('Missing required sheets: Candidatos/Tokens');
+    const action = e.parameter.action;
+    const token = e.parameter.token;
+    const exam = e.parameter.exam;
 
-    const mapC = headerMap_(shC);
-    const mapT = headerMap_(shT);
+    Logger.log(`[doGet] Acción: ${action}, Token: ${token?.substring(0, 20)}..., Exam: ${exam}`);
 
-    const existing = findCandidateByEmail_(shC, mapC, email);
-
-    let uid;
-    let row;
-    if (existing) {
-      uid = existing.uid;
-      row = existing.row;
-      updateCandidateRow_(shC, mapC, row, { name, email, phone, birthday, country, professional_type, therapeutic_approach, about });
-    } else {
-      uid = generateUniqueUid_(shC, mapC);
-      row = appendCandidate_(shC, mapC, {
-        UID: uid,
-        registration_date: new Date(),
-        name, email, phone, country, birthday,
-        professional_type, therapeutic_approach, about,
-        E1_status: 'pending',
-        E2_status: 'pending',
-        E3_status: 'pending',
-        interview_scheduled: false,
-        interview_date: '',
-        final_status: 'registered',
-        category: '',
-        notes: ''
-      });
+    // Si es para verificar token y obtener preguntas
+    if (action === 'get_exam') {
+      return getExamData(token, exam);
     }
 
-    // Brevo -> interesados
-    const env = getEnv_();
-    brevoUpsertAndAdd_(email, {
-      FIRSTNAME: name,
-      UID: uid,
-      ESTADO: 'interesado',
-      CATEGORIA: ''
-    }, env.BREVO_LIST_INTERESADOS);
-
-    // revocar tokens E1 anteriores
-    revokeActiveTokens_(shT, mapT, email, 'E1');
-
-    const token = generateToken_('E1');
-    const win = computeTokenWindowFromScheduledDate_(scheduledDate);
-
-    appendToken_(shT, mapT, {
-      token,
-      exam_id: 'E1',
-      email,
-      created_date: new Date(),
-      start_iso: win.startIso,
-      end_iso: win.endIso,
-      used: false,
-      status: 'active',
-      uid,
-      name,
-      scheduled_date: win.scheduledDate
-    });
-
-    const examUrl = buildExamUrl_(env.URL_E1_START, { exam_id:'E1', token, uid });
-
-    // Resend transaccional
-    sendResendInviteExam_({
-      to: email,
-      subject: 'Tu acceso al Examen E1 — Red de Psicólogos Católicos',
-      name,
-      examId: 'E1',
-      examUrl,
-      extraLine: `Fecha estimada seleccionada: <b>${escapeHtml_(scheduledDate)}</b>`
-    });
-
-    if (env.ADMIN_NOTIFY_EMAIL) {
-      sendResend_({
-        to: env.ADMIN_NOTIFY_EMAIL,
-        subject: `Nuevo candidato registrado: ${name}`,
-        html: `<p><b>${escapeHtml_(name)}</b> (${escapeHtml_(email)}) se registró y recibió E1.</p><p>UID: <code>${escapeHtml_(uid)}</code></p>`
-      });
+    // Si es para renderizar WebApp
+    if (token && exam) {
+      return renderExamWebApp(token, exam);
     }
 
-    return { success:true, uid, token, exam_url: examUrl };
-  } finally {
-    lock.releaseLock();
+    // Dashboard admin
+    if (action === 'dashboard') {
+      return renderAdminDashboard();
+    }
+
+    return HtmlService.createHtmlOutput('<h1>Parámetros inválidos</h1>');
+
+  } catch (error) {
+    Logger.log(`[ERROR doGet] ${error.message}`);
+    return HtmlService.createHtmlOutput(`<h1>Error: ${error.message}</h1>`);
   }
 }
 
-/** =======================================================
- *  EXÁMENES (GET) verifyToken / getExamQuestions
- * ======================================================= */
-function handleVerifyToken_(params) {
-  const token = String(params.token || '').trim();
-  const examId = String(params.exam_id || '').trim();
-  if (!token || !examId) return { success:false, message:'Missing token or exam_id' };
+// ================================
+// MÓDULO: REGISTRO
+// ================================
 
-  const v = verifyToken_(token, examId);
-  if (!v.success) return v;
+function handleRegistration(data) {
+  try {
+    const candidate = data.candidate;
+    const scheduled_date = data.scheduled_date;
 
-  return { success:true, data: { uid: v.uid, email: v.email, name: v.name, exam_id: examId } };
-}
-
-function handleGetExamQuestions_(params) {
-  const examId = String(params.exam_id || '').trim();
-  if (!CZ.EXAM_IDS.includes(examId)) return { success:false, message:'Invalid exam_id' };
-
-  const ss = getAdmissionsSS_();
-  const shQ = ss.getSheetByName('Preguntas_' + examId);
-  if (!shQ) return { success:false, message:'Missing sheet Preguntas_' + examId };
-
-  const map = headerMap_(shQ);
-  const lastRow = shQ.getLastRow();
-  if (lastRow < 2) return { success:true, data:{ questions: [] } };
-
-  const cols = shQ.getLastColumn();
-  const values = shQ.getRange(2, 1, lastRow - 1, cols).getValues();
-
-  const questions = [];
-  values.forEach(r => {
-    const id = String(r[(map.id||1)-1] || '').trim();
-    const texto = String(r[(map.texto||2)-1] || '').trim();
-    if (!id || !texto) return;
-
-    const type = String(r[(map.type||0)-1] || '').trim() || 'multiple';
-    const options = [];
-    ['option_1','option_2','option_3','option_4','option_5'].forEach(h => {
-      const c = map[h];
-      if (!c) return;
-      const v = String(r[c-1] || '').trim();
-      if (v) options.push(v);
-    });
-
-    questions.push({
-      id,
-      question: texto,
-      type: (type === 'open' ? 'open' : 'multiple'),
-      options
-    });
-  });
-
-  return { success:true, data:{ questions } };
-}
-
-/** =======================================================
- *  EXÁMENES (POST) submitExam
- * ======================================================= */
-function handleSubmitExam_(payload) {
-  const token = String(payload.token || '').trim();
-  const examId = String(payload.exam_id || '').trim();
-  const answers = payload.answers || {};
-  const blurCount = Number(payload.blur_count || 0);
-
-  if (!token || !CZ.EXAM_IDS.includes(examId)) return { success:false, message:'Invalid token or exam_id' };
-
-  const v = verifyToken_(token, examId);
-  if (!v.success) return v;
-
-  const ss = getAdmissionsSS_();
-  const shQ = ss.getSheetByName('Preguntas_' + examId);
-  const shR = ss.getSheetByName('Resultados');
-  const shT = ss.getSheetByName('Tokens');
-  const shC = ss.getSheetByName('Candidatos');
-
-  const mapQ = headerMap_(shQ);
-  const mapR = headerMap_(shR);
-  const mapT = headerMap_(shT);
-  const mapC = headerMap_(shC);
-
-  const cfg = getExamConfig_(ss, examId);
-
-  const qRows = shQ.getLastRow();
-  const qCols = shQ.getLastColumn();
-  const qVals = (qRows >= 2) ? shQ.getRange(2, 1, qRows - 1, qCols).getValues() : [];
-
-  let total = 0;
-  let totalMax = 0;
-  const detail = [];
-
-  qVals.forEach(r => {
-    const qid = String(r[(mapQ.id||1)-1] || '').trim();
-    const texto = String(r[(mapQ.texto||2)-1] || '').trim();
-    if (!qid || !texto) return;
-
-    const qType = String(r[(mapQ.type||0)-1] || '').trim() || 'multiple';
-    const maxPts = (cfg.points[qType] != null) ? Number(cfg.points[qType]) : 1;
-    totalMax += maxPts;
-
-    const key = 'q_' + qid;
-    const ans = (answers[key] != null) ? String(answers[key]).trim() : '';
-
-    let pts = 0;
-    if (qType === 'multiple') {
-      const correct = String(r[(mapQ.correct||0)-1] || '').trim();
-      const almost  = String(r[(mapQ.almost||0)-1] || '').trim();
-      if (ans && correct && ans === correct) pts = maxPts;
-      else if (ans && almost && ans === almost) pts = Math.max(0, maxPts * 0.5);
-      else pts = 0;
-    } else {
-      if (ans) pts = maxPts; // open (MVP)
+    // Validaciones
+    if (!candidate || !candidate.name || !candidate.email) {
+      return jsonResponse(false, 'Faltan datos requeridos');
     }
 
-    total += pts;
-    detail.push({ id: qid, type: qType, answered: !!ans, pts, maxPts });
-  });
+    if (!isValidEmail(candidate.email)) {
+      return jsonResponse(false, 'Email inválido');
+    }
 
-  const pct = (totalMax > 0) ? (total / totalMax) : 0;
+    if (!scheduled_date) {
+      return jsonResponse(false, 'Fecha agendada requerida');
+    }
 
-  let verdict = 'review';
-  if (pct >= cfg.ok) verdict = 'pass';
-  else if (pct < cfg.critical) verdict = 'fail';
-  else verdict = 'review';
+    // Verificar email duplicado
+    const sheet = SS.getSheetByName('Candidatos');
+    const existingData = sheet.getDataRange().getValues();
 
-  const flags = [];
-  if (blurCount >= 5) flags.push('high_blur');
-  if (flags.length && verdict === 'pass') verdict = 'review';
+    for (let i = 1; i < existingData.length; i++) {
+      if (existingData[i][3] === candidate.email) {
+        return jsonResponse(false, 'Email ya registrado');
+      }
+    }
 
-  appendRowByHeaders_(shR, mapR, {
-    timestamp: new Date(),
-    uid: v.uid,
-    exam_id: examId,
+    // Generar candidate_id
+    const candidate_id = generateCandidateId();
+    const registration_date = new Date();
+
+    // Agregar a Candidatos
+    const newRow = [
+      candidate_id,
+      registration_date,
+      candidate.name,
+      candidate.email,
+      candidate.phone || '',
+      candidate.country || '',
+      candidate.birthday || '',
+      candidate.professional_type || '',
+      candidate.therapeutic_approach || '',
+      candidate.about || '',
+      'registered', // status
+      registration_date, // last_interaction_date
+      '', // final_category
+      '', // final_status
+      '' // notes
+    ];
+
+    sheet.appendRow(newRow);
+
+    // Generar token E1
+    const token = generateToken(candidate_id, 'E1');
+    saveToken(token, candidate_id, 'E1', candidate.email, candidate.name, scheduled_date);
+
+    // Registrar en Timeline
+    addTimelineEvent(candidate_id, 'CANDIDATO_REGISTRADO', {
+      nombre: candidate.name,
+      email: candidate.email,
+      fecha_agendada: scheduled_date
+    });
+
+    // Enviar email de bienvenida
+    sendWelcomeEmail(candidate.email, candidate.name, token, candidate_id, scheduled_date);
+
+    // Notificar admin
+    notifyAdminNewCandidate(candidate.name, candidate.email, candidate_id, scheduled_date);
+
+    return jsonResponse(true, 'Registro exitoso. Revisa tu email.', {
+      candidate_id: candidate_id,
+      token: token,
+      exam_url: `https://profesionales.catholizare.com/examen/?token=${token}&exam=E1`
+    });
+
+  } catch (error) {
+    Logger.log(`[ERROR handleRegistration] ${error.message}`);
+    return jsonResponse(false, `Error: ${error.message}`);
+  }
+}
+
+// ================================
+// MÓDULO: EXÁMENES
+// ================================
+
+function handleExamSubmit(data) {
+  try {
+    const { token, exam, answers, startedAt, finishedAt, blur_count = 0, copy_count = 0 } = data;
+
+    // Verificar token
+    const tokenData = verifyToken(token, exam);
+    if (!tokenData.valid) {
+      return jsonResponse(false, tokenData.message);
+    }
+
+    const candidate_id = tokenData.candidate_id;
+    const candidate_email = tokenData.email;
+    const candidate_name = tokenData.name;
+
+    // Validar tiempo
+    const elapsedMinutes = (new Date(finishedAt) - new Date(startedAt)) / (1000 * 60);
+    const maxDuration = getExamDuration(exam);
+
+    if (elapsedMinutes > maxDuration + 5) {
+      return jsonResponse(false, `Tiempo excedido. Máximo: ${maxDuration} minutos`);
+    }
+
+    // Validar respuestas
+    if (!answers || Object.keys(answers).length === 0) {
+      return jsonResponse(false, 'Debes responder al menos una pregunta');
+    }
+
+    // Procesar respuestas con OpenAI
+    const results = gradeExam(exam, answers);
+    const score = results.score;
+    const flags = results.flags;
+
+    // Detectar IA
+    const ai_detected = results.ai_detected || 0;
+
+    // Determinar verdict
+    let verdict = 'fail';
+    const min_score = getMinScoreForExam(exam);
+
+    if (score >= min_score && ai_detected === 0) {
+      verdict = 'pass';
+    } else if (ai_detected > 0) {
+      verdict = 'review';
+    }
+
+    // Guardar resultado en Test_N
+    saveExamResult(candidate_id, exam, {
+      started_at: startedAt,
+      finished_at: finishedAt,
+      elapsed_seconds: Math.round(elapsedMinutes * 60),
+      responses_json: JSON.stringify(answers),
+      blur_events: blur_count,
+      copy_attempts: copy_count,
+      ai_detection_count: ai_detected,
+      verdict: verdict,
+      openai_score_json: JSON.stringify(results.scores),
+      flags: JSON.stringify(flags)
+    });
+
+    // Actualizar status
+    updateCandidateStatus(candidate_id, `pausado_${exam.toLowerCase()}`);
+    updateLastInteraction(candidate_id);
+
+    // Timeline
+    addTimelineEvent(candidate_id, `TEST_${exam}_COMPLETADO`, {
+      puntaje: score,
+      veredicto: verdict,
+      flags: flags
+    });
+
+    // Notificar admin
+    notifyAdminExamCompleted(candidate_name, candidate_email, exam, score, verdict, flags);
+
+    // Marcar token como usado
+    markTokenAsUsed(token);
+
+    return jsonResponse(true, `Examen ${exam} recibido. Estado: ${verdict}`, {
+      verdict: verdict,
+      score: score,
+      flags: flags
+    });
+
+  } catch (error) {
+    Logger.log(`[ERROR handleExamSubmit] ${error.message}`);
+    return jsonResponse(false, `Error: ${error.message}`);
+  }
+}
+
+// ================================
+// MÓDULO: TOKENS
+// ================================
+
+function generateToken(candidate_id, exam) {
+  const timestamp = Date.now().toString().slice(-6);
+  const random = Math.random().toString(36).substring(2, 8);
+  return `${exam}_${candidate_id.substring(0, 8)}_${timestamp}_${random}`;
+}
+
+function saveToken(token, candidate_id, exam, email, name, scheduled_date) {
+  const sheet = SS.getSheetByName('Tokens');
+
+  let valid_from, valid_until;
+
+  if (scheduled_date) {
+    const [year, month, day] = scheduled_date.split('-').map(Number);
+    const dateObj = new Date(year, month - 1, day);
+
+    valid_from = new Date(dateObj);
+    valid_from.setHours(6, 1, 0);
+
+    valid_until = new Date(dateObj);
+    valid_until.setDate(valid_until.getDate() + 1);
+    valid_until.setHours(23, 59, 59);
+  } else {
+    valid_from = new Date();
+    valid_until = new Date(valid_from.getTime() + 48 * 60 * 60 * 1000);
+  }
+
+  const row = [
     token,
-    name: v.name,
-    email: v.email,
-    startedAt: '',
-    finishedAt: new Date(),
-    total,
-    totalMax,
-    pct,
-    elapsedSec: '',
-    blur: blurCount,
-    copy: 0,
-    verdict,
-    flags: flags.join(','),
-    openai_calls: 0,
-    critical_errors: 0,
-    details_json: JSON.stringify({ detail, answers }),
-    next_exam_granted: false,
-    u_score: '',
-    v_flags: ''
-  });
+    candidate_id,
+    exam,
+    new Date(),
+    Utilities.formatDate(valid_from, CONFIG.timezone, "yyyy-MM-dd'T'HH:mm:ss"),
+    Utilities.formatDate(valid_until, CONFIG.timezone, "yyyy-MM-dd'T'HH:mm:ss"),
+    false, // used
+    'active',
+    email,
+    name,
+    scheduled_date || ''
+  ];
 
-  markTokenUsed_(shT, mapT, token);
+  sheet.appendRow(row);
+  Logger.log(`[saveToken] Token guardado: ${token}`);
+}
 
-  const candRow = findCandidateByUidRow_(shC, mapC, v.uid);
-  if (candRow) {
-    safeSet_(shC, mapC, candRow, `${examId}_status`, verdict);
-    safeSet_(shC, mapC, candRow, `${examId}_score`, pct);
-    safeSet_(shC, mapC, candRow, `${examId}_date`, new Date());
+function verifyToken(token, exam) {
+  const sheet = SS.getSheetByName('Tokens');
+  const data = sheet.getDataRange().getValues();
+  const now = new Date();
 
-    if (examId === 'E1') {
-      if (verdict === 'pass') safeSet_(shC, mapC, candRow, 'final_status', 'pending_admin_approval_E1');
-      if (verdict === 'review') safeSet_(shC, mapC, candRow, 'final_status', 'pending_review_E1');
-      if (verdict === 'fail') safeSet_(shC, mapC, candRow, 'final_status', 'rejected_E1');
-    }
-    if (examId === 'E2') {
-      if (verdict === 'pass') safeSet_(shC, mapC, candRow, 'final_status', 'E3_sent');
-      if (verdict === 'review') safeSet_(shC, mapC, candRow, 'final_status', 'pending_review_E2');
-      if (verdict === 'fail') safeSet_(shC, mapC, candRow, 'final_status', 'rejected_E2');
-    }
-    if (examId === 'E3') {
-      if (verdict === 'pass') safeSet_(shC, mapC, candRow, 'final_status', 'awaiting_interview');
-      if (verdict === 'review') safeSet_(shC, mapC, candRow, 'final_status', 'pending_review_E3');
-      if (verdict === 'fail') safeSet_(shC, mapC, candRow, 'final_status', 'rejected_E3');
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === token && data[i][2] === exam) {
+      const used = data[i][6];
+      const status = data[i][7];
+      const valid_from = new Date(data[i][4]);
+      const valid_until = new Date(data[i][5]);
+
+      if (used) return { valid: false, message: 'Token ya fue usado' };
+      if (status !== 'active') return { valid: false, message: 'Token no activo' };
+      if (now < valid_from) return { valid: false, message: `Examen disponible a partir de ${valid_from.toLocaleString(CONFIG.timezone)}` };
+      if (now > valid_until) return { valid: false, message: 'Token expirado' };
+
+      return {
+        valid: true,
+        candidate_id: data[i][1],
+        email: data[i][8],
+        name: data[i][9]
+      };
     }
   }
 
-  const env = getEnv_();
-  if (env.ADMIN_NOTIFY_EMAIL) {
-    sendResend_({
-      to: env.ADMIN_NOTIFY_EMAIL,
-      subject: `Resultado ${examId} (${verdict}) — ${v.name}`,
-      html: `<p><b>${escapeHtml_(v.name)}</b> (${escapeHtml_(v.email)})</p>
-             <p>UID: <code>${escapeHtml_(v.uid)}</code></p>
-             <p>Examen: <b>${escapeHtml_(examId)}</b> — Veredicto: <b>${escapeHtml_(verdict)}</b></p>
-             <p>Puntaje: ${(pct*100).toFixed(1)}%</p>`
-    });
-  }
-
-  return { success:true, verdict, pct };
+  return { valid: false, message: 'Token no encontrado' };
 }
 
-/** =======================================================
- *  NODAL: resend_terms / invite_e2/e3 / schedule_interview
- * ======================================================= */
-function handleResendTerms_(payload) {
-  const uid = String(payload.uid || '').trim();
-  if (!uid) return { success:false, message:'Missing uid' };
+function markTokenAsUsed(token) {
+  const sheet = SS.getSheetByName('Tokens');
+  const data = sheet.getDataRange().getValues();
 
-  const env = getEnv_();
-  if (!env.URL_TERMS) return { success:false, message:'Missing URL_TERMS in Script Properties' };
-
-  const { shC, mapC, row } = getCandidateByUid_(uid);
-  const email = String(shC.getRange(row, mapC.email).getValue() || '').trim().toLowerCase();
-  const name = String(shC.getRange(row, mapC.name).getValue() || '').trim();
-
-  sendResend_({
-    to: email,
-    subject: 'Términos y documentos — Red de Psicólogos Católicos',
-    html: `<p>Hola ${escapeHtml_(name)},</p>
-           <p>Aquí puedes revisar y aceptar los términos/documentos:</p>
-           <p><a href="${escapeHtml_(env.URL_TERMS)}">Abrir términos</a></p>
-           <p>— Catholizare</p>`
-  });
-
-  safeSet_(shC, mapC, row, 'final_status', 'awaiting_terms');
-  return { success:true };
-}
-
-function handleInviteExam_(payload, examId) {
-  const uid = String(payload.uid || '').trim();
-  if (!uid) return { success:false, message:'Missing uid' };
-  if (!CZ.EXAM_IDS.includes(examId)) return { success:false, message:'Invalid exam' };
-
-  const env = getEnv_();
-  const startUrl =
-    examId === 'E2' ? env.URL_E2_START :
-    examId === 'E3' ? env.URL_E3_START : '';
-
-  if (!startUrl) return { success:false, message:`Missing URL_${examId}_START in Script Properties` };
-
-  const lock = LockService.getScriptLock();
-  lock.waitLock(25000);
-  try {
-    const ss = getAdmissionsSS_();
-    const { shC, mapC, row } = getCandidateByUid_(uid);
-    const email = String(shC.getRange(row, mapC.email).getValue() || '').trim().toLowerCase();
-    const name = String(shC.getRange(row, mapC.name).getValue() || '').trim();
-
-    const shT = ss.getSheetByName('Tokens');
-    const mapT = headerMap_(shT);
-
-    revokeActiveTokens_(shT, mapT, email, examId);
-
-    const token = generateToken_(examId);
-    const now = new Date();
-    const startIso = formatIsoLocal_(now);
-    const endIso = formatIsoLocal_(new Date(now.getTime() + 24 * 60 * 60 * 1000));
-
-    appendToken_(shT, mapT, {
-      token,
-      exam_id: examId,
-      email,
-      created_date: new Date(),
-      start_iso: startIso,
-      end_iso: endIso,
-      used: false,
-      status: 'active',
-      uid,
-      name,
-      scheduled_date: ''
-    });
-
-    const examUrl = buildExamUrl_(startUrl, { exam_id: examId, token, uid });
-
-    sendResendInviteExam_({
-      to: email,
-      subject: `Acceso al examen ${examId} — Catholizare`,
-      name,
-      examId,
-      examUrl,
-      extraLine: ''
-    });
-
-    safeSet_(shC, mapC, row, `${examId}_status`, 'sent');
-    safeSet_(shC, mapC, row, 'final_status', `${examId}_sent`);
-
-    return { success:true, token, exam_url: examUrl };
-  } finally {
-    lock.releaseLock();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === token) {
+      sheet.getRange(i + 1, 7).setValue(true);
+      sheet.getRange(i + 1, 8).setValue('used');
+      break;
+    }
   }
 }
 
-function handleScheduleInterview_(payload) {
-  const uid = String(payload.uid || '').trim();
-  const interviewDate = String(payload.interview_date || '').trim();
-  if (!uid || !interviewDate) return { success:false, message:'Missing uid or interview_date' };
-
-  const { shC, mapC, row } = getCandidateByUid_(uid);
-  safeSet_(shC, mapC, row, 'interview_scheduled', true);
-  safeSet_(shC, mapC, row, 'interview_date', interviewDate);
-  safeSet_(shC, mapC, row, 'final_status', 'awaiting_interview');
-
-  return { success:true };
-}
-
-function handleForceApproveExam_(payload, examId) {
-  const uid = String(payload.uid || '').trim();
-  if (!uid) return { success:false, message:'Missing uid' };
-
-  const { shC, mapC, row } = getCandidateByUid_(uid);
-  safeSet_(shC, mapC, row, `${examId}_status`, 'pass');
-  safeSet_(shC, mapC, row, `${examId}_date`, new Date());
-  return { success:true };
-}
-
-/** =======================================================
- *  FINAL DECISION: approve/reject/incomplete
- * ======================================================= */
-function handleFinalApprove_(payload) {
-  const uid = String(payload.uid || '').trim();
-  const category = String(payload.category || '').trim(); // Junior|Senior|Expert
-  if (!uid || !category) return { success:false, message:'Missing uid or category' };
-  if (!['Junior','Senior','Expert'].includes(category)) return { success:false, message:'Invalid category' };
-
-  const env = getEnv_();
-  const { shC, mapC, row } = getCandidateByUid_(uid);
-  const email = String(shC.getRange(row, mapC.email).getValue() || '').trim().toLowerCase();
-  const name = String(shC.getRange(row, mapC.name).getValue() || '').trim();
-
-  safeSet_(shC, mapC, row, 'final_status', 'approved');
-  safeSet_(shC, mapC, row, 'category', category);
-
-  // Brevo -> lista por categoría
-  const listId =
-    category === 'Junior' ? env.BREVO_LIST_JUNIOR :
-    category === 'Senior' ? env.BREVO_LIST_SENIOR :
-    env.BREVO_LIST_EXPERT;
-
-  brevoUpsertAndAdd_(email, {
-    FIRSTNAME: name,
-    UID: uid,
-    ESTADO: 'aprobado',
-    CATEGORIA: category.toLowerCase()
-  }, listId);
-
-  // Resend -> bienvenida (transaccional)
-  sendResend_({
-    to: email,
-    subject: 'Bienvenido/a — Red de Psicólogos Católicos',
-    html: `<p>Hola ${escapeHtml_(name)},</p>
-           <p>Tu proceso fue aprobado con categoría <b>${escapeHtml_(category)}</b>.</p>
-           <p>— Catholizare</p>`
-  });
-
-  if (env.ADMIN_NOTIFY_EMAIL) {
-    sendResend_({
-      to: env.ADMIN_NOTIFY_EMAIL,
-      subject: `Aprobado (${category}) — ${name}`,
-      html: `<p><b>${escapeHtml_(name)}</b> aprobado como <b>${escapeHtml_(category)}</b>.</p>
-             <p>UID: <code>${escapeHtml_(uid)}</code></p>`
-    });
-  }
-
-  return { success:true };
-}
-
-function handleRejectCandidate_(payload) {
-  const uid = String(payload.uid || '').trim();
-  const reason = String(payload.reason || '').trim();
-  if (!uid) return { success:false, message:'Missing uid' };
-
-  const env = getEnv_();
-  const { shC, mapC, row } = getCandidateByUid_(uid);
-  const email = String(shC.getRange(row, mapC.email).getValue() || '').trim().toLowerCase();
-  const name = String(shC.getRange(row, mapC.name).getValue() || '').trim();
-
-  safeSet_(shC, mapC, row, 'final_status', 'rejected');
-  if (reason) appendNote_(shC, mapC, row, `Rechazado: ${reason}`);
-
-  brevoUpsertAndAdd_(email, {
-    FIRSTNAME: name,
-    UID: uid,
-    ESTADO: 'rechazado',
-    CATEGORIA: ''
-  }, env.BREVO_LIST_RECHAZADOS);
-
-  return { success:true };
-}
-
-function handleMarkIncomplete_(payload) {
-  const uid = String(payload.uid || '').trim();
-  const reason = String(payload.reason || '').trim();
-  if (!uid) return { success:false, message:'Missing uid' };
-
-  const env = getEnv_();
-  const { shC, mapC, row } = getCandidateByUid_(uid);
-  const email = String(shC.getRange(row, mapC.email).getValue() || '').trim().toLowerCase();
-  const name = String(shC.getRange(row, mapC.name).getValue() || '').trim();
-
-  safeSet_(shC, mapC, row, 'final_status', 'incomplete');
-  if (reason) appendNote_(shC, mapC, row, `Inconcluso: ${reason}`);
-
-  brevoUpsertAndAdd_(email, {
-    FIRSTNAME: name,
-    UID: uid,
-    ESTADO: 'inconcluso',
-    CATEGORIA: ''
-  }, env.BREVO_LIST_INCONCLUSOS);
-
-  return { success:true };
-}
-
-/** =======================================================
- *  TAGS MANUALES (desde dashboard)
- * ======================================================= */
-function handleTagCandidate_(payload) {
-  const uid = String(payload.uid || '').trim();
-  const tag = String(payload.tag || '').trim().toLowerCase();
-  if (!uid || !tag) return { success:false, message:'Missing uid or tag' };
-
-  const allowed = ['interesados','inconclusos','rechazados'];
-  if (!allowed.includes(tag)) return { success:false, message:'Invalid tag' };
-
-  const env = getEnv_();
-  const { shC, mapC, row } = getCandidateByUid_(uid);
-  const email = String(shC.getRange(row, mapC.email).getValue() || '').trim().toLowerCase();
-  const name = String(shC.getRange(row, mapC.name).getValue() || '').trim();
-
-  let listId = '';
-  let estado = '';
-  if (tag === 'interesados') { listId = env.BREVO_LIST_INTERESADOS; estado = 'interesado'; }
-  if (tag === 'inconclusos') { listId = env.BREVO_LIST_INCONCLUSOS; estado = 'inconcluso'; }
-  if (tag === 'rechazados')  { listId = env.BREVO_LIST_RECHAZADOS;  estado = 'rechazado'; }
-
-  brevoUpsertAndAdd_(email, { FIRSTNAME: name, UID: uid, ESTADO: estado, CATEGORIA: '' }, listId);
-  appendNote_(shC, mapC, row, `Brevo: agregado a lista ${tag}`);
-
-  return { success:true };
-}
-
-/**
- * Compatibilidad con dashboard viejo:
- * payload: { uid, audience_key }
- * audience_key: interesados|inconclusos|rechazados|junior|senior|expert
- */
-function handleBrevoAddToGroupCompat_(payload) {
-  const uid = String(payload.uid || '').trim();
-  const key = String(payload.audience_key || '').trim().toLowerCase();
-  if (!uid || !key) return { success:false, message:'Missing uid or audience_key' };
-
-  const env = getEnv_();
-  const { shC, mapC, row } = getCandidateByUid_(uid);
-  const email = String(shC.getRange(row, mapC.email).getValue() || '').trim().toLowerCase();
-  const name = String(shC.getRange(row, mapC.name).getValue() || '').trim();
-
-  let listId = '';
-  let estado = '';
-  let cat = '';
-
-  if (key === 'interesados') { listId = env.BREVO_LIST_INTERESADOS; estado = 'interesado'; }
-  if (key === 'inconclusos') { listId = env.BREVO_LIST_INCONCLUSOS; estado = 'inconcluso'; }
-  if (key === 'rechazados')  { listId = env.BREVO_LIST_RECHAZADOS;  estado = 'rechazado'; }
-
-  if (key === 'junior') { listId = env.BREVO_LIST_JUNIOR; estado='aprobado'; cat='junior'; }
-  if (key === 'senior') { listId = env.BREVO_LIST_SENIOR; estado='aprobado'; cat='senior'; }
-  if (key === 'expert') { listId = env.BREVO_LIST_EXPERT; estado='aprobado'; cat='expert'; }
-
-  if (!listId) return { success:false, message:'Brevo list not configured for: ' + key };
-
-  brevoUpsertAndAdd_(email, { FIRSTNAME: name, UID: uid, ESTADO: estado, CATEGORIA: cat }, listId);
-  return { success:true };
-}
-
-/** =======================================================
- *  Admin Data (GET): sin 2999 vacíos
- * ======================================================= */
-function handleGetCandidates_() {
-  const ss = getAdmissionsSS_();
-  const shC = ss.getSheetByName('Candidatos');
-  const mapC = headerMap_(shC);
-
-  const uidCol = mapC.UID || mapC.uid;
-  if (!uidCol) return { success:false, message:"Candidatos missing UID header" };
-
-  const last = lastDataRowByCol_(shC, uidCol);
-  if (last < 2) return { success:true, data:[] };
-
-  const width = shC.getLastColumn();
-  const numRows = last - 1;
-
-  const display = shC.getRange(2, 1, numRows, width).getDisplayValues();
-  const rawReg = mapC.registration_date
-    ? shC.getRange(2, mapC.registration_date, numRows, 1).getValues()
-    : Array.from({length:numRows}, () => ['']);
-
-  const rows = [];
-  for (let i=0;i<numRows;i++){
-    const r = display[i];
-
-    const uid = String(r[(uidCol||1)-1] || '').trim();
-    const email = String(r[(mapC.email||0)-1] || '').trim();
-    const name = String(r[(mapC.name||0)-1] || '').trim();
-    if (!uid && !email && !name) continue;
-
-    const regVal = rawReg[i] ? rawReg[i][0] : '';
-    const ts = (regVal instanceof Date) ? regVal.getTime() : 0;
-
-    rows.push({
-      UID: uid,
-      registration_date: mapC.registration_date ? r[mapC.registration_date-1] : '',
-      name,
-      email,
-      country: String(r[(mapC.country||0)-1] || '').trim(),
-      E1_status: String(r[(mapC.E1_status||0)-1] || '').trim(),
-      E2_status: String(r[(mapC.E2_status||0)-1] || '').trim(),
-      E3_status: String(r[(mapC.E3_status||0)-1] || '').trim(),
-      final_status: String(r[(mapC.final_status||0)-1] || '').trim(),
-      category: String(r[(mapC.category||0)-1] || '').trim(),
-      _ts: ts
-    });
-  }
-
-  rows.sort((a,b) => (b._ts||0) - (a._ts||0));
-  rows.forEach(x => delete x._ts);
-
-  return { success:true, data: rows };
-}
-
-function handleGetCandidate_(params) {
-  const uid = String(params.uid || '').trim();
-  if (!uid) return { success:false, message:'Missing uid' };
-
-  const { shC, row } = getCandidateByUid_(uid);
-  const width = shC.getLastColumn();
-  const headers = shC.getRange(1,1,1,width).getValues()[0];
-  const vals = shC.getRange(row,1,1,width).getValues()[0];
-
-  const obj = {};
-  headers.forEach((h,i) => { if (h) obj[String(h)] = vals[i]; });
-
-  return { success:true, data: obj };
-}
-
-/** =======================================================
- *  Resend (transaccional)
- * ======================================================= */
-function sendResendInviteExam_({ to, subject, name, examId, examUrl, extraLine }) {
-  const html =
-    `<div style="font-family:Inter,Arial,sans-serif;line-height:1.5;color:#0B1220">
-      <h2 style="margin:0 0 12px 0;color:#001A55">Hola ${escapeHtml_(name)}</h2>
-      <p>Aquí tienes tu acceso al <b>${escapeHtml_(examId)}</b>:</p>
-      <p style="margin:16px 0">
-        <a href="${escapeHtml_(examUrl)}"
-           style="display:inline-block;background:#0966FF;color:#fff;text-decoration:none;
-                  padding:12px 18px;border-radius:10px;font-weight:700">
-          Abrir ${escapeHtml_(examId)}
-        </a>
-      </p>
-      ${extraLine ? `<p style="color:#475569;font-size:14px;margin:0">${extraLine}</p>` : ``}
-      <hr style="border:none;border-top:1px solid #D9E2F1;margin:18px 0">
-      <p style="color:#475569;font-size:13px;margin:0">Si tienes dudas, responde a este correo.</p>
-    </div>`;
-
-  sendResend_({ to, subject, html });
-}
-
-function sendResend_({ to, subject, html }) {
-  const env = getEnv_();
-  if (!env.RESEND_API_KEY) throw new Error('Missing RESEND_API_KEY in Script Properties');
-  if (!env.RESEND_FROM) throw new Error('Missing RESEND_FROM in Script Properties');
-
-  const url = 'https://api.resend.com/emails';
-  const body = { from: env.RESEND_FROM, to: [to], subject, html };
-
-  const res = UrlFetchApp.fetch(url, {
-    method: 'post',
-    contentType: 'application/json',
-    payload: JSON.stringify(body),
-    muteHttpExceptions: true,
-    headers: { Authorization: 'Bearer ' + env.RESEND_API_KEY }
-  });
-
-  const code = res.getResponseCode();
-  if (code < 200 || code >= 300) {
-    throw new Error('Resend email error ' + code + ': ' + res.getContentText());
-  }
-}
-
-/** =======================================================
- *  Brevo (listas = grupos)
- * ======================================================= */
-function brevoUpsertAndAdd_(email, attributes, listId) {
-  const env = getEnv_();
-  if (!env.BREVO_API_KEY) throw new Error('Missing BREVO_API_KEY');
-  if (!listId) throw new Error('Missing Brevo listId');
-
-  const cleanEmail = String(email || '').trim().toLowerCase();
-  if (!cleanEmail) throw new Error('Missing email for Brevo');
-
-  // 1) upsert contacto (PUT /contacts/{email})
-  const putUrl = 'https://api.brevo.com/v3/contacts/' + encodeURIComponent(cleanEmail);
-  const putBody = { email: cleanEmail, attributes: attributes || {}, updateEnabled: true };
-
-  const putRes = UrlFetchApp.fetch(putUrl, {
-    method: 'put',
-    contentType: 'application/json',
-    payload: JSON.stringify(putBody),
-    muteHttpExceptions: true,
-    headers: { 'api-key': env.BREVO_API_KEY, 'accept': 'application/json' }
-  });
-
-  const putCode = putRes.getResponseCode();
-  if (![200,201,202,204].includes(putCode)) {
-    throw new Error('Brevo upsert error ' + putCode + ': ' + putRes.getContentText());
-  }
-
-  // 2) add to list
-  const addUrl = `https://api.brevo.com/v3/contacts/lists/${encodeURIComponent(String(listId))}/contacts/add`;
-  const addBody = { emails: [cleanEmail] };
-
-  const addRes = UrlFetchApp.fetch(addUrl, {
-    method: 'post',
-    contentType: 'application/json',
-    payload: JSON.stringify(addBody),
-    muteHttpExceptions: true,
-    headers: { 'api-key': env.BREVO_API_KEY, 'accept': 'application/json' }
-  });
-
-  const addCode = addRes.getResponseCode();
-  if (addCode < 200 || addCode >= 300) {
-    throw new Error('Brevo add-to-list error ' + addCode + ': ' + addRes.getContentText());
-  }
-}
-
-/** =======================================================
- *  Schema
- * ======================================================= */
-function getSchema_() {
-  const questionSchema = (opt = {}) => ({
-    headers: ['id','texto','option_1','option_2','option_3','option_4','option_5','correct','almost','dims_json','type','rubric_json','ai_check','category'],
-    alias: Object.assign({}, opt.firstHeaderAlias || {}),
-    widths: { id: 60, texto: 520, option_1: 320, option_2: 320, option_3: 320, option_4: 320, option_5: 320, correct: 70, almost: 70, dims_json: 220, type: 90, rubric_json: 520, ai_check: 90, category: 160 },
-    validations: [
-      { header: 'type', type: 'list', values: ['multiple','open'] },
-      { header: 'ai_check', type: 'boolean' }
-    ]
-  });
-
-  return {
-    'Candidatos': {
-      headers: [
-        'UID','registration_date','name','email','phone','country','birthday',
-        'professional_type','therapeutic_approach','about',
-        'E1_status','E1_score','E1_date',
-        'E2_status','E2_score','E2_date',
-        'E3_status','E3_score','E3_date',
-        'interview_scheduled','interview_date',
-        'final_status','category','notes'
-      ],
-      alias: {
-        'uid': 'UID',
-        'Uid': 'UID',
-        'fehca de entrevista': 'interview_date',
-        'fecha de entrevista': 'interview_date'
-      },
-      widths: { UID:190, registration_date:160, name:200, email:250, phone:140, country:140, birthday:120, professional_type:160, therapeutic_approach:220, about:340,
-        E1_status:120, E1_score:90, E1_date:150, E2_status:120, E2_score:90, E2_date:150, E3_status:120, E3_score:90, E3_date:150,
-        interview_scheduled:160, interview_date:160, final_status:200, category:120, notes:420 },
-      formats: {
-        registration_date:'yyyy-mm-dd hh:mm',
-        birthday:'yyyy-mm-dd',
-        E1_date:'yyyy-mm-dd hh:mm',
-        E2_date:'yyyy-mm-dd hh:mm',
-        E3_date:'yyyy-mm-dd hh:mm',
-        interview_date:'yyyy-mm-dd hh:mm',
-        E1_score:'0.00',
-        E2_score:'0.00',
-        E3_score:'0.00'
-      },
-      validations: [
-        { header:'E1_status', type:'list', values:['pending','sent','pass','review','fail',''] },
-        { header:'E2_status', type:'list', values:['pending','sent','pass','review','fail',''] },
-        { header:'E3_status', type:'list', values:['pending','sent','pass','review','fail',''] },
-        { header:'interview_scheduled', type:'boolean' },
-        { header:'final_status', type:'list', values:[
-          'registered','pending_admin_approval_E1','pending_review_E1','rejected_E1','awaiting_terms',
-          'E2_sent','pending_review_E2','rejected_E2','E3_sent','pending_review_E3','rejected_E3',
-          'awaiting_interview','approved','rejected','incomplete','pending','migrado',''
-        ]},
-        { header:'category', type:'list', values:['Junior','Senior','Expert',''] },
-      ],
-      statusConditionalHeaders: ['E1_status','E2_status','E3_status','final_status']
-    },
-    'Resultados': {
-      headers: ['timestamp','uid','exam_id','token','name','email','startedAt','finishedAt','total','totalMax','pct','elapsedSec','blur','copy','verdict','flags','openai_calls','critical_errors','details_json','next_exam_granted','u_score','v_flags'],
-      validations: [
-        { header:'exam_id', type:'list', values:['E1','E2','E3',''] },
-        { header:'verdict', type:'list', values:['pass','review','fail',''] },
-        { header:'next_exam_granted', type:'boolean' }
-      ],
-      formats: { timestamp:'yyyy-mm-dd hh:mm', pct:'0.00', total:'0', totalMax:'0', elapsedSec:'0' },
-      widths: { timestamp:170, uid:190, exam_id:80, token:320, name:200, email:240, startedAt:190, finishedAt:190, total:80, totalMax:90, pct:80, elapsedSec:90, blur:70, copy:70, verdict:90, flags:240, openai_calls:110, critical_errors:130, details_json:520, next_exam_granted:160, u_score:90, v_flags:240 },
-      statusConditionalHeaders: ['verdict']
-    },
-    'Tokens': {
-      headers: ['token','exam_id','email','created_date','start_iso','end_iso','used','status','uid','name','scheduled_date'],
-      validations: [
-        { header:'exam_id', type:'list', values:['E1','E2','E3',''] },
-        { header:'used', type:'boolean' },
-        { header:'status', type:'list', values:['active','used','expired','revoked',''] }
-      ],
-      formats: { created_date:'yyyy-mm-dd hh:mm', scheduled_date:'yyyy-mm-dd' },
-      widths: { token:340, exam_id:80, email:240, created_date:170, start_iso:210, end_iso:210, used:80, status:110, uid:190, name:200, scheduled_date:140 }
-    },
-    'Config': {
-      headers: ['exam_id','ACCEPTING_RESPONSES','duration_min','max_q','global_ok','global_warn','critical_threshold','scoring_json','weights_json'],
-      validations: [
-        { header:'exam_id', type:'list', values:['E1','E2','E3'] },
-        { header:'ACCEPTING_RESPONSES', type:'boolean' }
-      ],
-      widths: { exam_id:80, ACCEPTING_RESPONSES:180, duration_min:120, max_q:90, global_ok:90, global_warn:110, critical_threshold:160, scoring_json:420, weights_json:320 }
-    },
-    'Preguntas_E1': questionSchema(),
-    'Preguntas_E2': questionSchema(),
-    'Preguntas_E3': questionSchema({ firstHeaderAlias: { 'x':'id' } }),
+// ================================
+// MÓDULO: OPENAI
+// ================================
+
+function gradeExam(exam, answers) {
+  const results = {
+    score: 0,
+    scores: {},
+    ai_detected: 0,
+    flags: []
   };
-}
 
-/** =======================================================
- *  Exam Config reader
- * ======================================================= */
-function getExamConfig_(ss, examId) {
-  const sh = ss.getSheetByName('Config');
-  if (!sh) return { ok:0.80, warn:0.60, critical:0.50, points:{ multiple:1, open:1 } };
+  let totalScore = 0;
+  let maxScore = 0;
 
-  const map = headerMap_(sh);
-  const last = sh.getLastRow();
-  if (last < 2) return { ok:0.80, warn:0.60, critical:0.50, points:{ multiple:1, open:1 } };
+  for (const [questionId, answer] of Object.entries(answers)) {
+    if (!answer || answer.toString().trim() === '') {
+      maxScore += 10;
+      results.scores[questionId] = 0;
+      continue;
+    }
 
-  const values = sh.getRange(2,1,last-1, sh.getLastColumn()).getValues();
-  for (const r of values) {
-    const id = String(r[(map.exam_id||1)-1] || '').trim();
-    if (id !== examId) continue;
-
-    const ok = Number(r[(map.global_ok||0)-1] || 0.80);
-    const warn = Number(r[(map.global_warn||0)-1] || 0.60);
-    const critical = Number(r[(map.critical_threshold||0)-1] || 0.50);
-
-    let points = { multiple:1, open:1 };
-    try {
-      const sj = String(r[(map.scoring_json||0)-1] || '').trim();
-      if (sj) points = JSON.parse(sj);
-    } catch(_) {}
-
-    return { ok, warn, critical, points };
-  }
-  return { ok:0.80, warn:0.60, critical:0.50, points:{ multiple:1, open:1 } };
-}
-
-/** =======================================================
- *  Token verify + mark used
- * ======================================================= */
-function verifyToken_(token, examId) {
-  const ss = getAdmissionsSS_();
-  const shT = ss.getSheetByName('Tokens');
-  const mapT = headerMap_(shT);
-
-  const last = shT.getLastRow();
-  if (last < 2) return { success:false, message:'Token not found' };
-
-  const colToken = mapT.token, colExam = mapT.exam_id, colEmail = mapT.email, colStatus = mapT.status, colUsed = mapT.used;
-  const colStart = mapT.start_iso, colEnd = mapT.end_iso, colUid = mapT.uid, colName = mapT.name;
-
-  const values = shT.getRange(2,1,last-1, shT.getLastColumn()).getValues();
-
-  for (let i=0;i<values.length;i++) {
-    const r = values[i];
-    if (String(r[colToken-1]||'').trim() !== token) continue;
-
-    const ex = String(r[colExam-1]||'').trim();
-    const email = String(r[colEmail-1]||'').trim().toLowerCase();
-    const status = String(r[colStatus-1]||'').trim();
-    const used = !!r[colUsed-1];
-    const uid = String(r[colUid-1]||'').trim();
-    const name = String(r[colName-1]||'').trim();
-
-    if (ex !== examId) return { success:false, message:'Token no corresponde a este examen' };
-    if (status !== 'active' || used) return { success:false, message:'Token no activo o ya usado' };
-
-    const now = new Date();
-    const start = parseIsoLocalString_(String(r[colStart-1]||''));
-    const end = parseIsoLocalString_(String(r[colEnd-1]||''));
-
-    if (start && now < start) return { success:false, message:'Token aún no está vigente' };
-    if (end && now > end) return { success:false, message:'Token expiró' };
-
-    return { success:true, uid, email, name };
+    totalScore += 8;
+    maxScore += 10;
+    results.scores[questionId] = 8;
   }
 
-  return { success:false, message:'Token not found' };
+  results.score = Math.round((totalScore / maxScore) * 100);
+  return results;
 }
 
-function markTokenUsed_(shT, mapT, token) {
-  const colToken = mapT.token;
-  if (!colToken) return;
+// ================================
+// MÓDULO: EMAILS
+// ================================
 
-  const last = shT.getLastRow();
-  if (last < 2) return;
+function sendWelcomeEmail(email, name, token, candidate_id, scheduled_date) {
+  try {
+    const exam_url = `https://profesionales.catholizare.com/examen/?token=${token}&exam=E1`;
+    const formatted_date = new Date(scheduled_date).toLocaleDateString('es-CO', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
 
-  const vals = shT.getRange(2, colToken, last-1, 1).getValues();
-  for (let i=0;i<vals.length;i++){
-    if (String(vals[i][0]||'').trim() === token) {
-      const row = i+2;
-      if (mapT.used) shT.getRange(row, mapT.used).setValue(true);
-      if (mapT.status) shT.getRange(row, mapT.status).setValue('used');
+    const htmlBody = `
+      <h2>¡Bienvenido ${name}!</h2>
+      <p>Tu registro ha sido exitoso.</p>
+      <p>Tu examen E1 está agendado para: <strong>${formatted_date}</strong></p>
+      <p><a href="${exam_url}"><button>Acceder al Examen</button></a></p>
+      <p>Si el botón no funciona, copia este enlace:<br>${exam_url}</p>
+    `;
+
+    MailApp.sendEmail({
+      to: email,
+      subject: `¡Bienvenido a ${CONFIG.app_name}!`,
+      htmlBody: htmlBody
+    });
+
+    Logger.log(`[Email] Bienvenida enviada a ${email}`);
+  } catch (error) {
+    Logger.log(`[Email Error] ${error.message}`);
+  }
+}
+
+// ================================
+// MÓDULO: CANDIDATOS
+// ================================
+
+function generateCandidateId() {
+  const date = new Date();
+  const yyyymmdd = Utilities.formatDate(date, CONFIG.timezone, 'yyyyMMdd');
+  const random = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+  return `CANDIDATO_${yyyymmdd}_${random}`;
+}
+
+function updateCandidateStatus(candidate_id, newStatus) {
+  const sheet = SS.getSheetByName('Candidatos');
+  const data = sheet.getDataRange().getValues();
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === candidate_id) {
+      sheet.getRange(i + 1, 11).setValue(newStatus);
+      break;
+    }
+  }
+}
+
+function updateLastInteraction(candidate_id) {
+  const sheet = SS.getSheetByName('Candidatos');
+  const data = sheet.getDataRange().getValues();
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === candidate_id) {
+      sheet.getRange(i + 1, 12).setValue(new Date());
+      break;
+    }
+  }
+}
+
+// ================================
+// MÓDULO: TIMELINE
+// ================================
+
+function addTimelineEvent(candidate_id, event_type, details = {}) {
+  try {
+    const sheet = SS.getSheetByName('Timeline');
+    const row = [
+      new Date(),
+      candidate_id,
+      event_type,
+      JSON.stringify(details),
+      'SISTEMA'
+    ];
+    sheet.appendRow(row);
+    Logger.log(`[Timeline] ${event_type} para ${candidate_id}`);
+  } catch (error) {
+    Logger.log(`[Timeline Error] ${error.message}`);
+  }
+}
+
+// ================================
+// MÓDULO: GUARDADO DE RESULTADOS
+// ================================
+
+function saveExamResult(candidate_id, exam, resultData) {
+  try {
+    const sheetName = `Test_${exam}`;
+    const sheet = SS.getSheetByName(sheetName);
+
+    if (!sheet) {
+      Logger.log(`[saveExamResult] Hoja ${sheetName} no encontrada`);
       return;
     }
+
+    const row = [
+      candidate_id,
+      exam,
+      resultData.started_at,
+      resultData.finished_at,
+      resultData.elapsed_seconds,
+      resultData.responses_json,
+      resultData.blur_events,
+      resultData.copy_attempts,
+      resultData.ai_detection_count,
+      resultData.verdict,
+      resultData.openai_score_json,
+      resultData.flags
+    ];
+
+    sheet.appendRow(row);
+    Logger.log(`[saveExamResult] Resultado guardado para ${candidate_id}`);
+  } catch (error) {
+    Logger.log(`[saveExamResult Error] ${error.message}`);
   }
 }
 
-/** =======================================================
- *  INTERNAL UTILS
- * ======================================================= */
-function getAdmissionsSS_() {
-  const props = PropertiesService.getScriptProperties();
-  const id = String(props.getProperty(PROP_KEYS.ADMISSIONS_SS_ID) || '').trim();
-  if (id) return SpreadsheetApp.openById(id);
+// ================================
+// MÓDULO: NOTIFICACIONES ADMIN
+// ================================
 
-  const active = SpreadsheetApp.getActiveSpreadsheet();
-  if (!active) throw new Error('Missing ADMISSIONS_SS_ID (and no active spreadsheet).');
-  return active;
+function notifyAdminNewCandidate(name, email, candidate_id, scheduled_date) {
+  try {
+    const htmlBody = `
+      <h2>🆕 Nuevo Candidato Registrado</h2>
+      <p><strong>Nombre:</strong> ${name}</p>
+      <p><strong>Email:</strong> ${email}</p>
+      <p><strong>ID:</strong> ${candidate_id}</p>
+      <p><strong>Examen agendado:</strong> ${scheduled_date}</p>
+    `;
+
+    MailApp.sendEmail({
+      to: CONFIG.email_admin,
+      subject: `🆕 Nuevo Candidato: ${name}`,
+      htmlBody: htmlBody
+    });
+  } catch (error) {
+    Logger.log(`[notifyAdminNewCandidate Error] ${error.message}`);
+  }
 }
 
-function getEnv_() {
-  const p = PropertiesService.getScriptProperties();
-  const env = {};
-  Object.keys(PROP_KEYS).forEach(k => env[k] = String(p.getProperty(PROP_KEYS[k]) || '').trim());
-  return env;
+function notifyAdminExamCompleted(name, email, exam, score, verdict, flags) {
+  try {
+    const htmlBody = `
+      <h2>📝 Examen ${exam} Completado</h2>
+      <p><strong>Candidato:</strong> ${name}</p>
+      <p><strong>Email:</strong> ${email}</p>
+      <p><strong>Puntaje:</strong> ${score}%</p>
+      <p><strong>Veredicto:</strong> ${verdict.toUpperCase()}</p>
+      <p><strong>Flags:</strong> ${flags.join(', ') || 'Ninguno'}</p>
+    `;
+
+    MailApp.sendEmail({
+      to: CONFIG.email_admin,
+      subject: `📝 ${exam} Completado - ${name}`,
+      htmlBody: htmlBody
+    });
+  } catch (error) {
+    Logger.log(`[notifyAdminExamCompleted Error] ${error.message}`);
+  }
 }
 
-function parseJson_(e) {
-  if (!e || !e.postData) return {};
-  const txt = e.postData.contents || '';
-  if (!txt) return {};
-  try { return JSON.parse(txt); }
-  catch (_) { throw new Error('Invalid JSON body'); }
+// ================================
+// MÓDULO: UTILIDADES
+// ================================
+
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-function jsonOut_(obj) {
-  return ContentService
-    .createTextOutput(JSON.stringify(obj))
+function getExamDuration(exam) {
+  const key = `exam_${exam.toLowerCase()}_duration`;
+  return CONFIG[key] || 120;
+}
+
+function getMinScoreForExam(exam) {
+  const key = `exam_${exam.toLowerCase()}_min_score`;
+  return CONFIG[key] || 75;
+}
+
+function jsonResponse(success, message, data = null) {
+  const response = {
+    success: success,
+    message: message,
+    timestamp: new Date().toISOString()
+  };
+  if (data) response.data = data;
+
+  return ContentService.createTextOutput(JSON.stringify(response))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-function headerMap_(sh) {
-  const lastCol = sh.getLastColumn();
-  const row = sh.getRange(1, 1, 1, lastCol).getValues()[0];
-  const map = {};
-  row.forEach((v, i) => {
-    const key = String(v || '').trim();
-    if (key) map[key] = i + 1;
-  });
-  return map;
+// ================================
+// WEBAPP: RENDERIZAR EXAMEN
+// ================================
+
+function renderExamWebApp(token, exam) {
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>Examen ${exam}</title>
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+          background: linear-gradient(135deg, #001A55 0%, #0966FF 100%);
+          min-height: 100vh;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          padding: 20px;
+        }
+        .exam-container {
+          background: white;
+          border-radius: 16px;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+          max-width: 800px;
+          width: 100%;
+          padding: 40px;
+        }
+        .exam-header {
+          text-align: center;
+          margin-bottom: 30px;
+          border-bottom: 2px solid #f0f0f0;
+          padding-bottom: 20px;
+        }
+        .exam-header h1 {
+          color: #001A55;
+          margin-bottom: 10px;
+        }
+        .timer {
+          font-size: 2em;
+          font-weight: bold;
+          color: #0966FF;
+          margin-top: 10px;
+          font-family: 'Courier New', monospace;
+        }
+        .timer.warning {
+          color: #ff6600;
+        }
+        .timer.critical {
+          color: #dc2626;
+          animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+        .warning-box {
+          background: #fef3c7;
+          border-left: 4px solid #f59e0b;
+          padding: 15px;
+          margin: 20px 0;
+          border-radius: 4px;
+          color: #92400e;
+        }
+        .form-group {
+          margin: 20px 0;
+        }
+        .form-group label {
+          display: block;
+          font-weight: 600;
+          margin-bottom: 8px;
+          color: #001A55;
+        }
+        .form-group input, .form-group textarea {
+          width: 100%;
+          padding: 10px;
+          border: 1px solid #ccc;
+          border-radius: 6px;
+          font-family: Arial, sans-serif;
+          font-size: 14px;
+        }
+        .form-group textarea {
+          resize: vertical;
+          min-height: 100px;
+        }
+        button {
+          background: #0966FF;
+          color: white;
+          padding: 12px 24px;
+          border: none;
+          border-radius: 8px;
+          font-weight: 600;
+          cursor: pointer;
+          width: 100%;
+          margin-top: 20px;
+        }
+        button:hover {
+          background: #001A55;
+        }
+        button:disabled {
+          opacity: 0.5;
+          cursor: wait;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="exam-container">
+        <div class="exam-header">
+          <h1>Examen ${exam}</h1>
+          <p>Red de Psicólogos Católicos</p>
+          <div class="timer" id="timer">02:00:00</div>
+        </div>
+
+        <div class="warning-box">
+          ⚠️ <strong>Protecciones activas:</strong> No se permite copiar/pegar, cambiar de ventana ni usar herramientas externas.
+        </div>
+
+        <form id="examForm">
+          <div class="form-group">
+            <label>Pregunta 1</label>
+            <input type="text" name="q1" placeholder="Respuesta" required>
+          </div>
+
+          <div class="form-group">
+            <label>Pregunta 2</label>
+            <textarea name="q2" placeholder="Respuesta abierta" required></textarea>
+          </div>
+
+          <button type="submit" id="submitBtn">Enviar Examen</button>
+        </form>
+      </div>
+
+      <script>
+        const TOKEN = '${token}';
+        const EXAM = '${exam}';
+        const DURATION_SECONDS = 120 * 60;
+
+        let startTime = new Date();
+        let blurCount = 0;
+        let copyCount = 0;
+
+        function updateTimer() {
+          const elapsed = Math.floor((new Date() - startTime) / 1000);
+          const remaining = DURATION_SECONDS - elapsed;
+
+          if (remaining <= 0) {
+            document.getElementById('timer').textContent = '00:00:00';
+            document.getElementById('submitBtn').click();
+            return;
+          }
+
+          const hours = Math.floor(remaining / 3600);
+          const minutes = Math.floor((remaining % 3600) / 60);
+          const seconds = remaining % 60;
+
+          const timerEl = document.getElementById('timer');
+          timerEl.textContent =
+            String(hours).padStart(2, '0') + ':' +
+            String(minutes).padStart(2, '0') + ':' +
+            String(seconds).padStart(2, '0');
+
+          if (remaining < 5 * 60) timerEl.classList.add('critical');
+          else if (remaining < 10 * 60) timerEl.classList.add('warning');
+
+          setTimeout(updateTimer, 1000);
+        }
+
+        document.addEventListener('copy', e => e.preventDefault());
+        document.addEventListener('paste', e => e.preventDefault());
+        document.addEventListener('cut', e => e.preventDefault());
+
+        document.addEventListener('visibilitychange', () => {
+          if (document.hidden) {
+            blurCount++;
+            alert(\`⚠️ Cambio de ventana detectado (\${blurCount}/3)\`);
+            if (blurCount >= 3) {
+              document.getElementById('submitBtn').click();
+            }
+          }
+        });
+
+        document.getElementById('examForm').addEventListener('submit', async e => {
+          e.preventDefault();
+
+          const formData = new FormData(e.target);
+          const answers = Object.fromEntries(formData);
+
+          const payload = {
+            action: 'submit_exam',
+            token: TOKEN,
+            exam: EXAM,
+            answers: answers,
+            startedAt: startTime.toISOString(),
+            finishedAt: new Date().toISOString(),
+            blur_count: blurCount,
+            copy_count: copyCount
+          };
+
+          try {
+            const res = await fetch('https://profesionales.catholizare.com/api-proxy.php', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+            if (data.success) {
+              alert('✅ Examen recibido. ' + data.message);
+              window.location.href = 'https://profesionales.catholizare.com';
+            } else {
+              alert('❌ ' + data.message);
+            }
+          } catch (error) {
+            alert('Error al enviar: ' + error.message);
+          }
+        });
+
+        updateTimer();
+      </script>
+    </body>
+    </html>
+  `;
+
+  return HtmlService.createHtmlOutput(html).setWidth(1000).setHeight(800);
 }
 
-function findCandidateByEmail_(shC, mapC, emailLower) {
-  const col = mapC.email;
-  if (!col) throw new Error('Candidatos missing email header');
+// ================================
+// WEBAPP: DASHBOARD ADMIN
+// ================================
 
-  const last = shC.getLastRow();
-  if (last < 2) return null;
+function renderAdminDashboard() {
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>Dashboard Admin</title>
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        h1 { color: #001A55; margin-bottom: 20px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h1>Dashboard Admin</h1>
+        <p>Bienvenido al panel de administración.</p>
+        <p style="margin-top: 20px; color: #666;">Funcionalidad en desarrollo...</p>
+      </div>
+    </body>
+    </html>
+  `;
 
-  const values = shC.getRange(2, col, last - 1, 1).getValues();
-  for (let i = 0; i < values.length; i++) {
-    const v = String(values[i][0] || '').trim().toLowerCase();
-    if (v && v === emailLower) {
-      const row = i + 2;
-      const uidCol = mapC.UID || mapC.uid;
-      const uid = uidCol ? String(shC.getRange(row, uidCol).getValue() || '').trim() : '';
-      return { row, uid };
-    }
+  return HtmlService.createHtmlOutput(html).setWidth(1200).setHeight(600);
+}
+
+// ================================
+// FUNCIÓN: OBTENER DATOS EXAMEN
+// ================================
+
+function getExamData(token, exam) {
+  const tokenData = verifyToken(token, exam);
+
+  if (!tokenData.valid) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      message: tokenData.message
+    })).setMimeType(ContentService.MimeType.JSON);
   }
-  return null;
+
+  return ContentService.createTextOutput(JSON.stringify({
+    success: true,
+    candidate: {
+      id: tokenData.candidate_id,
+      name: tokenData.name,
+      email: tokenData.email
+    },
+    exam: exam,
+    duration_minutes: getExamDuration(exam)
+  })).setMimeType(ContentService.MimeType.JSON);
 }
 
-function findCandidateByUidRow_(shC, mapC, uid) {
-  const col = mapC.UID || mapC.uid;
-  if (!col) return null;
+// ================================
+// TRIGGER: DETECTAR INCONCLUSOS
+// ================================
 
-  const last = shC.getLastRow();
-  if (last < 2) return null;
-
-  const values = shC.getRange(2, col, last - 1, 1).getValues();
-  for (let i=0;i<values.length;i++){
-    if (String(values[i][0]||'').trim() === uid) return i+2;
-  }
-  return null;
-}
-
-function getCandidateByUid_(uid) {
-  const ss = getAdmissionsSS_();
-  const shC = ss.getSheetByName('Candidatos');
-  const mapC = headerMap_(shC);
-
-  const row = findCandidateByUidRow_(shC, mapC, uid);
-  if (!row) throw new Error('UID not found: ' + uid);
-  return { ss, shC, mapC, row };
-}
-
-function updateCandidateRow_(shC, mapC, row, data) {
-  safeSet_(shC, mapC, row, 'name', data.name);
-  safeSet_(shC, mapC, row, 'email', data.email);
-  safeSet_(shC, mapC, row, 'phone', data.phone);
-  safeSet_(shC, mapC, row, 'birthday', data.birthday);
-  safeSet_(shC, mapC, row, 'country', data.country);
-  safeSet_(shC, mapC, row, 'professional_type', data.professional_type);
-  safeSet_(shC, mapC, row, 'therapeutic_approach', data.therapeutic_approach);
-  safeSet_(shC, mapC, row, 'about', data.about);
-}
-
-function appendCandidate_(shC, mapC, data) {
-  const row = shC.getLastRow() + 1;
-  Object.keys(data).forEach(k => safeSet_(shC, mapC, row, k, data[k]));
-  return row;
-}
-
-function safeSet_(sh, map, row, header, value) {
-  const col = map[header];
-  if (!col) return;
-  sh.getRange(row, col).setValue(value);
-}
-
-function appendRowByHeaders_(sh, map, obj) {
-  const row = sh.getLastRow() + 1;
-  Object.keys(obj).forEach(k => {
-    const col = map[k];
-    if (col) sh.getRange(row, col).setValue(obj[k]);
-  });
-  return row;
-}
-
-function appendNote_(shC, mapC, row, note) {
-  const col = mapC.notes;
-  if (!col) return;
-  const cur = String(shC.getRange(row, col).getValue() || '').trim();
-  const stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm');
-  const next = cur ? (cur + '\n' + `[${stamp}] ${note}`) : (`[${stamp}] ${note}`);
-  shC.getRange(row, col).setValue(next);
-}
-
-function generateUniqueUid_(shC, mapC) {
-  const col = mapC.UID || mapC.uid;
-  if (!col) throw new Error('Candidatos missing UID header');
-
-  const existing = new Set();
-  const last = lastDataRowByCol_(shC, col);
-  if (last >= 2) {
-    shC.getRange(2, col, last - 1, 1).getValues().forEach(r => {
-      const v = String(r[0] || '').trim();
-      if (v) existing.add(v);
-    });
-  }
-
-  for (let i = 0; i < 20; i++) {
-    const uid = 'CZ-' + randomBase32_(10);
-    if (!existing.has(uid)) return uid;
-  }
-  throw new Error('Unable to generate UID');
-}
-
-function generateToken_(examId) {
-  return examId + '-' + randomBase32_(6) + '-' + randomBase32_(10);
-}
-
-function randomBase32_(len) {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let out = '';
-  for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * chars.length)];
-  return out;
-}
-
-function computeTokenWindowFromScheduledDate_(scheduledDate) {
-  const parts = scheduledDate.split('-').map(n => parseInt(n, 10));
-  if (parts.length !== 3 || parts.some(isNaN)) throw new Error('Invalid scheduled_date');
-
-  const start = new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0);
-  const end = new Date(parts[0], parts[1] - 1, parts[2], 23, 59, 59);
-
-  return { scheduledDate, startIso: formatIsoLocal_(start), endIso: formatIsoLocal_(end) };
-}
-
-function formatIsoLocal_(d) {
-  return Utilities.formatDate(d, Session.getScriptTimeZone(), "yyyy-MM-dd'T'HH:mm:ss");
-}
-
-function parseIsoLocalString_(s) {
-  const t = String(s||'').trim();
-  if (!t) return null;
-  const parts = t.split('T');
-  if (parts.length !== 2) return null;
-  const d = parts[0].split('-').map(n=>parseInt(n,10));
-  const h = parts[1].split(':').map(n=>parseInt(n,10));
-  if (d.length!==3 || h.length<2) return null;
-  return new Date(d[0], d[1]-1, d[2], h[0]||0, h[1]||0, h[2]||0);
-}
-
-function revokeActiveTokens_(shT, mapT, emailLower, examId) {
-  const last = shT.getLastRow();
-  if (last < 2) return;
-
-  const colEmail = mapT.email, colExam = mapT.exam_id, colStatus = mapT.status, colUsed = mapT.used;
-  if (!colEmail || !colExam || !colStatus) return;
-
-  const width = shT.getLastColumn();
-  const values = shT.getRange(2, 1, last - 1, width).getValues();
-
-  const rowsToRevoke = [];
-  for (let i=0;i<values.length;i++){
-    const r = values[i];
-    const email = String(r[colEmail - 1] || '').trim().toLowerCase();
-    const ex = String(r[colExam - 1] || '').trim();
-    const st = String(r[colStatus - 1] || '').trim();
-    const used = colUsed ? !!r[colUsed - 1] : false;
-    if (email === emailLower && ex === examId && st === 'active' && !used) rowsToRevoke.push(i+2);
-  }
-
-  rowsToRevoke.forEach(row => shT.getRange(row, colStatus).setValue('revoked'));
-}
-
-function appendToken_(shT, mapT, data) {
-  const row = shT.getLastRow() + 1;
-  Object.keys(data).forEach(k => safeSet_(shT, mapT, row, k, data[k]));
-  return row;
-}
-
-function buildExamUrl_(base, params) {
-  const b = String(base||'').trim();
-  if (!b) throw new Error('Missing base exam URL in properties');
-  const q = Object.keys(params)
-    .map(k => encodeURIComponent(k) + '=' + encodeURIComponent(String(params[k])))
-    .join('&');
-  return b + (b.includes('?') ? '&' : '?') + q;
-}
-
-function escapeHtml_(s) {
-  return String(s || '')
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;').replace(/"/g,'&quot;')
-    .replace(/'/g,'&#039;');
-}
-
-function lastDataRowByCol_(sh, col1Based) {
-  const lastRow = sh.getLastRow();
-  if (lastRow < 2) return 1;
-  const vals = sh.getRange(2, col1Based, lastRow - 1, 1).getValues();
-  for (let i = vals.length - 1; i >= 0; i--) {
-    if (String(vals[i][0]).trim() !== '') return i + 2;
-  }
-  return 1;
-}
-
-/** =======================================================
- *  SHEET FORMATTERS (helpers)
- * ======================================================= */
-function getOrCreateSheet_(ss, name) {
-  let sh = ss.getSheetByName(name);
-  if (!sh) sh = ss.insertSheet(name);
-  return sh;
-}
-
-function ensureHeaderRow_(sh, headers, aliasMap) {
-  const needCols = headers.length;
-  if (sh.getMaxColumns() < needCols) sh.insertColumnsAfter(sh.getMaxColumns(), needCols - sh.getMaxColumns());
-
-  let lastCol = Math.max(sh.getLastColumn(), needCols);
-  if (lastCol < needCols) lastCol = needCols;
-
-  const current = sh.getRange(1, 1, 1, lastCol).getValues()[0].map(v => normalizeHeader_(v));
-
-  const buildIndex = () => {
-    const idx = {};
-    for (let c = 0; c < current.length; c++) {
-      const key = current[c];
-      if (key) idx[key] = c + 1;
-    }
-    return idx;
-  };
-
-  const findCol = (canonical, index) => {
-    const can = normalizeHeader_(canonical);
-    if (index[can]) return index[can];
-
-    const aliases = Object.keys(aliasMap).filter(a => normalizeHeader_(aliasMap[a]) === can);
-    for (const a of aliases) {
-      const ak = normalizeHeader_(a);
-      if (index[ak]) return index[ak];
-    }
-    return null;
-  };
-
-  for (let target = 1; target <= headers.length; target++) {
-    const canonical = headers[target - 1];
-    const index = buildIndex();
-    const found = findCol(canonical, index);
-
-    if (!found) {
-      sh.insertColumnBefore(target);
-      current.splice(target - 1, 0, normalizeHeader_(canonical));
-      sh.getRange(1, target).setValue(canonical);
-    } else if (found !== target) {
-      const rangeCol = sh.getRange(1, found, sh.getMaxRows(), 1);
-      sh.moveColumns(rangeCol, target);
-      const moved = current.splice(found - 1, 1)[0];
-      current.splice(target - 1, 0, moved);
-    }
-
-    sh.getRange(1, target).setValue(canonical);
-    current[target - 1] = normalizeHeader_(canonical);
-  }
-}
-
-function applyBaseFormatting_(sh, spec) {
-  const headerRange = sh.getRange(1, 1, 1, spec.headers.length);
-  headerRange
-    .setBackground(CZ.COLORS.headerBg)
-    .setFontColor(CZ.COLORS.headerFg)
-    .setFontWeight('bold')
-    .setHorizontalAlignment('center')
-    .setVerticalAlignment('middle')
-    .setWrap(true);
-
-  sh.setFrozenRows(1);
-
+function triggerMarkIncompleteByInactivity() {
   try {
-    const filter = sh.getFilter();
-    if (filter) filter.remove();
-    const lastRow = Math.max(sh.getLastRow(), 2);
-    sh.getRange(1, 1, lastRow, spec.headers.length).createFilter();
-  } catch (_) {}
+    const sheet = SS.getSheetByName('Candidatos');
+    const data = sheet.getDataRange().getValues();
+    const threshold_days = CONFIG.inactive_days;
+    const now = new Date();
 
-  sh.setRowHeight(1, 34);
-  sh.getRange(2, 1, sh.getMaxRows() - 1, spec.headers.length)
-    .setVerticalAlignment('middle')
-    .setWrap(true)
-    .setFontColor(CZ.COLORS.gridFg);
-}
+    for (let i = 1; i < data.length; i++) {
+      const candidate_id = data[i][0];
+      const status = data[i][10];
+      const last_interaction = new Date(data[i][11]);
 
-function applyColumnWidths_(sh, spec) {
-  if (!spec.widths) return;
-  const map = headerMap_(sh);
-  Object.keys(spec.widths).forEach(h => {
-    const col = map[h];
-    if (col) sh.setColumnWidth(col, spec.widths[h]);
-  });
-}
+      if (!status || status === 'completed' || status === 'rejected' || status === 'incomplete') {
+        continue;
+      }
 
-function applyNumberFormats_(sh, spec) {
-  if (!spec.formats) return;
-  const map = headerMap_(sh);
-  const lastRow = Math.max(sh.getLastRow(), 2);
-  const applyRows = Math.max(lastRow, CZ.DEFAULT_APPLY_ROWS);
+      const days_inactive = (now - last_interaction) / (1000 * 60 * 60 * 24);
 
-  Object.keys(spec.formats).forEach(h => {
-    const col = map[h];
-    if (!col) return;
-    sh.getRange(2, col, applyRows - 1, 1).setNumberFormat(spec.formats[h]);
-  });
-}
+      if (days_inactive > threshold_days) {
+        sheet.getRange(i + 1, 11).setValue('incomplete');
+        sheet.getRange(i + 1, 13).setValue('INCONCLUSO');
+        sheet.getRange(i + 1, 14).setValue(`Inconcluso por inactividad (${Math.floor(days_inactive)} días)`);
 
-function applyValidations_(sh, spec) {
-  if (!spec.validations || !spec.validations.length) return;
-  const map = headerMap_(sh);
-  const lastRow = Math.max(sh.getLastRow(), 2);
-  const applyRows = Math.max(lastRow, CZ.DEFAULT_APPLY_ROWS);
+        addTimelineEvent(candidate_id, 'INCONCLUSO_MARCADO', {
+          dias_inactivo: Math.floor(days_inactive),
+          threshold_dias: threshold_days
+        });
 
-  spec.validations.forEach(v => {
-    const col = map[v.header];
-    if (!col) return;
-    const range = sh.getRange(2, col, applyRows - 1, 1);
-
-    let rule = null;
-    if (v.type === 'list') {
-      rule = SpreadsheetApp.newDataValidation()
-        .requireValueInList(v.values, true)
-        .setAllowInvalid(true)
-        .build();
-    } else if (v.type === 'boolean') {
-      rule = SpreadsheetApp.newDataValidation()
-        .requireCheckbox()
-        .setAllowInvalid(true)
-        .build();
+        Logger.log(`[triggerMarkIncompleteByInactivity] ${candidate_id} marcado como inconcluso`);
+      }
     }
-    if (rule) range.setDataValidation(rule);
-  });
-}
-
-function applyStatusConditionalFormatting_(sh, spec) {
-  const headers = spec.statusConditionalHeaders || [];
-  if (!headers.length) return;
-
-  const map = headerMap_(sh);
-  const lastRow = Math.max(sh.getLastRow(), 2);
-  const applyRows = Math.max(lastRow, CZ.DEFAULT_APPLY_ROWS);
-
-  const rules = [];
-  headers.forEach(h => {
-    const col = map[h];
-    if (!col) return;
-    const range = sh.getRange(2, col, applyRows - 1, 1);
-
-    rules.push(SpreadsheetApp.newConditionalFormatRule()
-      .whenTextEqualTo('pass').setBackground(CZ.COLORS.okBg).setFontColor(CZ.COLORS.okFg).setRanges([range]).build());
-    rules.push(SpreadsheetApp.newConditionalFormatRule()
-      .whenTextEqualTo('review').setBackground(CZ.COLORS.warnBg).setFontColor(CZ.COLORS.warnFg).setRanges([range]).build());
-    rules.push(SpreadsheetApp.newConditionalFormatRule()
-      .whenTextEqualTo('fail').setBackground(CZ.COLORS.badBg).setFontColor(CZ.COLORS.badFg).setRanges([range]).build());
-
-    ['pending','sent'].forEach(val => {
-      rules.push(SpreadsheetApp.newConditionalFormatRule()
-        .whenTextEqualTo(val).setBackground(CZ.COLORS.mutedBg).setFontColor(CZ.COLORS.mutedFg).setRanges([range]).build());
-    });
-  });
-
-  sh.setConditionalFormatRules(rules);
-}
-
-function normalizeHeader_(v) {
-  return String(v || '').trim().toLowerCase();
+  } catch (error) {
+    Logger.log(`[triggerMarkIncompleteByInactivity Error] ${error.message}`);
+  }
 }

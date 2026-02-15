@@ -149,10 +149,55 @@
 - **Almacenamiento**: Columna "Estado_Final" en "Resultados" y "Candidatos"
 - **Status**: ✅ APROBADO
 
+#### D16: Conexión Formulario WordPress → Apps Script (NUEVO - ARQUITECTURA)
+- **Decisión**: API_PROXY como capa de seguridad intermediaria
+- **Flujo**:
+  - Formulario WordPress → api-proxy.php → Apps Script /exec
+- **Motivo**:
+  - ✅ Validación de origen (solo WordPress)
+  - ✅ Control de rate limiting
+  - ✅ Desacoplamiento
+  - ✅ Logs centralizados
+  - ✅ Seguridad mejorada
+  - ❌ Evita CORS issues directos
+- **Ubicación proxy**: `/profesionales.catholizare.com/api-proxy.php`
+- **Implementación**: Ver ARCHITECTURE_IMPLEMENTATION.md (sección API_PROXY)
+- **Status**: ✅ APROBADO
+
+#### D17: Configuración Centralizada en Sheets (NUEVO)
+- **Decisión**: TODA variable del sistema en hoja "Config"
+- **Variables**:
+  - APIs: OpenAI, Brevo, Resend
+  - Emails: admin, soporte, from
+  - Duración exámenes: 120 minutos (editable)
+  - Puntajes mínimos: 75 (editable)
+  - Categorías: Junior (75-79), Senior (80-89), Expert (90+)
+  - Días para inconcluso: 20
+  - Timezone: America/Bogota
+- **Acceso**: Super-admin solo
+- **Motivo**: Variables sin código hardcodeado
+- **Status**: ✅ APROBADO
+
+#### D18: Estructura de Sheets Optimizada (NUEVO)
+- **Decisión**: 8 hojas principales (refactorizada)
+  1. Config - Centro de configuración
+  2. Candidatos - Registro base
+  3. Test_1, Test_2, Test_3 - Respuestas + calificaciones
+  4. Tokens - Gestión de acceso con ventanas ISO
+  5. Timeline - Auditoría completa
+  6. Notificaciones - Log de emails
+  7. Usuarios - Autenticación
+  8. Sessions - Sesiones activas
+- **Mejoras vs anterior**:
+  - ✅ Config centralizada (no hardcoded)
+  - ✅ Tokens con ventanas ISO (más seguro)
+  - ✅ Timeline detallado (auditoría)
+  - ✅ Notificaciones trackea provider (Brevo/Resend)
+  - ✅ Usuarios/Sessions separados
+- **Motivo**: Escalabilidad, seguridad, auditoría
+- **Status**: ✅ APROBADO
+
 ## Próximas Decisiones (Pendientes)
 - [ ] Costo estimado de OpenAI API → evaluar si usar gpt-3.5-turbo en lugar de gpt-4o
-- [ ] Definir SLO de entrega de emails (¿1 min? ¿5 min?)
-- [ ] Politica de retención de datos (¿cuánto tiempo guardar registros?)
-- [ ] Backup strategy (manual vs automático)
-- [ ] ¿Certificados digitales al finalizar?
-- [ ] ¿Cómo accede candidato a los tests? (Email link, dashboard, formulario, WebApp)
+- [ ] Certificados digitales al finalizar?
+- [ ] ¿Integración con Google Calendar para agendar entrevistas?
