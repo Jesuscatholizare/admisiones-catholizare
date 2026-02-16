@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Aceptación de Términos — RCCC</title>
+    <link rel="stylesheet" href="/assets/css/styles.css">
+    <style>
+        .terms-container {
+            max-width: 800px;
+        }
+        .terms-header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--gray-300);
+        }
+        .terms-header h1 {
+            margin-bottom: 10px;
+        }
+        .terms-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid var(--gray-300);
+            line-height: 1.8;
+        }
+        .terms-content h3 {
+            margin-top: 25px;
+            margin-bottom: 12px;
+            color: var(--primary-dark);
+            border-bottom: 1px solid var(--gray-200);
+            padding-bottom: 8px;
+        }
+        .terms-content h3:first-child {
+            margin-top: 0;
+        }
+        .terms-content p {
+            margin-bottom: 15px;
+            color: var(--text-secondary);
+        }
+        .terms-content ul {
+            margin: 15px 0 15px 25px;
+            color: var(--text-secondary);
+        }
+        .terms-content li {
+            margin-bottom: 8px;
+        }
+        .invalid-token {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        .invalid-token h2 {
+            color: var(--danger);
+            margin-bottom: 20px;
+        }
+        .loading-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        .acceptance-form {
+            background: var(--primary-light);
+            padding: 25px;
+            border-radius: 12px;
+            border-left: 4px solid var(--primary);
+        }
+        .acceptance-form .form-group {
+            margin-bottom: 15px;
+        }
+        .acceptance-form .form-group label {
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+        }
+        .acceptance-form .form-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 25px;
+            justify-content: center;
+        }
+        .form-actions button {
+            flex: 1;
+            max-width: 250px;
+        }
+        .progress-indicator {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 40px;
+            align-items: center;
+            text-align: center;
+        }
+        .progress-step {
+            flex: 1;
+            padding: 15px;
+        }
+        .progress-step .number {
+            width: 36px;
+            height: 36px;
+            background: var(--gray-300);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            margin: 0 auto 8px;
+            color: white;
+        }
+        .progress-step.active .number {
+            background: var(--primary);
+        }
+        .progress-step.completed .number {
+            background: var(--success);
+        }
+        .progress-step small {
+            display: block;
+            color: var(--text-secondary);
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <span>🎓 RCCC</span>
+        </div>
+        <div>Paso 2: Términos y Condiciones</div>
+    </header>
+
+    <div class="container terms-container">
+        <!-- Estado de carga -->
+        <div id="loadingState" class="loading-state" style="display: none;">
+            <span class="loading"></span>
+            <p>Validando tu acceso...</p>
+        </div>
+
+        <!-- Token inválido -->
+        <div id="invalidTokenState" style="display: none;">
+            <div class="card invalid-token">
+                <h2>❌ Link Inválido o Expirado</h2>
+                <p style="margin-bottom: 20px;">Lo sentimos, el link para aceptar los términos no es válido o ha expirado.</p>
+                <div style="background: var(--warning-light); padding: 20px; border-radius: 6px; margin-bottom: 20px;">
+                    <strong>¿Qué puedes hacer?</strong>
+                    <ul style="margin: 10px 0 0 20px;">
+                        <li>Verifica que el link sea correcto</li>
+                        <li>Revisa tu email nuevamente (incluye spam)</li>
+                        <li>Contacta con admin@rccc.org si el problema persiste</li>
+                    </ul>
+                </div>
+                <button class="btn btn-secondary" onclick="window.location.href='/'">Volver al inicio</button>
+            </div>
+        </div>
+
+        <!-- Contenido principal -->
+        <div id="mainContent" style="display: none;">
+            <!-- Indicador de progreso -->
+            <div class="progress-indicator">
+                <div class="progress-step completed">
+                    <div class="number">✓</div>
+                    <small>Registro</small>
+                </div>
+                <div class="progress-step active">
+                    <div class="number">2</div>
+                    <small>Términos</small>
+                </div>
+                <div class="progress-step">
+                    <div class="number">3</div>
+                    <small>Examen E2</small>
+                </div>
+                <div class="progress-step">
+                    <div class="number">4</div>
+                    <small>Examen E3</small>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="terms-header">
+                    <h1>Términos y Condiciones</h1>
+                    <p>Red de Psicólogos Católicos — RCCC</p>
+                </div>
+
+                <div class="terms-content">
+                    <h3>1. Bienvenida</h3>
+                    <p>Bienvenido a la Red de Psicólogos Católicos (RCCC). Estos términos y condiciones regulan el acceso y uso de nuestros servicios.</p>
+
+                    <h3>2. Objetivos de RCCC</h3>
+                    <p>La Red de Psicólogos Católicos tiene como objetivos:</p>
+                    <ul>
+                        <li>Promover la excelencia en la práctica de la psicología desde una perspectiva católica</li>
+                        <li>Crear espacios de apoyo, formación y colaboración profesional</li>
+                        <li>Fomentar la integración de la fe y la ciencia en la práctica profesional</li>
+                        <li>Ofrecer servicios de calidad que respeten la dignidad humana</li>
+                    </ul>
+
+                    <h3>3. Compromiso del Profesional</h3>
+                    <p>Al aceptar estos términos, te comprometes a:</p>
+                    <ul>
+                        <li>Actuar con integridad profesional y ética</li>
+                        <li>Respetar los principios y valores de RCCC</li>
+                        <li>Mantener confidencialidad en todas tus actuaciones</li>
+                        <li>Seguir los códigos deontológicos de la profesión</li>
+                        <li>Continuar tu formación permanente</li>
+                    </ul>
+
+                    <h3>4. Confidencialidad</h3>
+                    <p>Reconoces que tu información personal será tratada de manera confidencial de acuerdo con nuestra política de privacidad y leyes aplicables.</p>
+
+                    <h3>5. Responsabilidad</h3>
+                    <p>Asujes responsabilidad por cualquier información falsa o engañosa que proporcionaste durante el registro o los exámenes.</p>
+
+                    <h3>6. Derecho de Admisión</h3>
+                    <p>RCCC se reserva el derecho de aceptar, rechazar o expulsar a cualquier miembro que no cumpla con estos términos o nuestros valores.</p>
+
+                    <h3>7. Modificaciones</h3>
+                    <p>RCCC puede modificar estos términos en cualquier momento. Se te notificará de cambios significativos.</p>
+
+                    <h3>8. Contacto</h3>
+                    <p>Para preguntas sobre estos términos, contacta a: <strong>admin@rccc.org</strong></p>
+                </div>
+
+                <!-- Formulario de aceptación -->
+                <div class="acceptance-form">
+                    <h3 style="margin-top: 0; border: none; padding: 0;">Aceptación de Términos</h3>
+
+                    <div class="form-group">
+                        <label for="acceptTerms">
+                            <input type="checkbox" id="acceptTerms" name="acceptTerms">
+                            <span>He leído y entiendo los términos y condiciones</span>
+                        </label>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="acceptValues">
+                            <input type="checkbox" id="acceptValues" name="acceptValues">
+                            <span>Acepto los valores y principios de RCCC</span>
+                        </label>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="acceptResponsibility">
+                            <input type="checkbox" id="acceptResponsibility" name="acceptResponsibility">
+                            <span>Asumo responsabilidad por la información proporcionada</span>
+                        </label>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="location.href='/'">Rechazar</button>
+                        <button type="button" class="btn btn-success" id="acceptBtn" onclick="acceptTerms()" disabled>
+                            ✓ Acepto los Términos
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/assets/js/api.js"></script>
+    <script>
+        // Obtener parámetros de URL
+        const params = getUrlParams();
+        const candidateId = params.uid;
+        const token = params.token;
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Validar token
+            if (!candidateId || !token) {
+                showInvalidToken();
+                return;
+            }
+
+            try {
+                showLoadingState();
+                const result = await validateToken(token);
+
+                if (result && result.success) {
+                    showMainContent();
+                    setupCheckboxListeners();
+                } else {
+                    showInvalidToken();
+                }
+            } catch (error) {
+                console.error('Validation error:', error);
+                showInvalidToken();
+            }
+        });
+
+        function showLoadingState() {
+            document.getElementById('loadingState').style.display = 'block';
+            document.getElementById('mainContent').style.display = 'none';
+            document.getElementById('invalidTokenState').style.display = 'none';
+        }
+
+        function showMainContent() {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+            document.getElementById('invalidTokenState').style.display = 'none';
+        }
+
+        function showInvalidToken() {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'none';
+            document.getElementById('invalidTokenState').style.display = 'block';
+        }
+
+        function setupCheckboxListeners() {
+            const checkboxes = [
+                document.getElementById('acceptTerms'),
+                document.getElementById('acceptValues'),
+                document.getElementById('acceptResponsibility')
+            ];
+
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', () => {
+                    const allChecked = checkboxes.every(cb => cb.checked);
+                    document.getElementById('acceptBtn').disabled = !allChecked;
+                });
+            });
+        }
+
+        async function acceptTerms() {
+            const btn = document.getElementById('acceptBtn');
+            btn.disabled = true;
+
+            try {
+                const result = await acceptTerms(candidateId, token);
+
+                if (result && result.success) {
+                    // Guardar en localStorage
+                    storage.set('termsAccepted', true);
+                    storage.set('termsAcceptedAt', new Date().toISOString());
+
+                    // Mostrar éxito
+                    showAlert('✅ ¡Términos aceptados! Redirigiendo a tu próximo examen...', 'success');
+
+                    // Redirigir a examen E2 después de 2 segundos
+                    setTimeout(() => {
+                        window.location.href = `/examen-e2/?uid=${candidateId}&token=${result.tokenE2}`;
+                    }, 2000);
+                } else {
+                    showAlert('Error al aceptar términos: ' + (result?.error || 'Error desconocido'), 'error');
+                    btn.disabled = false;
+                }
+            } catch (error) {
+                showAlert('Error: ' + error, 'error');
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

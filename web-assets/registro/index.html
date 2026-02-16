@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Registro de Candidatos — RCCC</title>
+    <link rel="stylesheet" href="/assets/css/styles.css">
+    <style>
+        .logo-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .logo-header img {
+            max-height: 60px;
+            width: auto;
+            margin-bottom: 20px;
+        }
+        .logo-text {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: var(--primary-dark);
+            margin-bottom: 5px;
+        }
+        .logo-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.95em;
+        }
+        .form-section {
+            border-top: 2px solid var(--gray-200);
+            padding-top: 30px;
+            margin-top: 30px;
+        }
+        .form-section h3 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--primary-dark);
+            margin-bottom: 20px;
+        }
+        .section-icon {
+            font-size: 1.5em;
+        }
+        .camino-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .camino-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px;
+            border: 1px solid var(--gray-300);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .camino-item:hover {
+            background: var(--primary-light);
+            border-color: var(--primary);
+        }
+        .camino-item input[type="checkbox"] {
+            margin-top: 3px;
+        }
+        .camino-label {
+            flex: 1;
+        }
+        .camino-label strong {
+            display: block;
+            color: var(--text-primary);
+            margin-bottom: 3px;
+        }
+        .camino-label small {
+            color: var(--text-secondary);
+        }
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 40px;
+            justify-content: center;
+        }
+        .form-actions button {
+            flex: 1;
+            max-width: 200px;
+        }
+        .success-message {
+            text-align: center;
+            padding: 40px;
+        }
+        .checkmark-large {
+            font-size: 4em;
+            color: var(--success);
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <span>🎓 RCCC</span>
+        </div>
+        <div>Paso 1: Registro</div>
+    </header>
+
+    <div class="container">
+        <div class="card" id="formContainer">
+            <!-- Logo y título -->
+            <div class="logo-header">
+                <div class="logo-text">Católizare Pro</div>
+                <div class="logo-subtitle">Red de Psicólogos Católicos</div>
+                <hr style="margin: 20px 0; border: none; border-top: 1px solid var(--gray-300);">
+                <h1>Formulario de Registro</h1>
+                <p>Completa todos los campos para iniciar tu proceso de selección</p>
+            </div>
+
+            <form id="registrationForm">
+                <!-- SECCIÓN 1: Información Personal -->
+                <div class="form-section">
+                    <div class="form-section h3">
+                        <span class="section-icon">👤</span>
+                        <span>Información Personal</span>
+                    </div>
+
+                    <div class="form-group two-columns">
+                        <div>
+                            <label for="nombre">Nombre Completo *</label>
+                            <input type="text" id="nombre" name="nombre" required placeholder="Juan García">
+                        </div>
+                        <div>
+                            <label for="email">Email *</label>
+                            <input type="email" id="email" name="email" required placeholder="juan@email.com">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="telefono">Teléfono *</label>
+                        <input type="tel" id="telefono" name="telefono" required placeholder="+57 300 1234567">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ciudad">Ciudad/Región *</label>
+                        <input type="text" id="ciudad" name="ciudad" required placeholder="Bogotá">
+                    </div>
+                </div>
+
+                <!-- SECCIÓN 2: Categoría Profesional -->
+                <div class="form-section">
+                    <div class="form-section h3">
+                        <span class="section-icon">🏆</span>
+                        <span>Categoría Profesional</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="profesion">Profesión *</label>
+                        <input type="text" id="profesion" name="profesion" required placeholder="Psicólogo/a Clínico/a">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="experiencia">Años de Experiencia *</label>
+                        <select id="experiencia" name="experiencia" required>
+                            <option value="">Selecciona...</option>
+                            <option value="0-2">0-2 años</option>
+                            <option value="2-5">2-5 años</option>
+                            <option value="5-10">5-10 años</option>
+                            <option value="10+">10+ años</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="especialidad">Especialidades *</label>
+                        <textarea id="especialidad" name="especialidad" required placeholder="Ej: Terapia familiar, psicología clínica, etc."></textarea>
+                    </div>
+                </div>
+
+                <!-- SECCIÓN 3: Camino Académico -->
+                <div class="form-section">
+                    <div class="form-section h3">
+                        <span class="section-icon">📚</span>
+                        <span>Camino Académico</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Formación Académica *</label>
+                        <div class="camino-options">
+                            <label class="camino-item">
+                                <input type="checkbox" name="caminoAcademico" value="licenciatura" required>
+                                <div class="camino-label">
+                                    <strong>Licenciatura</strong>
+                                    <small>Grado de pregrado en Psicología o afín</small>
+                                </div>
+                            </label>
+                            <label class="camino-item">
+                                <input type="checkbox" name="caminoAcademico" value="maestria">
+                                <div class="camino-label">
+                                    <strong>Maestría</strong>
+                                    <small>Postgrado especializado</small>
+                                </div>
+                            </label>
+                            <label class="camino-item">
+                                <input type="checkbox" name="caminoAcademico" value="doctorado">
+                                <div class="camino-label">
+                                    <strong>Doctorado</strong>
+                                    <small>Grado doctoral (PhD, MD, etc.)</small>
+                                </div>
+                            </label>
+                            <label class="camino-item">
+                                <input type="checkbox" name="caminoAcademico" value="diplomado">
+                                <div class="camino-label">
+                                    <strong>Diplomados</strong>
+                                    <small>Formación especializada o certificaciones</small>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECCIÓN 4: Camino Espiritual -->
+                <div class="form-section">
+                    <div class="form-section h3">
+                        <span class="section-icon">✨</span>
+                        <span>Camino Espiritual</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="formacionEspiritual">Formación Espiritual</label>
+                        <textarea id="formacionEspiritual" name="formacionEspiritual" placeholder="Describa su recorrido espiritual, grupos de fe, retiros, etc."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="motivacionRCCC">¿Por qué deseas unirte a RCCC? *</label>
+                        <textarea id="motivacionRCCC" name="motivacionRCCC" required placeholder="Cuenta tu motivación para ser parte de la Red de Psicólogos Católicos"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="rolEsperado">¿Qué rol esperas tener?</label>
+                        <input type="text" id="rolEsperado" name="rolEsperado" placeholder="Ej: Consultor, mentor, investigador, etc.">
+                    </div>
+                </div>
+
+                <!-- SECCIÓN 5: Términos -->
+                <div class="form-section">
+                    <div class="form-group">
+                        <label class="camino-item" style="padding: 16px; border: 2px solid var(--primary-light);">
+                            <input type="checkbox" id="aceptoTerminos" name="aceptoTerminos" required>
+                            <div class="camino-label">
+                                <strong>Acepto los términos y condiciones</strong>
+                                <small>He leído y acepto los términos de la Red de Psicólogos Católicos</small>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Acciones -->
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="location.href='/'">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        ✓ Registrarse
+                    </button>
+                </div>
+            </form>
+
+            <!-- Mensaje de éxito -->
+            <div id="successMessage" style="display: none;">
+                <div class="success-message">
+                    <div class="checkmark-large">✓</div>
+                    <h2>¡Registro exitoso!</h2>
+                    <p>Gracias por registrarte en RCCC.</p>
+                    <p style="margin-top: 20px; color: var(--text-secondary);">
+                        Recibirás un email con instrucciones para continuar tu proceso de selección.
+                    </p>
+                    <div style="margin-top: 30px; padding: 20px; background: var(--primary-light); border-radius: 6px;">
+                        <strong>Próximo paso:</strong><br>
+                        Revisa tu email (incluye carpeta de spam) para tu link de examen E1.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/assets/js/api.js"></script>
+    <script>
+        document.getElementById('registrationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // Validar que al menos una opción de camino académico esté seleccionada
+            const caminoAcademico = document.querySelectorAll('input[name="caminoAcademico"]:checked');
+            if (caminoAcademico.length === 0) {
+                showAlert('Por favor selecciona al menos una opción de formación académica', 'error');
+                return;
+            }
+
+            // Recolectar datos
+            const formData = {
+                nombre: document.getElementById('nombre').value,
+                email: document.getElementById('email').value,
+                telefono: document.getElementById('telefono').value,
+                ciudad: document.getElementById('ciudad').value,
+                profesion: document.getElementById('profesion').value,
+                experiencia: document.getElementById('experiencia').value,
+                especialidad: document.getElementById('especialidad').value,
+                caminoAcademico: Array.from(caminoAcademico).map(el => el.value).join(', '),
+                formacionEspiritual: document.getElementById('formacionEspiritual').value,
+                motivacionRCCC: document.getElementById('motivacionRCCC').value,
+                rolEsperado: document.getElementById('rolEsperado').value,
+                categoria: document.getElementById('experiencia').value
+            };
+
+            // Validar emails
+            if (!isValidEmail(formData.email)) {
+                showAlert('El email no es válido', 'error');
+                return;
+            }
+
+            // Validar teléfono
+            if (!isValidPhone(formData.telefono)) {
+                showAlert('El teléfono debe tener al menos 10 dígitos', 'error');
+                return;
+            }
+
+            try {
+                const result = await registerCandidate(formData);
+
+                if (result.success) {
+                    // Guardar candidato ID en localStorage
+                    storage.set('candidateId', result.candidateId);
+                    storage.set('email', formData.email);
+
+                    // Mostrar mensaje de éxito
+                    document.getElementById('formContainer').style.display = 'none';
+                    document.getElementById('successMessage').style.display = 'block';
+
+                    // Redirigir después de 5 segundos
+                    setTimeout(() => {
+                        window.location.href = '/examen-e1/';
+                    }, 5000);
+                }
+            } catch (error) {
+                showAlert('Error al registrar: ' + error, 'error');
+            }
+        });
+
+        // Validaciones en tiempo real
+        document.getElementById('email').addEventListener('blur', function() {
+            if (this.value && !isValidEmail(this.value)) {
+                showAlert('Email no válido', 'warning');
+            }
+        });
+
+        document.getElementById('telefono').addEventListener('blur', function() {
+            if (this.value && !isValidPhone(this.value)) {
+                showAlert('Teléfono debe tener al menos 10 dígitos', 'warning');
+            }
+        });
+
+        // Hacer los checkboxes de camino académico mutuamente visibles
+        document.querySelectorAll('input[name="caminoAcademico"]').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                // Permitir múltiples selecciones
+            });
+        });
+    </script>
+</body>
+</html>
