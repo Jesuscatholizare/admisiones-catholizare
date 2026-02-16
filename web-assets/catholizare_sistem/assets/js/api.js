@@ -6,7 +6,7 @@
 
 // Configuración
 const API_CONFIG = {
-    PROXY_URL: '/proxy2.php',
+    PROXY_URL: '../../proxy2.php',
     TIMEOUT: 30000,
     DEBUG: true
 };
