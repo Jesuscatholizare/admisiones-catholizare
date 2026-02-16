@@ -25,41 +25,7 @@ Los archivos están en GitHub en la rama `claude/candidate-selection-tracker-rb6
 
 **Ubicación en GitHub**:
 ```
-web-assets/
-├── registro/
-│   └── index.html
-├── terminos/
-│   └── index.html
-├── examen-e2/
-│   └── index.html
-├── examen-e3/
-│   └── index.html
-├── css/
-│   └── styles.css
-├── js/
-│   └── api.js
-└── proxy2.php
-```
-
-**Descargar**:
-1. Ve a GitHub: https://github.com/Jesuscatholizare/admisiones-catholizare
-2. Branch: `claude/candidate-selection-tracker-rb6Ke`
-3. Click "Code" → "Download ZIP"
-4. Extrae la carpeta `web-assets/`
-
----
-
-## 📤 PASO 2: Subir Archivos a Servidor Web
-
-### Opción A: cPanel File Manager
-
-1. Abre cPanel de tu hosting
-2. Click "File Manager"
-3. Navega a: `/home/tuusuario/public_html/` (o donde esté profesionales.catholizare.com)
-4. Crea esta estructura:
-
-```
-public_html/
+web-assets/catholizare_sistem/
 ├── registro/
 │   └── index.html
 ├── terminos/
@@ -74,13 +40,50 @@ public_html/
 │   └── js/
 │       └── api.js
 ├── proxy2.php
-└── logs/          (crear carpeta vacía)
-    └── (archivo de logs)
+├── logs/          (crear carpeta vacía)
 └── cache/         (crear carpeta vacía)
-    └── (archivo de cache)
 ```
 
-5. Sube cada archivo en su lugar correcto
+**Descargar**:
+1. Ve a GitHub: https://github.com/Jesuscatholizare/admisiones-catholizare
+2. Branch: `claude/candidate-selection-tracker-rb6Ke`
+3. Click "Code" → "Download ZIP"
+4. Extrae la carpeta `web-assets/catholizare_sistem/` (NO solo web-assets)
+
+---
+
+## 📤 PASO 2: Subir Archivos a Servidor Web
+
+### Opción A: cPanel File Manager
+
+1. Abre cPanel de tu hosting
+2. Click "File Manager"
+3. Navega a: `/home/tuusuario/public_html/` (o donde esté profesionales.catholizare.com)
+4. **CREA CARPETA**: `catholizare_sistem/`
+5. Dentro de esa carpeta, crea esta estructura:
+
+```
+public_html/catholizare_sistem/
+├── registro/
+│   └── index.html
+├── terminos/
+│   └── index.html
+├── examen-e2/
+│   └── index.html
+├── examen-e3/
+│   └── index.html
+├── assets/
+│   ├── css/
+│   │   └── styles.css
+│   └── js/
+│       └── api.js
+├── proxy2.php
+├── logs/          (crear carpeta vacía)
+└── cache/         (crear carpeta vacía)
+```
+
+6. Sube cada archivo en su lugar correcto
+7. **IMPORTANTE**: Todo debe estar dentro de `/catholizare_sistem/`
 
 ### Opción B: FTP/SFTP
 
@@ -97,12 +100,14 @@ public_html/
 ssh usuario@profesionales.catholizare.com
 
 # Crear estructura
-mkdir -p registro terminos examen-e2 examen-e3 assets/css assets/js logs cache
+mkdir -p public_html/catholizare_sistem/{registro,terminos,examen-e2,examen-e3,assets/{css,js},logs,cache}
 
 # Subir archivos (desde tu máquina)
-scp web-assets/registro/index.html usuario@profesionales.catholizare.com:~/public_html/registro/
-scp web-assets/terminos/index.html usuario@profesionales.catholizare.com:~/public_html/terminos/
+scp web-assets/catholizare_sistem/registro/index.html usuario@profesionales.catholizare.com:~/public_html/catholizare_sistem/registro/
+scp web-assets/catholizare_sistem/terminos/index.html usuario@profesionales.catholizare.com:~/public_html/catholizare_sistem/terminos/
 # ... etc para todos los archivos
+
+# Importante: Todo va dentro de ~/public_html/catholizare_sistem/
 ```
 
 ### Verificar permisos
@@ -217,7 +222,7 @@ define('GAS_DEPLOYMENT_URL', 'https://script.google.com/macros/d/AKfycbxyz.../us
 ### Test 1: Acceso a formulario
 
 ```
-1. Abre: https://profesionales.catholizare.com/registro/
+1. Abre: https://profesionales.catholizare.com/catholizare_sistem/registro/
 2. Deberías ver el formulario de registro
 3. Completa todos los campos
 4. Click "Registrarse"
@@ -287,17 +292,18 @@ Después de completar, deberías tener en profesionales.catholizare.com:
 
 ```
 profesionales.catholizare.com/
-├── registro/index.html                      ✅
-├── terminos/index.html                      ✅
-├── examen-e2/index.html                     ✅
-├── examen-e3/index.html                     ✅
-├── assets/
-│   ├── css/styles.css                       ✅
-│   └── js/api.js                            ✅
-├── proxy2.php                               ✅ (actualizado con Deployment ID)
-├── logs/                                    ✅ (carpeta, permiso 755)
-├── cache/                                   ✅ (carpeta, permiso 755)
-└── .htaccess                                (opcional, para rewrite)
+└── catholizare_sistem/                     ← ⭐ TODO AQUÍ
+    ├── registro/index.html                  ✅
+    ├── terminos/index.html                  ✅
+    ├── examen-e2/index.html                 ✅
+    ├── examen-e3/index.html                 ✅
+    ├── assets/
+    │   ├── css/styles.css                   ✅
+    │   └── js/api.js                        ✅
+    ├── proxy2.php                           ✅ (actualizado con Deployment ID)
+    ├── logs/                                ✅ (carpeta, permiso 755)
+    ├── cache/                               ✅ (carpeta, permiso 755)
+    └── .htaccess                            (opcional, para rewrite)
 ```
 
 ---

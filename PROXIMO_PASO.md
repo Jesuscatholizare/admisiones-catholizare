@@ -32,13 +32,15 @@ He creado **TODO EL SISTEMA WEB** completamente implementado:
 
 3. Click "Code" → "Download ZIP"
 
-4. Extrae la carpeta "web-assets/"
+4. Extrae la carpeta "web-assets/catholizare_sistem/"
+   Contiene:
    - registro/
    - terminos/
    - examen-e2/
    - examen-e3/
-   - assets/
+   - assets/ (css + js)
    - proxy2.php
+   - logs/ y cache/ (carpetas)
 ```
 
 ### PASO 2: Subir a profesionales.catholizare.com (10 min)
@@ -53,16 +55,17 @@ Opciones:
 **Estructura final esperada**:
 ```
 profesionales.catholizare.com/
-├── registro/index.html
-├── terminos/index.html
-├── examen-e2/index.html
-├── examen-e3/index.html
-├── proxy2.php
-├── assets/
-│   ├── css/styles.css
-│   └── js/api.js
-├── logs/           (crear carpeta vacía)
-└── cache/          (crear carpeta vacía)
+└── catholizare_sistem/              ← TODO va aquí
+    ├── registro/index.html
+    ├── terminos/index.html
+    ├── examen-e2/index.html
+    ├── examen-e3/index.html
+    ├── proxy2.php
+    ├── assets/
+    │   ├── css/styles.css
+    │   └── js/api.js
+    ├── logs/                (crear carpeta vacía)
+    └── cache/               (crear carpeta vacía)
 ```
 
 ### PASO 3: Actualizar Code.gs (10 min)
