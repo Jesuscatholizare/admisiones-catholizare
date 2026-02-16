@@ -23,14 +23,41 @@ function getConfig(key, defaultValue = null) {
     if (!sheet) return defaultValue;
 
     const data = sheet.getDataRange().getValues();
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][0] === key) {
-        const value = data[i][1];
-        const type = data[i][2] || 'string';
 
-        if (type === 'json') return JSON.parse(value);
-        if (type === 'number') return Number(value);
-        return value;
+    // Soporta dos formatos:
+    // Formato 1: Columnas separadas (A: clave, B: valor, C: tipo)
+    // Formato 2: Una columna con "CLAVE = VALOR"
+
+    for (let i = 0; i < data.length; i++) {
+      const cellValue = data[i][0];
+
+      if (!cellValue) continue;
+
+      // Formato 1: Columnas separadas
+      if (data[i][1] !== undefined && data[i][1] !== '') {
+        if (cellValue === key) {
+          const value = data[i][1];
+          const type = data[i][2] || 'string';
+
+          if (type === 'json') return JSON.parse(value);
+          if (type === 'number') return Number(value);
+          return value;
+        }
+      }
+      // Formato 2: "CLAVE = VALOR" en una sola celda
+      else if (typeof cellValue === 'string' && cellValue.includes('=')) {
+        const [configKey, configValue] = cellValue.split('=').map(s => s.trim());
+        if (configKey === key) {
+          return configValue;
+        }
+      }
+      // Formato 2b: "CLAVE valor" (separado por espacio) - para casos como "ADMIN_EMAILS email1, email2"
+      else if (typeof cellValue === 'string' && cellValue.startsWith(key)) {
+        const parts = cellValue.split(/\s+/);
+        if (parts[0] === key && parts.length > 1) {
+          // Retorna todo después de la clave
+          return cellValue.substring(key.length).trim();
+        }
       }
     }
   } catch (e) {
@@ -132,81 +159,98 @@ function formatAllSheets() {
  * Formatea una hoja específica
  */
 function formatSheet(sheet, sheetName) {
-  // Congelar primera fila (headers)
-  sheet.setFrozenRows(1);
+  try {
+    // Validar que sheet existe
+    if (!sheet) {
+      Logger.log(`⚠️ formatSheet: sheet es null para ${sheetName}`);
+      return;
+    }
 
-  // Ancho de columnas según el tipo de hoja
-  switch(sheetName) {
-    case 'Config':
-      sheet.setColumnWidth(1, 250); // Clave
-      sheet.setColumnWidth(2, 300); // Valor
-      sheet.setColumnWidth(3, 100); // Tipo
-      break;
+    // Congelar primera fila (headers)
+    sheet.setFrozenRows(1);
 
-    case 'Candidatos':
-      sheet.setColumnWidth(1, 120);  // ID
-      sheet.setColumnWidth(2, 150);  // Nombre
-      sheet.setColumnWidth(3, 180);  // Email
-      sheet.setColumnWidth(4, 130);  // Teléfono
-      sheet.setColumnWidth(5, 120);  // Fecha registro
-      sheet.setColumnWidth(6, 120);  // Scheduled date
-      sheet.setColumnWidth(7, 150);  // Status
-      sheet.setColumnWidth(8, 120);  // Last interaction
-      sheet.setColumnWidth(9, 150);  // Final status
-      sheet.setColumnWidth(10, 130); // Final category
-      sheet.setColumnWidth(11, 130); // Admin assigned
-      sheet.setColumnWidth(12, 150); // Fecha aceptación
-      sheet.setColumnWidth(13, 130); // IP aceptación
-      break;
+    // Ancho de columnas según el tipo de hoja
+    switch(sheetName) {
+      case 'Config':
+        sheet.setColumnWidth(1, 250); // Clave
+        sheet.setColumnWidth(2, 300); // Valor
+        sheet.setColumnWidth(3, 100); // Tipo
+        break;
 
-    case 'Tokens':
-      sheet.setColumnWidth(1, 150);  // Token
-      sheet.setColumnWidth(2, 120);  // Candidate ID
-      sheet.setColumnWidth(3, 100);  // Tipo
-      sheet.setColumnWidth(4, 130);  // Valid from
-      sheet.setColumnWidth(5, 130);  // Valid until
-      sheet.setColumnWidth(6, 80);   // Usado
-      break;
+      case 'Candidatos':
+        sheet.setColumnWidth(1, 120);  // ID
+        sheet.setColumnWidth(2, 150);  // Nombre
+        sheet.setColumnWidth(3, 180);  // Email
+        sheet.setColumnWidth(4, 130);  // Teléfono
+        sheet.setColumnWidth(5, 120);  // Fecha registro
+        sheet.setColumnWidth(6, 120);  // Scheduled date
+        sheet.setColumnWidth(7, 150);  // Status
+        sheet.setColumnWidth(8, 120);  // Last interaction
+        sheet.setColumnWidth(9, 150);  // Final status
+        sheet.setColumnWidth(10, 130); // Final category
+        sheet.setColumnWidth(11, 130); // Admin assigned
+        sheet.setColumnWidth(12, 150); // Fecha aceptación
+        sheet.setColumnWidth(13, 130); // IP aceptación
+        break;
 
-    case 'Timeline':
-      sheet.setColumnWidth(1, 120);  // ID
-      sheet.setColumnWidth(2, 120);  // Candidate ID
-      sheet.setColumnWidth(3, 180);  // Evento
-      sheet.setColumnWidth(4, 150);  // Fecha
-      sheet.setColumnWidth(5, 300);  // Detalles
-      break;
+      case 'Tokens':
+        sheet.setColumnWidth(1, 150);  // Token
+        sheet.setColumnWidth(2, 120);  // Candidate ID
+        sheet.setColumnWidth(3, 100);  // Tipo
+        sheet.setColumnWidth(4, 130);  // Valid from
+        sheet.setColumnWidth(5, 130);  // Valid until
+        sheet.setColumnWidth(6, 80);   // Usado
+        break;
 
-    case 'Preguntas':
-      sheet.setColumnWidth(1, 80);   // ID
-      sheet.setColumnWidth(2, 100);  // Tipo
-      sheet.setColumnWidth(3, 150);  // Categoría
-      sheet.setColumnWidth(4, 300);  // Texto
-      sheet.setColumnWidth(5, 150);  // Opciones
-      break;
+      case 'Timeline':
+        sheet.setColumnWidth(1, 120);  // ID
+        sheet.setColumnWidth(2, 120);  // Candidate ID
+        sheet.setColumnWidth(3, 180);  // Evento
+        sheet.setColumnWidth(4, 150);  // Fecha
+        sheet.setColumnWidth(5, 300);  // Detalles
+        break;
 
-    case 'Respuestas':
-      sheet.setColumnWidth(1, 120);  // ID
-      sheet.setColumnWidth(2, 120);  // Candidate ID
-      sheet.setColumnWidth(3, 100);  // Examen
-      sheet.setColumnWidth(4, 100);  // Pregunta ID
-      sheet.setColumnWidth(5, 300);  // Respuesta
-      sheet.setColumnWidth(6, 100);  // Puntuación
-      break;
+      case 'Preguntas':
+        sheet.setColumnWidth(1, 80);   // ID
+        sheet.setColumnWidth(2, 100);  // Tipo
+        sheet.setColumnWidth(3, 150);  // Categoría
+        sheet.setColumnWidth(4, 300);  // Texto
+        sheet.setColumnWidth(5, 150);  // Opciones
+        break;
+
+      case 'Respuestas':
+        sheet.setColumnWidth(1, 120);  // ID
+        sheet.setColumnWidth(2, 120);  // Candidate ID
+        sheet.setColumnWidth(3, 100);  // Examen
+        sheet.setColumnWidth(4, 100);  // Pregunta ID
+        sheet.setColumnWidth(5, 300);  // Respuesta
+        sheet.setColumnWidth(6, 100);  // Puntuación
+        break;
+    }
+
+    // Formatear header (primera fila)
+    if (sheet.getLastColumn() > 0) {
+      const headerRange = sheet.getRange(1, 1, 1, sheet.getLastColumn());
+      headerRange.setBackground('#001A55');
+      headerRange.setFontColor('#FFFFFF');
+      headerRange.setFontWeight('bold');
+      headerRange.setHorizontalAlignment('CENTER');
+
+      // Crear autofilter (sintaxis correcta de Google Apps Script)
+      headerRange.createFilter();
+    }
+
+    // Alineación y formato general
+    const dataRange = sheet.getDataRange();
+    if (dataRange) {
+      dataRange.setVerticalAlignment('TOP');
+      dataRange.setHorizontalAlignment('LEFT');
+    }
+
+    Logger.log(`✅ formatSheet completado: ${sheetName}`);
+  } catch (error) {
+    Logger.log(`❌ Error en formatSheet(${sheetName}): ${error.message}`);
   }
-
-  // Formatear header (primera fila)
-  const headerRange = sheet.getRange(1, 1, 1, sheet.getLastColumn());
-  headerRange.setBackground('#001A55');
-  headerRange.setFontColor('#FFFFFF');
-  headerRange.setFontWeight('bold');
-  headerRange.setHorizontalAlignment('CENTER');
-
-  // Autofilter en header
-  sheet.setFilter(headerRange);
-
-  // Alineación y formato general
-  sheet.getDataRange().setVerticalAlignment('TOP');
-  sheet.getDataRange().setHorizontalAlignment('LEFT');
 }
 
 /**
