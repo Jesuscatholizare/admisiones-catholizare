@@ -1,256 +1,137 @@
-# 📋 Sistema de Selección de Candidatos — RCCC
+# Sistema de Selección de Candidatos - RCCC
 
-Sistema automatizado para **gestionar el proceso de selección** de psicólogos y consultores católicos de la RCCC.
+Sistema para gestionar el proceso de selección de psicólogos católicos.
 
-**Stack**: Google Apps Script + Google Sheets + WebApp HTML
-**Estado**: 🚀 En desarrollo (rama `claude/candidate-selection-tracker-rb6Ke`)
-
----
-
-## 🎯 ¿Qué Hace Este Sistema?
-
-Automatiza el **flujo completo** de selección:
-
-1. **Candidato se registra** → Datos guardados en Sheets
-2. **Completa 3 evaluaciones** → En diferentes momentos
-3. **Preguntas abiertas calificadas** → Automáticamente por OpenAI
-4. **Admin pausa el proceso** → Revisa, aprueba/rechaza
-5. **Notificaciones automáticas** → Vía Brevo + Resend
-6. **Timeline completo** → Auditoría de cada acción
-
-**Resultado**: Dashboard admin para ver candidatos, pruebas, pausas y enviar notificaciones. Estilo idéntico al sistema de onboarding.
+**Stack:** Google Apps Script + Google Sheets + Brevo + OpenAI
 
 ---
 
-## 📚 Documentación (LEE ESTO PRIMERO)
-
-| Archivo | Propósito |
-|---------|-----------|
-| **[docs/CONTEXT.md](docs/CONTEXT.md)** | QUÉ se está construyendo (objetivo, fases, estructura) |
-| **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** | CÓMO está estructurado (stack, módulos, flujo de datos) |
-| **[docs/DECISIONS.md](docs/DECISIONS.md)** | POR QUÉ esas decisiones (OpenAI, Brevo/Resend, Sheets, etc) |
-| **[docs/WORKFLOW.md](docs/WORKFLOW.md)** | CÓMO TRABAJAR CONMIGO (Claude + GitHub) |
-| **[docs/SETUP.md](docs/SETUP.md)** | PASOS para crear Google Sheets (START HERE) |
-
----
-
-## 🚀 Quick Start (Pasos Iniciales)
-
-### Paso 1: Lee la documentación
-1. Abre [docs/WORKFLOW.md](docs/WORKFLOW.md) — Entiende cómo trabajar con Claude-GitHub
-2. Abre [docs/SETUP.md](docs/SETUP.md) — Crea el Spreadsheet
-
-### Paso 2: Crea el Spreadsheet
-Sigue exactamente las instrucciones en [docs/SETUP.md](docs/SETUP.md):
-- Crea Spreadsheet DEV en Google Sheets
-- Crea 8 hojas con la estructura especificada
-- Copia el ID y actualiza `docs/DECISIONS.md`
-
-### Paso 3: Espera el Código
-Una vez Spreadsheet DEV esté listo, diré "listo para implementar Code.gs" y comenzaré a escribir:
-- Módulo de candidatos
-- Módulo de calificación con OpenAI
-- Módulo de notificaciones
-- Dashboard HTML
-
----
-
-## 📁 Estructura del Proyecto
+## Estructura del Proyecto
 
 ```
 admisiones-catholizare/
-├── README.md                    ← Estás aquí
-├── docs/
-│   ├── CONTEXT.md              ← QUÉ se construye
-│   ├── ARCHITECTURE.md         ← CÓMO funciona
-│   ├── DECISIONS.md            ← POR QUÉ decisiones
-│   ├── WORKFLOW.md             ← CÓMO TRABAJAR CONMIGO
-│   └── SETUP.md                ← CREAR SPREADSHEET (start)
-├── apps-script-dev/            ← Código en desarrollo
-│   ├── Code.gs                 ← Script principal (editable)
-│   ├── .clasp.json            ← Config (NO editar)
-│   └── appsscript.json        ← Manifest (NO editar)
-├── apps-script-prod/           ← Código en producción
-│   ├── Code.gs                 ← Script principal (copia de dev)
-│   ├── .clasp.json            ← Config (NO editar)
-│   └── appsscript.json        ← Manifest (NO editar)
-└── .git/                        ← Control de versiones GitHub
+├── Code.gs                         ← Backend completo (1955 líneas)
+├── html/                           ← HTMLs para tu servidor
+│   ├── admin-dashboard.html        ← Panel administrativo
+│   ├── admin-login.html            ← Login admin
+│   ├── exam-webapp.html            ← Interfaz de examen (anti-fraude)
+│   └── wordpress-embed.html        ← Formulario registro (Elementor)
+├── docs/                           ← Documentación
+│   ├── CONTEXT.md                  ← Contexto general del proyecto
+│   ├── ESTRUCTURA_SHEETS.md        ← 13 hojas del Google Sheet
+│   └── DELAYS_AND_PAUSES.md        ← Delays y tiempos del sistema
+└── README.md                       ← Este archivo
 ```
 
 ---
 
-## 🔀 Ramas Git
-
-- **`main`**: Código estable (releases)
-- **`dev`**: Trabajo diario
-- **`claude/candidate-selection-tracker-rb6Ke`**: Rama actual de desarrollo (IA)
-
----
-
-## 👤 Roles en el Sistema
-
-| Rol | Permisos |
-|-----|----------|
-| **Candidato** | Ver formulario, responder evaluaciones |
-| **Administrador** | Ver candidatos, pausar procesos, aprobar tests |
-| **Super Administrador** | Crear admins, ver reportes globales, configurar URLs/keys |
-
----
-
-## 🎨 Estilo UI
-
-El dashboard admin tiene el **mismo estilo visual** que el sistema de onboarding:
-- Paleta: Azul + gris + blanco
-- Componentes: Cards, botones, tablas, modales
-- Responsivo: Mobile-first (funciona en tablets y mobile)
-- Tema: Profesional, limpio, intuitivo
-
----
-
-## 🔗 Integraciones Externas
-
-El sistema se integra con:
-
-| Servicio | Uso | Config |
-|----------|-----|--------|
-| **OpenAI API** | Calificar respuestas abiertas | En hoja `Config` |
-| **Brevo** (Sendinblue) | Envío de emails | En hoja `Config` |
-| **Resend** | Email alternativo (fallback) | En hoja `Config` |
-| **Google Sheets** | Base de datos | DEV + PROD |
-| **Google Apps Script** | Backend/lógica | apps-script-dev/prod |
-
----
-
-## 📋 Fases del Proceso
+## Flujo del Sistema
 
 ```
-Registro
-  ↓
-Test 1 (evaluación abierta)
-  ↓
-[PAUSA] Admin revisa, aprueba/rechaza
-  ↓
-Test 2 (evaluación psicométrica)
-  ↓
-[PAUSA] Admin revisa, aprueba/rechaza
-  ↓
-Test 3 (evaluación final)
-  ↓
-[PAUSA] Admin revisa, aprueba/rechaza
-  ↓
-Notificación final (email resultado)
-  ↓
-Completado/Rechazado
+Candidato se registra (WordPress form)
+    ↓
+Recibe email de bienvenida + token E1 (Brevo)
+    ↓
+Toma Examen E1 (120 min, anti-fraude)
+    ↓
+OpenAI califica preguntas abiertas
+    ↓
+Admin revisa en Dashboard → Aprueba/Rechaza
+    ↓
+Candidato acepta Términos → Recibe token E2
+    ↓
+Toma Examen E2 → Admin revisa → Aprueba
+    ↓
+Toma Examen E3 → Admin revisa → Categoriza
+    ↓
+Categoría: JUNIOR (75-79%) | SENIOR (80-89%) | EXPERT (90%+)
+    ↓
+Entrevista → Aprobación final → Handoff a Onboarding
 ```
 
 ---
 
-## 🧪 Testing
+## Archivos Clave
 
-Después de cada cambio:
+### Code.gs (Backend)
+El archivo principal. Se pega en Google Apps Script.
 
-### En DEV (sandbox seguro)
-```
-1. Cambia aparecen en apps-script-dev/Code.gs
-2. Ejecuta pruebas en Spreadsheet DEV
-3. Valida que Sheets actualiza correctamente
-4. Mira logs en Apps Script editor
-```
+**Contiene:**
+- `initializeSpreadsheet()` - Crea las 13 hojas automáticamente
+- `handleRegistration()` - Registro de candidatos
+- `handleExamSubmit()` - Recibe respuestas de exámenes
+- `gradeExam()` - Califica con OpenAI (rubrics)
+- `approveExamAdmin()` / `rejectExamAdmin()` - Admin aprueba/rechaza
+- `assignCategoryAndApprove()` - Asigna Junior/Senior/Expert
+- `sendEmail()` - Envío via Brevo > Resend > MailApp
+- 8 templates de email (bienvenida, términos, E2, E3, entrevista, rechazo, aprobación, handoff)
+- `addContactToBrevoList()` / `moveContactBetweenLists()` - Gestión Brevo
+- Token management con ventanas ISO (valid_from/valid_until)
 
-### Cuando todo funciona en DEV
-```
-1. Copia Code.gs a apps-script-prod/
-2. Ejecuta mismas pruebas en PROD
-3. Valida en Spreadsheet PROD
-4. Confirma que no afecta datos existentes
-```
+### html/ (Frontend - Para tu servidor)
+4 archivos HTML independientes que se comunican con Code.gs via `fetch()`.
 
----
+**Subir a:** `https://profesionales.catholizare.com/catholizare_sistem/`
 
-## 📝 Convención de Commits
-
-Cuando hagas push, usa este formato:
-
-```bash
-git commit -m "tipo: descripción breve
-
-Descripción detallada (opcional)
-Referencia a docs si aplica"
-```
-
-**Tipos válidos**:
-- `feat: ` → Nueva funcionalidad
-- `fix: ` → Corrección de bug
-- `docs: ` → Cambios en documentación
-- `refactor: ` → Reorganizar código
-- `test: ` → Pruebas
-- `chore: ` → Tareas mantenimiento
-
-**Ejemplos**:
-```bash
-git commit -m "feat: agregar validación de emails"
-git commit -m "docs: actualizar SETUP.md con instrucciones de Config"
-git commit -m "fix: corregir timezones en Timeline"
-```
+**Importante:** Reemplazar `[GAS_DEPLOYMENT_ID]` en cada HTML con tu ID real de Google Apps Script.
 
 ---
 
-## 🚨 Importante: Nunca Edites Estos Archivos Directamente
+## Google Sheets (13 hojas)
 
-```
-❌ NO EDITES:
-- .clasp.json (salvo Script ID)
-- appsscript.json
-- .git/ (git commands solo)
+| Hoja | Propósito |
+|------|-----------|
+| Config | Variables globales (API keys, emails, duraciones) |
+| Candidatos | Base de datos de postulantes |
+| Tokens | Tokens de acceso a exámenes |
+| Preguntas | Banco de preguntas con rúbricas |
+| Test_E1_Respuestas | Respuestas examen 1 |
+| Test_E2_Respuestas | Respuestas examen 2 |
+| Test_E3_Respuestas | Respuestas examen 3 |
+| Timeline | Auditoría de eventos |
+| Resultados | Resultados finales consolidados |
+| Notificaciones | Log de emails enviados |
+| Usuarios | Admins del sistema |
+| Sessions | Sesiones activas |
+| Login_Audit | Intentos de login |
 
-✅ EDITA LIBREMENTE:
-- Code.gs (apps-script-dev/prod)
-- docs/*.md
-```
-
----
-
-## ❓ Preguntas Frecuentes
-
-### ¿Cómo se usan DEV y PROD?
-- **DEV** = Sandbox para probar cambios sin riesgo
-- **PROD** = Versión en uso (datos reales)
-- Siempre prueba primero en DEV
-
-### ¿Qué pasa si cometo un error en git?
-Avísame, git tiene historial y podemos deshacer. No es problema.
-
-### ¿Cuál es el próximo paso?
-1. Lee [docs/WORKFLOW.md](docs/WORKFLOW.md)
-2. Sigue [docs/SETUP.md](docs/SETUP.md) para crear Spreadsheet
-3. Avísame cuando Spreadsheet esté listo
-4. Comenzaré a implementar Code.gs
-
-### ¿Cómo contacto soporte?
-Pregúntame directamente en el chat. Estoy aquí para ayudar.
+Detalle completo: [docs/ESTRUCTURA_SHEETS.md](docs/ESTRUCTURA_SHEETS.md)
 
 ---
 
-## 📞 Contacto & Soporte
+## Integraciones
 
-Si tienes preguntas:
-1. Revisa primero [docs/WORKFLOW.md](docs/WORKFLOW.md)
-2. Mira ejemplos en [docs/SETUP.md](docs/SETUP.md)
-3. Pregúntame directamente
-
----
-
-## 📈 Timeline (Tentativo)
-
-| Fase | Estado | Notas |
-|------|--------|-------|
-| Documentación ✅ | Completado | CONTEXT, ARCHITECTURE, DECISIONS, WORKFLOW, SETUP |
-| Spreadsheet Setup | **⏳ NEXT** | Crea Sheets DEV/PROD (tú) |
-| Code.gs v1 | Pendiente | Backend + módulos (IA) |
-| Dashboard HTML | Pendiente | UI admin (IA) |
-| Testing | Pendiente | DEV → PROD (colaborativo) |
-| Go Live | Pendiente | Merge a main (tú apruebas) |
+| Servicio | Uso | Configuración |
+|----------|-----|---------------|
+| **Brevo** | Email principal | BREVO_API_KEY en Config sheet |
+| **Resend** | Email fallback | RESEND_API_KEY en Config sheet |
+| **OpenAI** | Calificar respuestas abiertas | OPENAI_API_KEY en Config sheet |
+| **Google Sheets** | Base de datos | Spreadsheet ID |
 
 ---
 
-**¡Comienza leyendo [docs/SETUP.md](docs/SETUP.md) para crear el Spreadsheet!** 🚀
+## Instalación
+
+### 1. Google Apps Script
+1. Copia el contenido de `Code.gs`
+2. Pégalo en Google Apps Script
+3. Ejecuta `initializeSpreadsheet()` una vez
+4. Configura las claves en la hoja "Config"
+5. Deploy como Web App
+
+### 2. HTMLs en servidor
+1. Sube los 4 archivos de `html/` a tu servidor
+2. Reemplaza `[GAS_DEPLOYMENT_ID]` con tu Deployment ID
+3. Listo
+
+### 3. WordPress (Elementor)
+1. Copia contenido de `html/wordpress-embed.html`
+2. Pégalo en un elemento HTML de Elementor
+3. Reemplaza `[GAS_DEPLOYMENT_ID]`
+4. Publica
+
+---
+
+## Rama de Desarrollo
+
+`claude/candidate-selection-tracker-rb6Ke`
