@@ -292,6 +292,10 @@ function doPost(e) {
         return handleRegistration(data);
       case 'submit_exam':
         return handleExamSubmit(data);
+      case 'acceptTerms':
+        return jsonResponse(acceptTerms(data.candidate_id).success,
+          acceptTerms(data.candidate_id).message,
+          { candidateId: data.candidate_id });
       default:
         return jsonResponse(false, 'Accion no valida');
     }
@@ -1351,14 +1355,32 @@ function sendWelcomeEmail(email, name, token, candidate_id, scheduled_date) {
 }
 
 function sendEmailTerms(email, name, candidateId) {
-  const termsUrl = 'https://profesionales.catholizare.com/terminos/?uid=' + candidateId;
-  const htmlBody = '<html><body style="font-family:Arial,sans-serif;">' +
-    '<h2>Hola ' + name + '</h2>' +
-    '<p>Aprobaste el Examen E1. Ahora necesitas aceptar los Terminos y Condiciones.</p>' +
-    '<a href="' + termsUrl + '" style="background:#0966FF;color:white;padding:12px 24px;text-decoration:none;border-radius:4px;">Ver y Aceptar Terminos</a>' +
-    '<p style="font-size:12px;">O copia: ' + termsUrl + '</p>' +
-    '</body></html>';
-  return sendEmail(email, 'Paso siguiente: Acepta los Terminos', htmlBody);
+  const termsUrl = 'https://profesionales.catholizare.com/catholizare_sistem/terminos-condiciones.html?candidate_id=' + candidateId;
+  const htmlBody = '<html><head><style>' +
+    'body{font-family:Arial,sans-serif;color:#333;}' +
+    '.container{max-width:600px;margin:0 auto;padding:20px;}' +
+    '.header{background:linear-gradient(135deg,#001A55 0%,#0966FF 100%);color:white;padding:20px;text-align:center;border-radius:8px 8px 0 0;}' +
+    '.content{background:#f9f9f9;padding:20px;}' +
+    '.btn{display:inline-block;background:#0966FF;color:white;padding:12px 24px;text-decoration:none;border-radius:4px;margin:20px 0;}' +
+    '</style></head><body>' +
+    '<div class="container">' +
+    '<div class="header"><h1>¡Aprobaste E1!</h1></div>' +
+    '<div class="content">' +
+    '<p>Felicidades ' + name + ',</p>' +
+    '<p>Has aprobado exitosamente el Examen E1. El siguiente paso es aceptar los Términos y Condiciones de RCCC.</p>' +
+    '<p><strong>Por favor:</strong></p>' +
+    '<ol style="margin:1rem 0; padding-left:2rem;">' +
+    '<li>Lee cuidadosamente los Términos y Condiciones</li>' +
+    '<li>Marca todas las casillas de aceptación</li>' +
+    '<li>Haz clic en "Aceptar y Continuar"</li>' +
+    '</ol>' +
+    '<p>Una vez aceptes, recibirás un nuevo email con acceso al Examen E2.</p>' +
+    '<a href="' + termsUrl + '" class="btn" style="text-align:center;">Aceptar Términos</a>' +
+    '<hr>' +
+    '<p style="color:#666;font-size:12px;">Si tienes problemas accediendo al enlace, copia esta URL en tu navegador:</p>' +
+    '<p style="background:#f0f0f0;padding:10px;border-radius:4px;font-size:11px;word-break:break-all;">' + termsUrl + '</p>' +
+    '</div></div></body></html>';
+  return sendEmail(email, 'Siguiente paso: Acepta los Términos y Condiciones', htmlBody);
 }
 
 function sendEmailE2(email, name, token, candidateId) {
@@ -1432,6 +1454,62 @@ function sendHandoffNotification(email, name, category) {
     '<p>Ha sido transferido al sistema de Onboarding.</p>' +
     '</body></html>';
   return sendEmail(adminEmail, 'Handoff: ' + name + ' (' + category + ')', htmlBody);
+}
+
+/**
+ * Candidato acepta Términos y Condiciones
+ * FLUJO:
+ * 1. Admin aprueba E1
+ * 2. Sistema envía email con link a terminos-condiciones.html?candidate_id=...
+ * 3. Candidato lee y acepta términos (4 checkboxes)
+ * 4. Frontend llama a acceptTerms() vía proxy.php
+ * 5. Se genera token E2 y se envía email
+ */
+function acceptTerms(candidateId) {
+  try {
+    const sheet = SS.getSheetByName('Candidatos');
+    const data = sheet.getDataRange().getValues();
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === candidateId) {
+        const email = data[i][3];
+        const name = data[i][2];
+        const status = data[i][10];
+
+        // Validar que esté en estado correcto (esperando aceptación de términos)
+        if (status !== 'awaiting_terms_acceptance') {
+          return { success: false, error: 'Candidato no está en estado correcto' };
+        }
+
+        // Generar token E2
+        const token = generateToken(candidateId, 'E2');
+        const scheduled_date = new Date().toISOString().split('T')[0];
+        saveToken(token, candidateId, 'E2', email, name, scheduled_date);
+
+        // Actualizar estado
+        sheet.getRange(i + 1, 11).setValue('pending_review_E2');
+
+        // Enviar email con token E2
+        sendEmailE2(email, name, token, candidateId);
+
+        // Registrar en Timeline
+        addTimelineEvent(candidateId, 'TERMINOS_ACEPTADOS', {
+          fecha: new Date().toISOString(),
+          token_e2_generado: true
+        });
+
+        Logger.log('[acceptTerms] Términos aceptados por ' + candidateId);
+
+        return { success: true, message: 'Términos aceptados. Email con Examen E2 enviado.' };
+      }
+    }
+
+    return { success: false, error: 'Candidato no encontrado' };
+
+  } catch (error) {
+    Logger.log('[acceptTerms Error] ' + error.message);
+    return { success: false, error: error.message };
+  }
 }
 
 // ================================

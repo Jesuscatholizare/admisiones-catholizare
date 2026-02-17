@@ -463,14 +463,19 @@
     </div>
 
     <script>
-        // Get candidate ID and email from URL
+        // Get candidate ID from URL
+        // URL format: terminos-condiciones.html?candidate_id=CANDIDATO_20260217_1234
         const urlParams = new URLSearchParams(window.location.search);
         const candidateId = urlParams.get('candidate_id');
-        const email = urlParams.get('email');
-        const token = urlParams.get('token');
 
         // Configuration
         const API_BASE = 'https://profesionales.catholizare.com/catholizare_sistem/proxy.php';
+
+        // Verify candidate ID exists
+        if (!candidateId) {
+            showError('ID de candidato no encontrado. Por favor intenta nuevamente desde el email que recibiste.');
+            document.getElementById('acceptButton').disabled = true;
+        }
 
         // Accept terms
         async function acceptTerms() {
@@ -493,12 +498,11 @@
             button.innerHTML = '<span class="spinner"></span>Procesando...';
 
             try {
+                // Enviar aceptación de términos al proxy
                 const response = await fetch(`${API_BASE}?action=acceptTerms`, {
                     method: 'POST',
                     body: JSON.stringify({
                         candidate_id: candidateId,
-                        email: email,
-                        token: token,
                         accepted_at: new Date().toISOString()
                     })
                 });
@@ -506,12 +510,12 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    showSuccess('¡Términos aceptados! Redirigiendo...');
+                    showSuccess('¡Términos aceptados! Recibirás un email con tu acceso a Examen 2 en unos momentos...');
                     setTimeout(() => {
-                        window.location.href = '/estado?candidate_id=' + candidateId;
-                    }, 2000);
+                        window.location.href = 'https://profesionales.catholizare.com/estado?candidate_id=' + candidateId;
+                    }, 3000);
                 } else {
-                    showError(result.message || 'Error al aceptar términos');
+                    showError(result.message || 'Error al aceptar términos. Por favor intenta nuevamente.');
                     button.disabled = false;
                     button.innerHTML = '✓ Aceptar y Continuar';
                 }
@@ -524,8 +528,8 @@
 
         // Decline terms
         function declineTerms() {
-            if (confirm('¿Deseas declinar los términos y cancelar tu participación?')) {
-                window.location.href = '/';
+            if (confirm('¿Estás seguro de que deseas declinar los términos? Esto cancelará tu participación en el proceso.')) {
+                window.location.href = 'https://profesionales.catholizare.com/';
             }
         }
 
