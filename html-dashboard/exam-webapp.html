@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Examen RCCC - Evaluación</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #001A55;
+            --primary-light: #0966FF;
+            --success: #4CAF50;
+            --warning: #FF9800;
+            --danger: #f44336;
+            --light: #f5f7fa;
+            --border-color: #e0e0e0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--light);
+            color: #333;
+            line-height: 1.6;
+        }
+
+        /* Header with Timer */
+        .exam-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0, 26, 85, 0.15);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .exam-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .exam-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .exam-subtitle {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .timer-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .timer-display {
+            font-size: 2.5rem;
+            font-weight: 700;
+            font-family: 'Monaco', 'Courier New', monospace;
+            min-width: 120px;
+            text-align: center;
+        }
+
+        .timer-display.warning {
+            color: #FFD700;
+            animation: pulse 1s infinite;
+        }
+
+        .timer-display.critical {
+            color: #FF4444;
+            animation: blink 0.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        @keyframes blink {
+            0%, 50%, 100% { opacity: 1; }
+            25%, 75% { opacity: 0.3; }
+        }
+
+        .timer-label {
+            font-size: 0.8em;
+            opacity: 0.8;
+        }
+
+        /* Alert Banner */
+        .alert-banner {
+            background: var(--warning);
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            font-weight: 600;
+            display: none;
+            position: fixed;
+            top: 60px;
+            left: 0;
+            right: 0;
+            z-index: 99;
+            animation: slideDown 0.3s;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-100%);
+            }
+            to {
+                transform: translateY(0);
+            }
+        }
+
+        .alert-banner.show {
+            display: block;
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        /* Questions Container */
+        .questions-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .question-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            border-left: 4px solid var(--primary-light);
+            transition: all 0.3s;
+        }
+
+        .question-card:hover {
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+        }
+
+        .question-card.answered {
+            border-left-color: var(--success);
+            background: linear-gradient(to right, rgba(76, 175, 80, 0.05), white);
+        }
+
+        .question-number {
+            display: inline-block;
+            background: var(--primary-light);
+            color: white;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .question-text {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+
+        .question-hint {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 1rem;
+            padding: 0.8rem;
+            background: #f0f4ff;
+            border-radius: 6px;
+            border-left: 3px solid var(--primary-light);
+        }
+
+        /* Multiple Choice */
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .option {
+            display: flex;
+            align-items: flex-start;
+            padding: 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        .option:hover {
+            border-color: var(--primary-light);
+            background: #f0f4ff;
+        }
+
+        .option input[type="radio"] {
+            margin-right: 1rem;
+            margin-top: 0.2rem;
+            cursor: pointer;
+            accent-color: var(--primary-light);
+            width: 20px;
+            height: 20px;
+        }
+
+        .option input[type="radio"]:checked ~ .option-label {
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .option.selected {
+            border-color: var(--primary-light);
+            background: #e8f0ff;
+        }
+
+        .option-label {
+            flex: 1;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        /* Open Ended */
+        .textarea-container {
+            position: relative;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1em;
+            font-family: inherit;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(9, 102, 255, 0.1);
+        }
+
+        .char-count {
+            font-size: 0.85em;
+            color: #999;
+            margin-top: 0.5rem;
+            text-align: right;
+        }
+
+        /* Submit Section */
+        .submit-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            text-align: center;
+            margin-bottom: 2rem;
+            position: sticky;
+            bottom: 0;
+            z-index: 50;
+        }
+
+        .submit-info {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 1rem;
+        }
+
+        .submit-button {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-width: 200px;
+        }
+
+        .submit-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(9, 102, 255, 0.4);
+        }
+
+        .submit-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* Loading State */
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            padding: 3rem;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-light);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Error State */
+        .error-message {
+            background: #FFEBEE;
+            color: #B71C1C;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid #f44336;
+            margin: 1rem 0;
+        }
+
+        /* Progress Bar */
+        .progress-section {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--border-color);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success), #8BC34A);
+            transition: width 0.3s;
+        }
+
+        .progress-text {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        /* Security Warnings */
+        .security-warning {
+            background: #FFF3E0;
+            color: #E65100;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid var(--warning);
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .security-warning.show {
+            display: block;
+            animation: slideDown 0.3s;
+        }
+
+        /* Modal for Final Submission */
+        .confirmation-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 2rem;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            font-size: 1.3em;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .modal-body {
+            color: #666;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+        }
+
+        .modal-footer button {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-cancel {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .btn-submit {
+            background: var(--primary-light);
+            color: white;
+        }
+
+        .btn-submit:hover {
+            background: #0954cc;
+            box-shadow: 0 4px 12px rgba(9, 102, 255, 0.3);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .exam-header {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .timer-display {
+                font-size: 2em;
+            }
+
+            .container {
+                margin: 1rem auto;
+            }
+
+            .question-card {
+                padding: 1.5rem;
+            }
+
+            .option {
+                padding: 0.8rem;
+            }
+
+            .submit-button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header with Timer -->
+    <div class="exam-header">
+        <div class="exam-info">
+            <div class="exam-title" id="examTitle">Examen E1</div>
+            <div class="exam-subtitle" id="examSubtitle">Candidato: --</div>
+        </div>
+        <div class="timer-container">
+            <div class="timer-display" id="timerDisplay">--:--</div>
+            <div class="timer-label">Tiempo restante</div>
+        </div>
+    </div>
+
+    <!-- Alert Banner -->
+    <div class="alert-banner" id="alertBanner"></div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Progress -->
+        <div class="progress-section">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text">
+                Pregunta <span id="currentQuestion">0</span> de <span id="totalQuestions">0</span>
+                <span id="answeredCount" style="margin-left: 1rem; color: #4CAF50;">( 0 respondidas )</span>
+            </div>
+        </div>
+
+        <!-- Security Warnings -->
+        <div class="security-warning" id="securityWarning">
+            <strong>⚠️ Advertencia de Seguridad:</strong>
+            <p id="warningMessage"></p>
+        </div>
+
+        <!-- Questions -->
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Cargando examen...</p>
+        </div>
+
+        <div class="questions-container" id="questionsContainer" style="display: none;">
+        </div>
+
+        <!-- Submit Section -->
+        <div class="submit-section">
+            <div class="submit-info">
+                Revisa tus respuestas antes de enviar. Una vez enviado no podrás hacer cambios.
+            </div>
+            <button class="submit-button" id="submitButton" onclick="submitExam()">
+                <i>✓</i> Enviar Examen
+            </button>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div class="confirmation-modal" id="confirmationModal">
+        <div class="modal-content">
+            <div class="modal-header">Confirmar Envío</div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que deseas enviar el examen?</p>
+                <p style="margin-top: 1rem; font-size: 0.9em;">
+                    <strong>Respuestas respondidas:</strong> <span id="confirmAnswered">0</span> de <span id="confirmTotal">0</span>
+                </p>
+                <p style="font-size: 0.9em; color: #f44336;">
+                    ⚠️ No podrás hacer cambios después de enviar.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeConfirmation()">Cancelar</button>
+                <button class="btn-submit" onclick="confirmSubmit()">Enviar Ahora</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE = 'https://script.google.com/macros/d/[GAS_DEPLOYMENT_ID]/usercache/';
+        const urlParams = new URLSearchParams(window.location.search);
+        const TOKEN = urlParams.get('token') || '';
+        const EXAM = urlParams.get('exam') || 'E1';
+
+        // State
+        let questions = [];
+        let answers = {};
+        let startedAt = null;
+        let endTime = null;
+        let timerInterval = null;
+        let blurCount = 0;
+        let copyAttempts = 0;
+        let submitted = false;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!TOKEN) {
+                document.body.innerHTML = '<div style="padding: 2rem; text-align: center; color: #f44336;"><h2>Token inválido</h2><p>No se proporciona un token válido para el examen.</p></div>';
+                return;
+            }
+
+            loadExam();
+            setupSecurityMeasures();
+        });
+
+        // Load exam data
+        async function loadExam() {
+            try {
+                const response = await fetch(`${API_BASE}?action=getExamData&token=${TOKEN}&exam=${EXAM}`);
+                const data = await response.json();
+
+                if (!data.success) {
+                    showError(data.message);
+                    return;
+                }
+
+                document.getElementById('examTitle').textContent = `Examen ${EXAM}`;
+                document.getElementById('examSubtitle').textContent = `Candidato: ${data.candidateName || '--'}`;
+                document.getElementById('totalQuestions').textContent = data.questions.length;
+
+                questions = data.questions;
+                startedAt = new Date().toISOString();
+                endTime = new Date(Date.now() + data.durationMinutes * 60 * 1000);
+
+                renderQuestions();
+                startTimer();
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('questionsContainer').style.display = 'flex';
+            } catch (error) {
+                showError('Error al cargar el examen: ' + error.message);
+            }
+        }
+
+        // Render questions
+        function renderQuestions() {
+            const container = document.getElementById('questionsContainer');
+            container.innerHTML = '';
+
+            questions.forEach((question, index) => {
+                const questionDiv = document.createElement('div');
+                questionDiv.className = 'question-card';
+                questionDiv.id = `question-${question.id}`;
+
+                let content = `
+                    <div class="question-number">Pregunta ${index + 1}</div>
+                    <div class="question-text">${question.texto}</div>
+                `;
+
+                if (question.type === 'multiple') {
+                    content += `<div class="options-container">`;
+                    question.options.forEach((option, optIndex) => {
+                        const optionId = `q_${question.id}_opt_${optIndex}`;
+                        content += `
+                            <label class="option" onclick="selectOption('${question.id}', '${optIndex}')">
+                                <input type="radio" name="q_${question.id}" value="option_${optIndex + 1}" id="${optionId}">
+                                <span class="option-label">${option}</span>
+                            </label>
+                        `;
+                    });
+                    content += `</div>`;
+                } else {
+                    content += `
+                        <div class="textarea-container">
+                            <textarea
+                                id="q_${question.id}"
+                                name="q_${question.id}"
+                                placeholder="Escribe tu respuesta aquí..."
+                                onchange="recordAnswer('${question.id}');"
+                                onkeyup="updateCharCount(this);"
+                            ></textarea>
+                            <div class="char-count"><span id="char_${question.id}">0</span> caracteres</div>
+                        </div>
+                    `;
+                }
+
+                questionDiv.innerHTML = content;
+                container.appendChild(questionDiv);
+            });
+        }
+
+        // Record answer
+        function recordAnswer(questionId) {
+            const input = document.querySelector(`input[name="q_${questionId}"]:checked`);
+            const textarea = document.getElementById(`q_${questionId}`);
+
+            if (input) {
+                answers[questionId] = input.value;
+            } else if (textarea) {
+                answers[questionId] = textarea.value.trim();
+            }
+
+            updateProgress();
+            updateQuestionCard(questionId);
+        }
+
+        // Select option (for multiple choice)
+        function selectOption(questionId, optIndex) {
+            const radio = document.querySelector(`input[id="q_${questionId}_opt_${optIndex}"]`);
+            if (radio) {
+                radio.checked = true;
+                recordAnswer(questionId);
+            }
+        }
+
+        // Update progress
+        function updateProgress() {
+            const answered = Object.keys(answers).filter(k => answers[k]).length;
+            const total = questions.length;
+            const percentage = (answered / total) * 100;
+
+            document.getElementById('progressFill').style.width = percentage + '%';
+            document.getElementById('currentQuestion').textContent = (Object.keys(answers).length || 0) + 1;
+            document.getElementById('answeredCount').textContent = `( ${answered} respondidas )`;
+        }
+
+        // Update question card styling
+        function updateQuestionCard(questionId) {
+            const card = document.getElementById(`question-${questionId}`);
+            if (answers[questionId]) {
+                card.classList.add('answered');
+            } else {
+                card.classList.remove('answered');
+            }
+        }
+
+        // Update char count
+        function updateCharCount(textarea) {
+            const questionId = textarea.id.replace('q_', '');
+            document.getElementById(`char_${questionId}`).textContent = textarea.value.length;
+        }
+
+        // Timer
+        function startTimer() {
+            timerInterval = setInterval(updateTimer, 1000);
+            updateTimer();
+        }
+
+        function updateTimer() {
+            const now = new Date();
+            const remaining = Math.max(0, endTime - now);
+
+            const minutes = Math.floor(remaining / 60000);
+            const seconds = Math.floor((remaining % 60000) / 1000);
+            const display = String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+
+            const timerEl = document.getElementById('timerDisplay');
+            timerEl.textContent = display;
+            timerEl.className = 'timer-display';
+
+            if (remaining < 300000) {
+                timerEl.classList.add('critical');
+            } else if (remaining < 600000) {
+                timerEl.classList.add('warning');
+            }
+
+            if (remaining <= 0) {
+                clearInterval(timerInterval);
+                submitExam();
+            }
+        }
+
+        // Security measures
+        function setupSecurityMeasures() {
+            // Copy/Paste blocking
+            document.addEventListener('copy', (e) => {
+                e.preventDefault();
+                copyAttempts++;
+                showSecurityWarning('Copiar no está permitido en este examen.');
+                logSecurityEvent('copy_attempt');
+            });
+
+            document.addEventListener('paste', (e) => {
+                e.preventDefault();
+                copyAttempts++;
+                showSecurityWarning('Pegar no está permitido en este examen.');
+                logSecurityEvent('paste_attempt');
+            });
+
+            document.addEventListener('cut', (e) => {
+                e.preventDefault();
+                copyAttempts++;
+                showSecurityWarning('Cortar no está permitido en este examen.');
+                logSecurityEvent('cut_attempt');
+            });
+
+            // Blur detection
+            window.addEventListener('blur', () => {
+                blurCount++;
+                logSecurityEvent('blur_event');
+
+                if (blurCount >= 3) {
+                    showSecurityWarning(`Cambios de ventana detectados (${blurCount}). Se enviará automáticamente al llegar a 5.`);
+                }
+
+                if (blurCount >= 5) {
+                    showSecurityWarning('Demasiados cambios de ventana. Enviando examen...');
+                    setTimeout(submitExam, 2000);
+                }
+            });
+
+            // Context menu blocking
+            document.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                showSecurityWarning('Clic derecho está deshabilitado.');
+                return false;
+            });
+        }
+
+        // Show security warning
+        function showSecurityWarning(message) {
+            const banner = document.getElementById('alertBanner');
+            banner.textContent = message;
+            banner.classList.add('show');
+
+            setTimeout(() => {
+                banner.classList.remove('show');
+            }, 4000);
+        }
+
+        // Log security event
+        function logSecurityEvent(eventType) {
+            console.log('[Security]', eventType, new Date().toISOString());
+        }
+
+        // Show error
+        function showError(message) {
+            const container = document.getElementById('questionsContainer');
+            container.style.display = 'flex';
+            container.innerHTML = `<div class="error-message"><strong>Error:</strong> ${message}</div>`;
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        // Submit exam
+        function submitExam() {
+            if (submitted) return;
+
+            document.getElementById('confirmAnswered').textContent = Object.keys(answers).filter(k => answers[k]).length;
+            document.getElementById('confirmTotal').textContent = questions.length;
+            document.getElementById('confirmationModal').style.display = 'block';
+        }
+
+        function closeConfirmation() {
+            document.getElementById('confirmationModal').style.display = 'none';
+        }
+
+        async function confirmSubmit() {
+            if (submitted) return;
+            submitted = true;
+
+            closeConfirmation();
+            document.getElementById('submitButton').disabled = true;
+            document.getElementById('submitButton').textContent = 'Enviando...';
+
+            const finishedAt = new Date().toISOString();
+            const elapsedSeconds = Math.floor((new Date(finishedAt) - new Date(startedAt)) / 1000);
+
+            const submitData = {
+                token: TOKEN,
+                exam: EXAM,
+                answers: answers,
+                startedAt: startedAt,
+                finishedAt: finishedAt,
+                elapsedSeconds: elapsedSeconds,
+                blur_count: blurCount,
+                copy_count: copyAttempts
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}?action=submitExam`, {
+                    method: 'POST',
+                    body: JSON.stringify(submitData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    document.body.innerHTML = `
+                        <div style="display: flex; align-items: center; justify-content: center; height: 100vh; text-align: center; background: var(--light);">
+                            <div style="padding: 2rem; background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                                <h2 style="color: #4CAF50; margin-bottom: 1rem;">✓ Examen Enviado</h2>
+                                <p style="color: #666; margin-bottom: 1rem;">${result.message || 'Tu examen ha sido recibido correctamente.'}</p>
+                                <p style="color: #999; font-size: 0.9em;">Por favor espera a que el equipo administrativo revise tu examen.</p>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    showError('Error al enviar el examen: ' + result.message);
+                    document.getElementById('submitButton').disabled = false;
+                    document.getElementById('submitButton').textContent = 'Enviar Examen';
+                    submitted = false;
+                }
+            } catch (error) {
+                showError('Error de conexión: ' + error.message);
+                document.getElementById('submitButton').disabled = false;
+                document.getElementById('submitButton').textContent = 'Enviar Examen';
+                submitted = false;
+            }
+        }
+
+        // Close modal on outside click
+        window.onclick = function(event) {
+            const modal = document.getElementById('confirmationModal');
+            if (event.target === modal) {
+                closeConfirmation();
+            }
+        };
+    </script>
+</body>
+</html>

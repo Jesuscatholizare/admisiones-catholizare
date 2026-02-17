@@ -1,0 +1,394 @@
+<!-- RCCC Registration Form - WordPress Embed (Elementor Compatible) -->
+<!-- Copiar y pegar en un Elemento de Código HTML en Elementor -->
+
+<style>
+    #rccc-registration-form {
+        max-width: 600px;
+        margin: 0 auto;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    .rccc-form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .rccc-form-group label {
+        display: block;
+        color: #001A55;
+        font-weight: 600;
+        margin-bottom: 0.6rem;
+        font-size: 0.95em;
+    }
+
+    .rccc-form-group input,
+    .rccc-form-group select,
+    .rccc-form-group textarea {
+        width: 100%;
+        padding: 0.9rem 1rem;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 1em;
+        font-family: inherit;
+        transition: all 0.3s;
+    }
+
+    .rccc-form-group input:focus,
+    .rccc-form-group select:focus,
+    .rccc-form-group textarea:focus {
+        outline: none;
+        border-color: #0966FF;
+        box-shadow: 0 0 0 3px rgba(9, 102, 255, 0.1);
+    }
+
+    .rccc-form-group textarea {
+        resize: vertical;
+        min-height: 100px;
+    }
+
+    .rccc-form-group input[type="checkbox"],
+    .rccc-form-group input[type="radio"] {
+        width: auto;
+        margin-right: 0.5rem;
+        accent-color: #0966FF;
+    }
+
+    .rccc-checkbox-group,
+    .rccc-radio-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.8rem;
+    }
+
+    .rccc-checkbox-item,
+    .rccc-radio-item {
+        display: flex;
+        align-items: center;
+    }
+
+    .rccc-checkbox-item label,
+    .rccc-radio-item label {
+        margin: 0;
+        font-weight: 400;
+        cursor: pointer;
+    }
+
+    .rccc-submit-btn {
+        width: 100%;
+        padding: 1rem;
+        background: linear-gradient(135deg, #001A55 0%, #0966FF 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 1em;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .rccc-submit-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(9, 102, 255, 0.4);
+    }
+
+    .rccc-submit-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .rccc-spinner {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top: 2px solid white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin-right: 0.5rem;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .rccc-message {
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+        display: none;
+    }
+
+    .rccc-error {
+        background: #FFEBEE;
+        color: #B71C1C;
+        border-left: 4px solid #f44336;
+    }
+
+    .rccc-success {
+        background: #E8F5E9;
+        color: #1B5E20;
+        border-left: 4px solid #4CAF50;
+    }
+
+    .rccc-message.show {
+        display: block;
+    }
+
+    .rccc-required {
+        color: #f44336;
+        font-weight: 700;
+    }
+
+    .rccc-form-section {
+        margin-bottom: 2rem;
+        padding: 1.5rem;
+        background: #f9f9f9;
+        border-radius: 8px;
+    }
+
+    .rccc-form-section-title {
+        font-size: 1.1em;
+        font-weight: 600;
+        color: #001A55;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #0966FF;
+    }
+
+    @media (max-width: 768px) {
+        #rccc-registration-form {
+            padding: 0;
+        }
+
+        .rccc-form-section {
+            padding: 1rem;
+        }
+    }
+</style>
+
+<form id="rccc-registration-form" onsubmit="handleRegistration(event)">
+    <!-- Messages -->
+    <div class="rccc-message rccc-error" id="rcccError"></div>
+    <div class="rccc-message rccc-success" id="rcccSuccess"></div>
+
+    <!-- Información Personal -->
+    <div class="rccc-form-section">
+        <div class="rccc-form-section-title">📋 Información Personal</div>
+
+        <div class="rccc-form-group">
+            <label for="rccc_name">Nombre Completo <span class="rccc-required">*</span></label>
+            <input type="text" id="rccc_name" name="name" placeholder="Juan Pérez" required>
+        </div>
+
+        <div class="rccc-form-group">
+            <label for="rccc_email">Email <span class="rccc-required">*</span></label>
+            <input type="email" id="rccc_email" name="email" placeholder="juan@ejemplo.com" required>
+        </div>
+
+        <div class="rccc-form-group">
+            <label for="rccc_phone">Teléfono <span class="rccc-required">*</span></label>
+            <input type="tel" id="rccc_phone" name="phone" placeholder="+57 300 000 0000" required>
+        </div>
+
+        <div class="rccc-form-group">
+            <label for="rccc_country">País <span class="rccc-required">*</span></label>
+            <select id="rccc_country" name="country" required>
+                <option value="">Selecciona tu país</option>
+                <option value="CO">Colombia</option>
+                <option value="MX">México</option>
+                <option value="ES">España</option>
+                <option value="AR">Argentina</option>
+                <option value="CL">Chile</option>
+                <option value="PE">Perú</option>
+                <option value="VE">Venezuela</option>
+                <option value="EC">Ecuador</option>
+                <option value="BO">Bolivia</option>
+                <option value="PY">Paraguay</option>
+                <option value="UY">Uruguay</option>
+                <option value="BR">Brasil</option>
+                <option value="OTHER">Otro</option>
+            </select>
+        </div>
+
+        <div class="rccc-form-group">
+            <label for="rccc_birthday">Fecha de Nacimiento <span class="rccc-required">*</span></label>
+            <input type="date" id="rccc_birthday" name="birthday" required>
+        </div>
+    </div>
+
+    <!-- Información Profesional -->
+    <div class="rccc-form-section">
+        <div class="rccc-form-section-title">👨‍💼 Información Profesional</div>
+
+        <div class="rccc-form-group">
+            <label for="rccc_professional_type">Tipo de Profesión <span class="rccc-required">*</span></label>
+            <select id="rccc_professional_type" name="professional_type" required>
+                <option value="">Selecciona tu profesión</option>
+                <option value="Psicólogo Clínico">Psicólogo Clínico</option>
+                <option value="Psicólogo Organizacional">Psicólogo Organizacional</option>
+                <option value="Consejero Pastoral">Consejero Pastoral</option>
+                <option value="Terapeuta">Terapeuta</option>
+                <option value="Otro">Otro</option>
+            </select>
+        </div>
+
+        <div class="rccc-form-group">
+            <label for="rccc_approach">Enfoque Terapéutico Principal <span class="rccc-required">*</span></label>
+            <select id="rccc_approach" name="therapeutic_approach" required>
+                <option value="">Selecciona tu enfoque</option>
+                <option value="Cognitivo-Conductual">Cognitivo-Conductual</option>
+                <option value="Psicodinámico">Psicodinámico</option>
+                <option value="Humanista">Humanista</option>
+                <option value="Sistémico">Sistémico</option>
+                <option value="Gestáltico">Gestáltico</option>
+                <option value="Integrativo">Integrativo</option>
+                <option value="Otro">Otro</option>
+            </select>
+        </div>
+
+        <div class="rccc-form-group">
+            <label for="rccc_about">Cuéntanos sobre tu experiencia <span class="rccc-required">*</span></label>
+            <textarea id="rccc_about" name="about" placeholder="Describe brevemente tu experiencia profesional, especialidades, y por qué deseas unirte a RCCC..." required></textarea>
+        </div>
+    </div>
+
+    <!-- Términos y Condiciones -->
+    <div class="rccc-form-section">
+        <div class="rccc-form-group">
+            <div class="rccc-checkbox-group">
+                <div class="rccc-checkbox-item">
+                    <input type="checkbox" id="rccc_terms" name="terms" required>
+                    <label for="rccc_terms">
+                        Acepto los <a href="/terminos-condiciones" target="_blank" style="color: #0966FF;">Términos y Condiciones</a>
+                        <span class="rccc-required">*</span>
+                    </label>
+                </div>
+
+                <div class="rccc-checkbox-item">
+                    <input type="checkbox" id="rccc_privacy" name="privacy" required>
+                    <label for="rccc_privacy">
+                        Acepto la <a href="/politica-privacidad" target="_blank" style="color: #0966FF;">Política de Privacidad</a>
+                        <span class="rccc-required">*</span>
+                    </label>
+                </div>
+
+                <div class="rccc-checkbox-item">
+                    <input type="checkbox" id="rccc_newsletter" name="newsletter">
+                    <label for="rccc_newsletter">Deseo recibir información sobre RCCC</label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Submit Button -->
+    <button type="submit" class="rccc-submit-btn" id="rcccSubmitBtn">
+        📤 Enviar Mi Solicitud
+    </button>
+
+    <p style="text-align: center; color: #999; font-size: 0.85em; margin-top: 1rem;">
+        Si ya tienes una solicitud en proceso, <a href="https://profesionales.catholizare.com/estado" style="color: #0966FF;">consulta el estado aquí</a>
+    </p>
+</form>
+
+<script>
+    const REGISTRATION_API = 'https://script.google.com/macros/d/[GAS_DEPLOYMENT_ID]/usercache/';
+
+    async function handleRegistration(event) {
+        event.preventDefault();
+
+        const form = document.getElementById('rccc-registration-form');
+        const button = document.getElementById('rcccSubmitBtn');
+        const errorEl = document.getElementById('rcccError');
+        const successEl = document.getElementById('rcccSuccess');
+
+        // Hide messages
+        errorEl.classList.remove('show');
+        successEl.classList.remove('show');
+
+        // Validate form
+        if (!form.checkValidity()) {
+            showError('Por favor completa todos los campos obligatorios');
+            return;
+        }
+
+        // Disable button
+        button.disabled = true;
+        button.innerHTML = '<span class="rccc-spinner"></span>Enviando...';
+
+        try {
+            // Collect form data
+            const formData = new FormData(form);
+            const data = {
+                name: formData.get('name'),
+                email: formData.get('email'),
+                phone: formData.get('phone'),
+                country: formData.get('country'),
+                birthday: formData.get('birthday'),
+                professional_type: formData.get('professional_type'),
+                therapeutic_approach: formData.get('therapeutic_approach'),
+                about: formData.get('about'),
+                newsletter: formData.get('newsletter') === 'on'
+            };
+
+            // Send to Google Apps Script
+            const response = await fetch(REGISTRATION_API + '?action=registerCandidate', {
+                method: 'POST',
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                form.reset();
+                showSuccess('¡Gracias! Tu solicitud ha sido recibida. Recibirás un email de confirmación pronto.');
+                button.innerHTML = '✓ Solicitud Enviada';
+
+                // Redirect after 3 seconds
+                setTimeout(() => {
+                    window.location.href = '/gracias';
+                }, 3000);
+            } else {
+                showError(result.message || 'Error al procesar tu solicitud. Por favor intenta de nuevo.');
+                button.disabled = false;
+                button.innerHTML = '📤 Enviar Mi Solicitud';
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showError('Error de conexión. Por favor verifica tu conexión a internet e intenta de nuevo.');
+            button.disabled = false;
+            button.innerHTML = '📤 Enviar Mi Solicitud';
+        }
+    }
+
+    function showError(message) {
+        const el = document.getElementById('rcccError');
+        el.textContent = message;
+        el.classList.add('show');
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function showSuccess(message) {
+        const el = document.getElementById('rcccSuccess');
+        el.textContent = message;
+        el.classList.add('show');
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+</script>
+
+<!-- ============================================ -->
+<!-- INSTRUCCIONES DE IMPLEMENTACIÓN EN WORDPRESS -->
+<!-- ============================================ -->
+<!--
+1. Abre tu página en WordPress con Elementor
+2. Añade un nuevo elemento "HTML"
+3. Copia TODO el código anterior (incluyendo <style> y <script>)
+4. Reemplaza [GAS_DEPLOYMENT_ID] con tu ID de despliegue de Google Apps Script
+5. Haz clic en "Guardar" y previsualiza
+6. Prueba el formulario y verifica que los datos llegan al Google Sheet
+
+NOTAS:
+- El ID de despliegue debe ser un Web App que responda a POST requests
+- Las URLs de términos y privacidad deben apuntar a tus páginas reales
+- Asegúrate de que tu Google Apps Script tiene el endpoint ?action=registerCandidate
+-->

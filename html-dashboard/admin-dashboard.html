@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Admin - RCCC Evaluaciones</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #001A55;
+            --primary-light: #0966FF;
+            --success: #4CAF50;
+            --warning: #FF9800;
+            --danger: #f44336;
+            --info: #2196F3;
+            --dark: #333;
+            --light: #f5f7fa;
+            --border-color: #e0e0e0;
+            --bg-hover: #f9f9f9;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--light);
+            color: var(--dark);
+            line-height: 1.6;
+        }
+
+        /* Navbar */
+        .navbar {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            padding: 0;
+            box-shadow: 0 4px 12px rgba(0, 26, 85, 0.15);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .navbar-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .navbar-brand small {
+            font-size: 0.7em;
+            opacity: 0.9;
+            display: block;
+        }
+
+        .navbar-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .navbar-actions button {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 0.6rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s;
+        }
+
+        .navbar-actions button:hover {
+            background: rgba(255,255,255,0.3);
+            border-color: rgba(255,255,255,0.5);
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Header Section */
+        .header-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .header-section h1 {
+            font-size: 2rem;
+            color: var(--primary);
+        }
+
+        .header-section small {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-left: 4px solid var(--primary-light);
+            transition: all 0.3s;
+        }
+
+        .stat-card:hover {
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+            transform: translateY(-2px);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-meta {
+            font-size: 0.8em;
+            color: #999;
+            margin-top: 0.5rem;
+        }
+
+        /* Filters Section */
+        .filters-section {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 0.8rem 1rem 0.8rem 2.5rem;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(9, 102, 255, 0.1);
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 0.8rem;
+            top: 0.8rem;
+            color: #999;
+        }
+
+        .filter-select {
+            padding: 0.8rem 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--primary-light);
+        }
+
+        /* Table Section */
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+
+        .table-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 2px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-header h2 {
+            font-size: 1.2rem;
+            color: var(--primary);
+        }
+
+        .table-header-meta {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95em;
+        }
+
+        thead {
+            background: #f9f9f9;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        th {
+            padding: 1rem 1.5rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--primary);
+            text-transform: uppercase;
+            font-size: 0.85em;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        tbody tr {
+            transition: background-color 0.2s;
+        }
+
+        tbody tr:hover {
+            background-color: var(--bg-hover);
+        }
+
+        /* Badge Styles */
+        .badge {
+            display: inline-block;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-registered {
+            background: #E3F2FD;
+            color: #1565C0;
+        }
+
+        .badge-pending {
+            background: #FFF3E0;
+            color: #E65100;
+        }
+
+        .badge-terms {
+            background: #F3E5F5;
+            color: #6A1B9A;
+        }
+
+        .badge-interview {
+            background: #E8F5E9;
+            color: #1B5E20;
+        }
+
+        .badge-rejected {
+            background: #FFEBEE;
+            color: #B71C1C;
+        }
+
+        .badge-junior {
+            background: #C8E6C9;
+            color: #1B5E20;
+        }
+
+        .badge-senior {
+            background: #BBE3F5;
+            color: #0D47A1;
+        }
+
+        .badge-expert {
+            background: #F3E5F5;
+            color: #4A148C;
+        }
+
+        /* Action Buttons */
+        .actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.5rem 0.8rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8em;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            white-space: nowrap;
+        }
+
+        .btn-approve {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-approve:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+        }
+
+        .btn-reject {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-reject:hover {
+            background: #da190b;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
+        }
+
+        .btn-category {
+            background: var(--warning);
+            color: white;
+        }
+
+        .btn-category:hover {
+            background: #fb8c00;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
+        }
+
+        .btn-view {
+            background: var(--info);
+            color: white;
+        }
+
+        .btn-view:hover {
+            background: #1976D2;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 2rem;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            animation: slideIn 0.3s;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .modal-header h2 {
+            color: var(--primary);
+            margin: 0;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #999;
+            transition: color 0.3s;
+        }
+
+        .modal-close:hover {
+            color: var(--dark);
+        }
+
+        .modal-body {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 1em;
+            family: inherit;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(9, 102, 255, 0.1);
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+        }
+
+        .modal-footer button {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .modal-footer .btn-primary {
+            background: var(--primary-light);
+            color: white;
+        }
+
+        .modal-footer .btn-primary:hover {
+            background: #0954cc;
+            box-shadow: 0 4px 12px rgba(9, 102, 255, 0.3);
+        }
+
+        .modal-footer .btn-secondary {
+            background: #e0e0e0;
+            color: var(--dark);
+        }
+
+        .modal-footer .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+
+        /* Empty State */
+        .empty-state {
+            padding: 3rem;
+            text-align: center;
+            color: #999;
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.3;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .header-section {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .header-section h1 {
+                font-size: 1.5rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .filters-section {
+                flex-direction: column;
+            }
+
+            .search-box {
+                min-width: 100%;
+            }
+
+            table {
+                font-size: 0.85em;
+            }
+
+            th, td {
+                padding: 0.7rem 1rem;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .modal-content {
+                width: 95%;
+                margin: 50% auto;
+            }
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary-light);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Toast Notifications */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            color: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 3000;
+            animation: slideInUp 0.3s;
+        }
+
+        @keyframes slideInUp {
+            from {
+                transform: translateY(100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .toast.success {
+            background: var(--success);
+        }
+
+        .toast.error {
+            background: var(--danger);
+        }
+
+        .toast.info {
+            background: var(--info);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <div>
+                <div class="navbar-brand">
+                    RCCC Evaluaciones
+                    <small>Dashboard Administrativo</small>
+                </div>
+            </div>
+            <div class="navbar-actions">
+                <button onclick="refreshData()">
+                    <i class="fas fa-sync-alt"></i> Actualizar
+                </button>
+                <button onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Salir
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Header -->
+        <div class="header-section">
+            <div>
+                <h1>Gestión de Candidatos</h1>
+                <small id="lastUpdate">Última actualización: --:--</small>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="statTotal">0</div>
+                <div class="stat-label">Candidatos Totales</div>
+                <div class="stat-meta">Registrados en el sistema</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statPending">0</div>
+                <div class="stat-label">En Proceso</div>
+                <div class="stat-meta">Aguardando revisión</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statApproved">0</div>
+                <div class="stat-label">Aprobados</div>
+                <div class="stat-meta">Completaron el proceso</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statRejected">0</div>
+                <div class="stat-label">Rechazados</div>
+                <div class="stat-meta">No continuaron en proceso</div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters-section">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="Buscar por nombre, email o ID..." onkeyup="filterTable()">
+            </div>
+            <select class="filter-select" id="statusFilter" onchange="filterTable()">
+                <option value="">Todos los estados</option>
+                <option value="registered">Registrado</option>
+                <option value="pending_review">En Revisión</option>
+                <option value="awaiting_terms">Términos</option>
+                <option value="approved">Aprobado</option>
+                <option value="rejected">Rechazado</option>
+            </select>
+        </div>
+
+        <!-- Table -->
+        <div class="table-container">
+            <div class="table-header">
+                <h2>Candidatos</h2>
+                <span class="table-header-meta" id="recordCount">0 registros</span>
+            </div>
+            <div id="tableContent">
+                <div class="empty-state">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Cargando datos...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="approveModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Aprobar Examen</h2>
+                <button class="modal-close" onclick="closeModal('approveModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="approveMsg"></p>
+                <div class="form-group">
+                    <label>Examen a Aprobar:</label>
+                    <select id="examSelect">
+                        <option value="E1">Examen 1 (E1)</option>
+                        <option value="E2">Examen 2 (E2)</option>
+                        <option value="E3">Examen 3 (E3)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Notas (Opcional):</label>
+                    <textarea id="approveNotes" placeholder="Ej: Respuestas excellentes en sección de ética..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal('approveModal')">Cancelar</button>
+                <button class="btn-primary" onclick="confirmApprove()">Aprobar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="rejectModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Rechazar Examen</h2>
+                <button class="modal-close" onclick="closeModal('rejectModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="rejectMsg"></p>
+                <div class="form-group">
+                    <label>Examen a Rechazar:</label>
+                    <select id="examSelectReject">
+                        <option value="E1">Examen 1 (E1)</option>
+                        <option value="E2">Examen 2 (E2)</option>
+                        <option value="E3">Examen 3 (E3)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Razón del Rechazo:</label>
+                    <textarea id="rejectReason" placeholder="Explica brevemente por qué se rechaza este examen..." required></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal('rejectModal')">Cancelar</button>
+                <button class="btn-primary" onclick="confirmReject()">Rechazar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="categoryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Asignar Categoría</h2>
+                <button class="modal-close" onclick="closeModal('categoryModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="categoryMsg"></p>
+                <div class="form-group">
+                    <label>Categoría de Desempeño:</label>
+                    <select id="categorySelect" required>
+                        <option value="">Selecciona una categoría</option>
+                        <option value="JUNIOR">🥉 Junior (75-79%): Fundamentos Sólidos</option>
+                        <option value="SENIOR">🥈 Senior (80-89%): Muy Competente</option>
+                        <option value="EXPERT">🥇 Expert (90%+): Excepcional</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Comentarios (Opcional):</label>
+                    <textarea id="categoryComments" placeholder="Ej: Excelente manejo de casos complejos..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal('categoryModal')">Cancelar</button>
+                <button class="btn-primary" onclick="confirmCategory()">Asignar y Aprobar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer"></div>
+
+    <script>
+        // Configuration
+        const API_BASE = 'https://script.google.com/macros/d/[GAS_DEPLOYMENT_ID]/usercache/';
+        const REFRESH_INTERVAL = 30000; // 30 seconds
+
+        let currentCandidateId = null;
+        let candidates = [];
+        let autoRefreshInterval = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadData();
+            startAutoRefresh();
+        });
+
+        // Load data from Google Apps Script
+        async function loadData() {
+            try {
+                const response = await fetch(API_BASE + '?action=getDashboardData');
+                const data = await response.json();
+
+                if (data.success) {
+                    candidates = data.candidates || [];
+                    updateStats(data.stats);
+                    renderTable(candidates);
+                    updateLastUpdate();
+                } else {
+                    showToast('Error al cargar datos: ' + data.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Error de conexión con el servidor', 'error');
+            }
+        }
+
+        // Update statistics
+        function updateStats(stats) {
+            document.getElementById('statTotal').textContent = stats.total || 0;
+            document.getElementById('statPending').textContent = stats.pending || 0;
+            document.getElementById('statApproved').textContent = stats.approved || 0;
+            document.getElementById('statRejected').textContent = stats.rejected || 0;
+        }
+
+        // Render table
+        function renderTable(data) {
+            const tableContent = document.getElementById('tableContent');
+
+            if (!data || data.length === 0) {
+                tableContent.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <p>No hay candidatos registrados</p>
+                    </div>
+                `;
+                document.getElementById('recordCount').textContent = '0 registros';
+                return;
+            }
+
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Email</th>
+                            <th>Estado</th>
+                            <th>Progreso</th>
+                            <th>Última Interacción</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            data.forEach(candidate => {
+                html += `
+                    <tr>
+                        <td><code style="background: #f5f5f5; padding: 0.2rem 0.5rem; border-radius: 3px; font-size: 0.85em;">${candidate.id}</code></td>
+                        <td><strong>${candidate.name}</strong></td>
+                        <td>${candidate.email}</td>
+                        <td>${getStatusBadge(candidate.status)}</td>
+                        <td>${getProgressBar(candidate.progress)}</td>
+                        <td><small>${formatDate(candidate.lastInteraction)}</small></td>
+                        <td>
+                            <div class="actions">
+                                ${getActionButtons(candidate)}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                    </tbody>
+                </table>
+            `;
+
+            tableContent.innerHTML = html;
+            document.getElementById('recordCount').textContent = data.length + ' registros';
+        }
+
+        // Get status badge
+        function getStatusBadge(status) {
+            const badges = {
+                'registered': 'badge-registered',
+                'pending_review_E1': 'badge-pending',
+                'pending_review_E2': 'badge-pending',
+                'pending_review_E3': 'badge-pending',
+                'awaiting_terms_acceptance': 'badge-terms',
+                'awaiting_interview': 'badge-interview',
+                'rejected': 'badge-rejected',
+                'approved_junior': 'badge-junior',
+                'approved_senior': 'badge-senior',
+                'approved_expert': 'badge-expert',
+            };
+
+            const labels = {
+                'registered': 'Registrado',
+                'pending_review_E1': 'Revisión E1',
+                'pending_review_E2': 'Revisión E2',
+                'pending_review_E3': 'Revisión E3',
+                'awaiting_terms_acceptance': 'Términos',
+                'awaiting_interview': 'Entrevista',
+                'rejected': 'Rechazado',
+                'approved_junior': '🥉 Junior',
+                'approved_senior': '🥈 Senior',
+                'approved_expert': '🥇 Expert',
+            };
+
+            const badgeClass = badges[status] || 'badge-registered';
+            const label = labels[status] || status;
+
+            return `<span class="badge ${badgeClass}">${label}</span>`;
+        }
+
+        // Get progress bar
+        function getProgressBar(progress) {
+            return `
+                <div style="width: 100px; height: 6px; background: #e0e0e0; border-radius: 3px; overflow: hidden;">
+                    <div style="width: ${progress}%; height: 100%; background: linear-gradient(90deg, #4CAF50, #8BC34A); transition: width 0.3s;"></div>
+                </div>
+            `;
+        }
+
+        // Get action buttons
+        function getActionButtons(candidate) {
+            let buttons = '';
+
+            if (candidate.status.includes('pending_review')) {
+                buttons += `<button class="btn btn-approve" onclick="openApproveModal('${candidate.id}', '${candidate.name}')"><i class="fas fa-check"></i> Aprobar</button>`;
+                buttons += `<button class="btn btn-reject" onclick="openRejectModal('${candidate.id}', '${candidate.name}')"><i class="fas fa-times"></i> Rechazar</button>`;
+            }
+
+            if (candidate.status === 'awaiting_interview' || candidate.status === 'registered') {
+                buttons += `<button class="btn btn-category" onclick="openCategoryModal('${candidate.id}', '${candidate.name}')"><i class="fas fa-star"></i> Categorizar</button>`;
+            }
+
+            buttons += `<button class="btn btn-view" onclick="viewDetails('${candidate.id}')"><i class="fas fa-eye"></i> Ver</button>`;
+
+            return buttons;
+        }
+
+        // Filter table
+        function filterTable() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const status = document.getElementById('statusFilter').value;
+
+            const filtered = candidates.filter(c => {
+                const matchSearch = !search ||
+                    c.name.toLowerCase().includes(search) ||
+                    c.email.toLowerCase().includes(search) ||
+                    c.id.toLowerCase().includes(search);
+
+                const matchStatus = !status || c.status.includes(status);
+
+                return matchSearch && matchStatus;
+            });
+
+            renderTable(filtered);
+        }
+
+        // Modal functions
+        function openApproveModal(candidateId, name) {
+            currentCandidateId = candidateId;
+            document.getElementById('approveMsg').textContent = `¿Aprobar examen para ${name}?`;
+            document.getElementById('approveModal').style.display = 'block';
+        }
+
+        function openRejectModal(candidateId, name) {
+            currentCandidateId = candidateId;
+            document.getElementById('rejectMsg').textContent = `¿Rechazar examen para ${name}?`;
+            document.getElementById('rejectModal').style.display = 'block';
+        }
+
+        function openCategoryModal(candidateId, name) {
+            currentCandidateId = candidateId;
+            document.getElementById('categoryMsg').textContent = `Asignar categoría a ${name}`;
+            document.getElementById('categoryModal').style.display = 'block';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+            currentCandidateId = null;
+        }
+
+        async function confirmApprove() {
+            if (!currentCandidateId) return;
+
+            const exam = document.getElementById('examSelect').value;
+            const notes = document.getElementById('approveNotes').value;
+
+            try {
+                const response = await fetch(API_BASE + '?action=approveExam', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        candidateId: currentCandidateId,
+                        exam: exam,
+                        notes: notes
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast(`Examen ${exam} aprobado correctamente`, 'success');
+                    closeModal('approveModal');
+                    loadData();
+                } else {
+                    showToast('Error: ' + data.message, 'error');
+                }
+            } catch (error) {
+                showToast('Error al aprobar', 'error');
+            }
+        }
+
+        async function confirmReject() {
+            if (!currentCandidateId) return;
+
+            const exam = document.getElementById('examSelectReject').value;
+            const reason = document.getElementById('rejectReason').value;
+
+            if (!reason.trim()) {
+                showToast('Debes proporcionar una razón', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(API_BASE + '?action=rejectExam', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        candidateId: currentCandidateId,
+                        exam: exam,
+                        reason: reason
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast(`Examen ${exam} rechazado`, 'success');
+                    closeModal('rejectModal');
+                    loadData();
+                } else {
+                    showToast('Error: ' + data.message, 'error');
+                }
+            } catch (error) {
+                showToast('Error al rechazar', 'error');
+            }
+        }
+
+        async function confirmCategory() {
+            if (!currentCandidateId) return;
+
+            const category = document.getElementById('categorySelect').value;
+            const comments = document.getElementById('categoryComments').value;
+
+            if (!category) {
+                showToast('Selecciona una categoría', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(API_BASE + '?action=assignCategory', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        candidateId: currentCandidateId,
+                        category: category,
+                        comments: comments
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast(`Categoría ${category} asignada`, 'success');
+                    closeModal('categoryModal');
+                    loadData();
+                } else {
+                    showToast('Error: ' + data.message, 'error');
+                }
+            } catch (error) {
+                showToast('Error al asignar categoría', 'error');
+            }
+        }
+
+        function viewDetails(candidateId) {
+            // Redirect to detailed view or open modal
+            showToast('Abriendo detalles...', 'info');
+        }
+
+        // Utility functions
+        function updateLastUpdate() {
+            const now = new Date();
+            const time = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+            document.getElementById('lastUpdate').textContent = `Última actualización: ${time}`;
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '--';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('es-CO');
+        }
+
+        function refreshData() {
+            loadData();
+            showToast('Datos actualizados', 'success');
+        }
+
+        function startAutoRefresh() {
+            autoRefreshInterval = setInterval(loadData, REFRESH_INTERVAL);
+        }
+
+        function logout() {
+            if (confirm('¿Cerrar sesión?')) {
+                window.location.href = '?action=logout';
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = 'slideInUp 0.3s reverse';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        };
+    </script>
+</body>
+</html>
