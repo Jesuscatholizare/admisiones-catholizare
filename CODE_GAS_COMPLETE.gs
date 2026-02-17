@@ -1548,19 +1548,25 @@ function setupSystem() {
 
 /**
  * Formatea todas las hojas del spreadsheet
+ * Obtiene dinámicamente todas las hojas que existan
  */
 function formatAllSheets() {
-  const sheetNames = ['Config', 'Candidatos', 'Tokens', 'Timeline', 'Preguntas', 'Respuestas'];
+  // Obtener TODAS las hojas del spreadsheet dinámicamente
+  const allSheets = SS.getSheets();
 
-  sheetNames.forEach(sheetName => {
-    const sheet = SS.getSheetByName(sheetName);
-    if (sheet) {
+  Logger.log('Formateando ' + allSheets.length + ' hojas...');
+
+  allSheets.forEach(sheet => {
+    const sheetName = sheet.getName();
+    try {
       formatSheet(sheet, sheetName);
-      Logger.log('Formateada hoja: ' + sheetName);
-    } else {
-      Logger.log('Hoja no encontrada: ' + sheetName);
+      Logger.log('✓ Formateada hoja: ' + sheetName);
+    } catch (error) {
+      Logger.log('✗ Error al formatear ' + sheetName + ': ' + error.message);
     }
   });
+
+  Logger.log('Formateo completo de todas las hojas');
 }
 
 /**
@@ -1575,77 +1581,37 @@ function formatSheet(sheet, sheetName) {
     }
 
     // Congelar primera fila (headers)
-    sheet.setFrozenRows(1);
+    try {
+      sheet.setFrozenRows(1);
+    } catch (e) {
+      Logger.log('No se pudo congelar fila en ' + sheetName);
+    }
 
-    // Ancho de columnas según el tipo de hoja
-    switch(sheetName) {
-      case 'Config':
-        sheet.setColumnWidth(1, 250);
-        sheet.setColumnWidth(2, 300);
-        sheet.setColumnWidth(3, 100);
-        break;
-
-      case 'Candidatos':
-        sheet.setColumnWidth(1, 120);
-        sheet.setColumnWidth(2, 150);
-        sheet.setColumnWidth(3, 180);
-        sheet.setColumnWidth(4, 130);
-        sheet.setColumnWidth(5, 120);
-        sheet.setColumnWidth(6, 120);
-        sheet.setColumnWidth(7, 150);
-        sheet.setColumnWidth(8, 120);
-        sheet.setColumnWidth(9, 150);
-        sheet.setColumnWidth(10, 130);
-        sheet.setColumnWidth(11, 130);
-        sheet.setColumnWidth(12, 150);
-        sheet.setColumnWidth(13, 130);
-        break;
-
-      case 'Tokens':
-        sheet.setColumnWidth(1, 150);
-        sheet.setColumnWidth(2, 120);
-        sheet.setColumnWidth(3, 100);
-        sheet.setColumnWidth(4, 130);
-        sheet.setColumnWidth(5, 130);
-        sheet.setColumnWidth(6, 80);
-        break;
-
-      case 'Timeline':
-        sheet.setColumnWidth(1, 120);
-        sheet.setColumnWidth(2, 120);
-        sheet.setColumnWidth(3, 180);
-        sheet.setColumnWidth(4, 150);
-        sheet.setColumnWidth(5, 300);
-        break;
-
-      case 'Preguntas':
-        sheet.setColumnWidth(1, 80);
-        sheet.setColumnWidth(2, 100);
-        sheet.setColumnWidth(3, 150);
-        sheet.setColumnWidth(4, 300);
-        sheet.setColumnWidth(5, 150);
-        break;
-
-      case 'Respuestas':
-        sheet.setColumnWidth(1, 120);
-        sheet.setColumnWidth(2, 120);
-        sheet.setColumnWidth(3, 100);
-        sheet.setColumnWidth(4, 100);
-        sheet.setColumnWidth(5, 300);
-        sheet.setColumnWidth(6, 100);
-        break;
+    // Auto-ajustar ancho de columnas al contenido
+    const lastColumn = sheet.getLastColumn();
+    if (lastColumn > 0) {
+      // Auto-fit columns (expandir al contenido)
+      try {
+        sheet.autoResizeColumns(1, lastColumn);
+      } catch (e) {
+        Logger.log('Auto-resize columns no disponible para ' + sheetName);
+      }
     }
 
     // Formatear header (primera fila)
-    if (sheet.getLastColumn() > 0) {
-      const headerRange = sheet.getRange(1, 1, 1, sheet.getLastColumn());
+    if (lastColumn > 0) {
+      const headerRange = sheet.getRange(1, 1, 1, lastColumn);
       headerRange.setBackground('#001A55');
       headerRange.setFontColor('#FFFFFF');
       headerRange.setFontWeight('bold');
       headerRange.setHorizontalAlignment('CENTER');
 
-      // Crear autofilter (sintaxis correcta de Google Apps Script)
-      headerRange.createFilter();
+      // Crear autofilter
+      try {
+        headerRange.createFilter();
+      } catch (e) {
+        Logger.log('No se pudo crear filtro en ' + sheetName);
+      }
     }
 
     // Alineación y formato general
@@ -1655,7 +1621,6 @@ function formatSheet(sheet, sheetName) {
       dataRange.setHorizontalAlignment('LEFT');
     }
 
-    Logger.log('formatSheet completado: ' + sheetName);
   } catch (error) {
     Logger.log('Error en formatSheet(' + sheetName + '): ' + error.message);
   }
@@ -1672,15 +1637,19 @@ function checkSystemHealth() {
     checks: {}
   };
 
-  // Check 1: Google Sheets
+  // Check 1: Google Sheets (obtiene dinámicamente)
   try {
-    const sheets = ['Config', 'Candidatos', 'Tokens', 'Timeline', 'Preguntas', 'Respuestas'];
-    const missingSheets = sheets.filter(name => !SS.getSheetByName(name));
+    const allSheets = SS.getSheets();
+    const requiredSheets = ['Config', 'Candidatos', 'Tokens', 'Timeline'];
+    const sheetNames = allSheets.map(s => s.getName());
+    const missingRequired = requiredSheets.filter(name => !sheetNames.includes(name));
 
     health.checks.sheets = {
-      status: missingSheets.length === 0 ? 'OK' : 'WARNING',
-      found: sheets.length - missingSheets.length,
-      missing: missingSheets
+      status: missingRequired.length === 0 ? 'OK' : 'WARNING',
+      total: allSheets.length,
+      names: sheetNames,
+      required: requiredSheets,
+      missing: missingRequired
     };
   } catch (e) {
     health.checks.sheets = { status: 'ERROR', error: e.message };
@@ -1760,7 +1729,8 @@ function checkSystemHealth() {
   Logger.log('Timestamp: ' + health.timestamp);
   Logger.log('Estado General: ' + health.status);
   Logger.log('-------------------------------------');
-  Logger.log('Google Sheets: ' + health.checks.sheets.status + ' (' + health.checks.sheets.found + ' hojas)');
+  Logger.log('Google Sheets: ' + health.checks.sheets.status + ' (' + health.checks.sheets.total + ' hojas encontradas)');
+  Logger.log('  Hojas: ' + health.checks.sheets.names.join(', '));
   Logger.log('API Keys: ' + health.checks.apiKeys.status);
   Logger.log('Email Config: ' + health.checks.emailConfig.status);
   Logger.log('Brevo Lists: ' + health.checks.brevoLists.status);
