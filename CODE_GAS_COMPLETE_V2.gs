@@ -1696,7 +1696,7 @@ function renderExamWebApp(token, exam) {
         document.addEventListener('visibilitychange', () => {
           if (document.hidden) {
             blurCount++;
-            alert(\`⚠️ Cambio de ventana detectado (\${blurCount}/3)\`);
+            alert(`⚠️ Cambio de ventana detectado (${blurCount}/3)`);
             if (blurCount >= 3) {
               document.getElementById('submitBtn').click();
             }
@@ -2096,16 +2096,16 @@ function renderAdminDashboard() {
             tbody.innerHTML = '<tr><td colspan="6">No hay candidatos</td></tr>';
             return;
           }
-          tbody.innerHTML = data.map(c => \`
+          tbody.innerHTML = data.map(c => `
             <tr>
-              <td>\${c.id}</td>
-              <td>\${c.nombre}</td>
-              <td>\${c.email}</td>
-              <td><span class="badge \${c.estado === 'completed' ? 'pass' : 'fail'}">\${c.estado}</span></td>
-              <td>\${c.fecha_registro}</td>
-              <td><button class="btn-primary" onclick="showCandidateDetails('\${c.id}')">Ver</button></td>
+              <td>${c.id}</td>
+              <td>${c.nombre}</td>
+              <td>${c.email}</td>
+              <td><span class="badge ${c.estado === 'completed' ? 'pass' : 'fail'}">${c.estado}</span></td>
+              <td>${c.fecha_registro}</td>
+              <td><button class="btn-primary" onclick="showCandidateDetails('${c.id}')">Ver</button></td>
             </tr>
-          \`).join('');
+          `).join('');
         }
 
         function loadExams(data) {
@@ -2114,16 +2114,16 @@ function renderAdminDashboard() {
             tbody.innerHTML = '<tr><td colspan="6">No hay exámenes</td></tr>';
             return;
           }
-          tbody.innerHTML = data.map(e => \`
+          tbody.innerHTML = data.map(e => `
             <tr>
-              <td>\${e.nombre}</td>
-              <td>\${e.exam}</td>
-              <td>\${e.score}%</td>
-              <td><span class="badge \${e.verdict}">\${e.verdict}</span></td>
-              <td>\${e.fecha}</td>
-              <td><button class="btn-primary" onclick="reviewExam('\${e.id}', '\${e.exam}')">Revisar</button></td>
+              <td>${e.nombre}</td>
+              <td>${e.exam}</td>
+              <td>${e.score}%</td>
+              <td><span class="badge ${e.verdict}">${e.verdict}</span></td>
+              <td>${e.fecha}</td>
+              <td><button class="btn-primary" onclick="reviewExam('${e.id}', '${e.exam}')">Revisar</button></td>
             </tr>
-          \`).join('');
+          `).join('');
         }
 
         function loadResults(data) {
@@ -2132,17 +2132,17 @@ function renderAdminDashboard() {
             tbody.innerHTML = '<tr><td colspan="7">No hay resultados</td></tr>';
             return;
           }
-          tbody.innerHTML = data.map(r => \`
+          tbody.innerHTML = data.map(r => `
             <tr>
-              <td>\${r.nombre}</td>
-              <td>\${r.e1 || '-'}</td>
-              <td>\${r.e2 || '-'}</td>
-              <td>\${r.e3 || '-'}</td>
-              <td><strong>\${r.promedio || '-'}</strong></td>
-              <td><span class="badge \${r.estado === 'APROBADO' ? 'pass' : 'fail'}">\${r.estado}</span></td>
-              <td><button class="btn-primary" onclick="approveResult('\${r.id}')">Aprobar</button></td>
+              <td>${r.nombre}</td>
+              <td>${r.e1 || '-'}</td>
+              <td>${r.e2 || '-'}</td>
+              <td>${r.e3 || '-'}</td>
+              <td><strong>${r.promedio || '-'}</strong></td>
+              <td><span class="badge ${r.estado === 'APROBADO' ? 'pass' : 'fail'}">${r.estado}</span></td>
+              <td><button class="btn-primary" onclick="approveResult('${r.id}')">Aprobar</button></td>
             </tr>
-          \`).join('');
+          `).join('');
         }
 
         function showCandidateDetails(candidateId) {
@@ -2269,14 +2269,14 @@ function getCandidateDetails(candidateId) {
 
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === candidateId) {
-      return \`
-        <p><strong>ID:</strong> \${data[i][0]}</p>
-        <p><strong>Nombre:</strong> \${data[i][1]}</p>
-        <p><strong>Email:</strong> \${data[i][2]}</p>
-        <p><strong>Teléfono:</strong> \${data[i][3]}</p>
-        <p><strong>Estado:</strong> \${data[i][10]}</p>
-        <p><strong>Fecha Registro:</strong> \${data[i][8]}</p>
-      \`;
+      return `
+        <p><strong>ID:</strong> ${data[i][0]}</p>
+        <p><strong>Nombre:</strong> ${data[i][1]}</p>
+        <p><strong>Email:</strong> ${data[i][2]}</p>
+        <p><strong>Teléfono:</strong> ${data[i][3]}</p>
+        <p><strong>Estado:</strong> ${data[i][10]}</p>
+        <p><strong>Fecha Registro:</strong> ${data[i][8]}</p>
+      `;
     }
   }
   return '<p>Candidato no encontrado</p>';
