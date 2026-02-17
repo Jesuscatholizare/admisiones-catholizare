@@ -48,18 +48,18 @@ function initializeSpreadsheet() {
     'Timeline': {
       headers: ['timestamp', 'candidate_id', 'event_type', 'details_json', 'actor']
     },
-    'Test_E1': {
-      headers: ['candidate_id', 'exam', 'started_at', 'finished_at', 'elapsed_seconds',
+    'Test_E1_Respuestas': {
+      headers: ['candidate_id', 'started_at', 'finished_at', 'elapsed_seconds',
                 'responses_json', 'blur_events', 'copy_attempts', 'ai_detection_count',
                 'verdict', 'openai_score_json', 'flags']
     },
-    'Test_E2': {
-      headers: ['candidate_id', 'exam', 'started_at', 'finished_at', 'elapsed_seconds',
+    'Test_E2_Respuestas': {
+      headers: ['candidate_id', 'started_at', 'finished_at', 'elapsed_seconds',
                 'responses_json', 'blur_events', 'copy_attempts', 'ai_detection_count',
                 'verdict', 'openai_score_json', 'flags']
     },
-    'Test_E3': {
-      headers: ['candidate_id', 'exam', 'started_at', 'finished_at', 'elapsed_seconds',
+    'Test_E3_Respuestas': {
+      headers: ['candidate_id', 'started_at', 'finished_at', 'elapsed_seconds',
                 'responses_json', 'blur_events', 'copy_attempts', 'ai_detection_count',
                 'verdict', 'openai_score_json', 'flags']
     },
@@ -1500,7 +1500,7 @@ function addTimelineEvent(candidate_id, event_type, details) {
 
 function saveExamResult(candidate_id, exam, resultData) {
   try {
-    const sheetName = 'Test_' + exam;
+    const sheetName = 'Test_' + exam + '_Respuestas';
     const sheet = SS.getSheetByName(sheetName);
 
     if (!sheet) {
@@ -1510,7 +1510,6 @@ function saveExamResult(candidate_id, exam, resultData) {
 
     sheet.appendRow([
       candidate_id,
-      exam,
       resultData.started_at,
       resultData.finished_at,
       resultData.elapsed_seconds,
@@ -1523,7 +1522,7 @@ function saveExamResult(candidate_id, exam, resultData) {
       resultData.flags
     ]);
 
-    Logger.log('[saveExamResult] Resultado guardado para ' + candidate_id);
+    Logger.log('[saveExamResult] Resultado guardado en ' + sheetName);
   } catch (error) {
     Logger.log('[saveExamResult Error] ' + error.message);
   }
