@@ -1449,7 +1449,7 @@ function notifyAdminNewCandidate(name, email, candidate_id, scheduled_date) {
 function notifyAdminExamCompleted(name, email, exam, score, verdict, flags) {
   try {
     const verdictColor = verdict === 'pass' ? '#4CAF50' : (verdict === 'review' ? '#FF9800' : '#f44336');
-    const verdictText = verdict === 'pass' ? 'APROBADO ✅' : (verdict === 'review' ? 'REVISAR ⚠️' : 'NO APROBADO ❌');
+    const verdictText = verdict === 'pass' ? 'APROBADO [OK]' : (verdict === 'review' ? 'REVISAR [ALERT]' : 'NO APROBADO [FAIL]');
 
     const htmlBody = `
       <html>
@@ -1466,7 +1466,7 @@ function notifyAdminExamCompleted(name, email, exam, score, verdict, flags) {
       <body>
         <div class="container">
           <div class="header">
-            <h1>📝 Examen ${exam} Completado</h1>
+            <h1>[NOTE] Examen ${exam} Completado</h1>
           </div>
           <div class="content">
             <div class="field"><span class="label">Candidato:</span> ${name}</div>
@@ -1482,7 +1482,7 @@ function notifyAdminExamCompleted(name, email, exam, score, verdict, flags) {
       </html>
     `;
 
-    return sendEmail(CONFIG.email_admin, `📝 ${exam} Completado - ${name}`, htmlBody);
+    return sendEmail(CONFIG.email_admin, `[NOTE] ${exam} Completado - ${name}`, htmlBody);
   } catch (error) {
     Logger.log(`[notifyAdminExamCompleted Error] ${error.message}`);
     return { success: false, error: error.message };
@@ -1636,7 +1636,7 @@ function renderExamWebApp(token, exam) {
         </div>
 
         <div class="warning-box">
-          ⚠️ <strong>Protecciones activas:</strong> No se permite copiar/pegar, cambiar de ventana ni usar herramientas externas.
+          [ALERT] <strong>Protecciones activas:</strong> No se permite copiar/pegar, cambiar de ventana ni usar herramientas externas.
         </div>
 
         <form id="examForm">
@@ -1696,7 +1696,7 @@ function renderExamWebApp(token, exam) {
         document.addEventListener('visibilitychange', () => {
           if (document.hidden) {
             blurCount++;
-            alert(`⚠️ Cambio de ventana detectado (${blurCount}/3)`);
+            alert(`[ALERT] Cambio de ventana detectado (${blurCount}/3)`);
             if (blurCount >= 3) {
               document.getElementById('submitBtn').click();
             }
@@ -1729,10 +1729,10 @@ function renderExamWebApp(token, exam) {
 
             const data = await res.json();
             if (data.success) {
-              alert('✅ Examen recibido. ' + data.message);
+              alert('[OK] Examen recibido. ' + data.message);
               window.location.href = 'https://profesionales.catholizare.com';
             } else {
-              alert('❌ ' + data.message);
+              alert('[FAIL] ' + data.message);
             }
           } catch (error) {
             alert('Error al enviar: ' + error.message);
@@ -2445,7 +2445,7 @@ function generateAndApproveResult(candidateId, adminNotes = '') {
       }
     }
 
-    Logger.log(`[generateAndApproveResult] ✅ Resultado generado para ${candidateId}: ${finalStatus} (${category})`);
+    Logger.log(`[generateAndApproveResult] [OK] Resultado generado para ${candidateId}: ${finalStatus} (${category})`);
 
     return {
       success: true,
@@ -2590,7 +2590,7 @@ function sendFinalResultEmail(email, name, resultData) {
     } = resultData;
 
     const statusColor = status === 'APROBADO' ? '#4CAF50' : '#f44336';
-    const statusText = status === 'APROBADO' ? '✅ APROBADO' : '❌ RECHAZADO';
+    const statusText = status === 'APROBADO' ? '[OK] APROBADO' : '[FAIL] RECHAZADO';
     const categoryText = category ? `(${category.toUpperCase()})` : '';
 
     const htmlBody = `
@@ -2640,7 +2640,7 @@ function sendFinalResultEmail(email, name, resultData) {
               <div class="score-value" style="color: ${statusColor};">${statusText} ${categoryText}</div>
             </div>
 
-            <h3>📊 Calificaciones Detalladas</h3>
+            <h3>[CHART] Calificaciones Detalladas</h3>
             <table>
               <tr>
                 <th>Evaluación</th>
@@ -2667,13 +2667,13 @@ function sendFinalResultEmail(email, name, resultData) {
 
             ${status === 'APROBADO' ? `
             <div class="next-steps">
-              <h3>✅ ¡Felicitaciones!</h3>
+              <h3>[OK] ¡Felicitaciones!</h3>
               <p>Has superado el proceso de evaluación con éxito. Perteneces a la categoría <strong>${category}</strong>.</p>
               <p>El siguiente paso es una entrevista personal. Nos comunicaremos contigo en los próximos días para agendar.</p>
             </div>
             ` : `
             <div class="next-steps">
-              <h3>📋 Información Importante</h3>
+              <h3>[LIST] Información Importante</h3>
               <p>Lamentamos informarte que en esta ocasión tu resultado fue negativo. Si deseas recibir retroalimentación sobre tu desempeño, por favor contacta a nuestro equipo de admisiones.</p>
               <p><strong>Email de contacto:</strong> ${CONFIG.email_admin || 'admin@rccc.org'}</p>
             </div>
@@ -2713,8 +2713,8 @@ function sendFinalResultEmail(email, name, resultData) {
     `;
 
     const subject = status === 'APROBADO'
-      ? `✅ Resultado: APROBADO - Sistema RCCC`
-      : `📋 Resultado: RECHAZADO - Sistema RCCC`;
+      ? `[OK] Resultado: APROBADO - Sistema RCCC`
+      : `[LIST] Resultado: RECHAZADO - Sistema RCCC`;
 
     return sendEmail(email, subject, htmlBody);
 
@@ -2738,7 +2738,7 @@ function sendEmailTerms(email, name, candidateId) {
       <p>Una vez aceptados, recibirás tu Examen E2.</p>
     </body></html>
   `;
-  return sendEmail(email, '✅ Aceptación de Términos - RCCC', htmlBody);
+  return sendEmail(email, '[OK] Aceptación de Términos - RCCC', htmlBody);
 }
 
 /**
@@ -2754,7 +2754,7 @@ function sendEmailRejected(email, name, exam, reason) {
       <p>Si tienes preguntas, contacta a: ${CONFIG.email_admin}</p>
     </body></html>
   `;
-  return sendEmail(email, `❌ Resultado ${exam} - RCCC`, htmlBody);
+  return sendEmail(email, `[FAIL] Resultado ${exam} - RCCC`, htmlBody);
 }
 
 /**
@@ -2771,7 +2771,7 @@ function sendEmailE2(email, name, token, candidateId) {
       <p><strong>Duración:</strong> 2 horas<br><strong>Fecha límite:</strong> 30 días desde hoy</p>
     </body></html>
   `;
-  return sendEmail(email, '📝 Examen E2 - RCCC', htmlBody);
+  return sendEmail(email, '[NOTE] Examen E2 - RCCC', htmlBody);
 }
 
 /**
@@ -2788,7 +2788,7 @@ function sendEmailE3(email, name, token, candidateId) {
       <p>Este es el último paso antes de nuestra evaluación final.</p>
     </body></html>
   `;
-  return sendEmail(email, '📋 Examen E3 - RCCC', htmlBody);
+  return sendEmail(email, '[LIST] Examen E3 - RCCC', htmlBody);
 }
 
 /**
@@ -2828,7 +2828,7 @@ function sendEmailApproved(email, name, category) {
       <p>Bienvenido(a) a nuestra comunidad de profesionales.</p>
     </body></html>
   `;
-  return sendEmail(email, `✅ ¡Aprobado! Bienvenido a RCCC - ${categoryLabel[category]}`, htmlBody);
+  return sendEmail(email, `[OK] ¡Aprobado! Bienvenido a RCCC - ${categoryLabel[category]}`, htmlBody);
 }
 
 /**
@@ -2844,7 +2844,7 @@ function sendHandoffNotification(email, name, category) {
       <p>Categoría asignada: <strong>${category}</strong></p>
     </body></html>
   `;
-  return sendEmail(CONFIG.email_handoff, `🎉 Handoff Completado: ${name} (${category})`, htmlBody);
+  return sendEmail(CONFIG.email_handoff, `[CELEBRATION] Handoff Completado: ${name} (${category})`, htmlBody);
 }
 
 // ================================
@@ -2897,18 +2897,18 @@ function triggerMarkIncompleteByInactivity() {
  * Uso: En Google Apps Script, presiona el play junto a esta función
  */
 function setupSystem() {
-  Logger.log('🔧 Iniciando setup del sistema RCCC...');
+  Logger.log('[TOOL] Iniciando setup del sistema RCCC...');
 
   try {
     formatAllSheets();
-    Logger.log('✅ Sistema formateado correctamente');
-    Logger.log('✅ Setup completado');
+    Logger.log('[OK] Sistema formateado correctamente');
+    Logger.log('[OK] Setup completado');
 
     // Mostrar resumen
     const summary = checkSystemHealth();
-    Logger.log('📊 HEALTH CHECK: ' + JSON.stringify(summary, null, 2));
+    Logger.log('[CHART] HEALTH CHECK: ' + JSON.stringify(summary, null, 2));
   } catch (error) {
-    Logger.log('❌ Error en setup: ' + error.message);
+    Logger.log('[FAIL] Error en setup: ' + error.message);
   }
 }
 
@@ -2922,9 +2922,9 @@ function formatAllSheets() {
     const sheet = SS.getSheetByName(sheetName);
     if (sheet) {
       formatSheet(sheet, sheetName);
-      Logger.log(`✅ Formateada hoja: ${sheetName}`);
+      Logger.log(`[OK] Formateada hoja: ${sheetName}`);
     } else {
-      Logger.log(`⚠️ Hoja no encontrada: ${sheetName}`);
+      Logger.log(`[ALERT] Hoja no encontrada: ${sheetName}`);
     }
   });
 }
@@ -2936,7 +2936,7 @@ function formatSheet(sheet, sheetName) {
   try {
     // Validar que sheet existe
     if (!sheet) {
-      Logger.log(`⚠️ formatSheet: sheet es null para ${sheetName}`);
+      Logger.log(`[ALERT] formatSheet: sheet es null para ${sheetName}`);
       return;
     }
 
@@ -3021,9 +3021,9 @@ function formatSheet(sheet, sheetName) {
       dataRange.setHorizontalAlignment('LEFT');
     }
 
-    Logger.log(`✅ formatSheet completado: ${sheetName}`);
+    Logger.log(`[OK] formatSheet completado: ${sheetName}`);
   } catch (error) {
-    Logger.log(`❌ Error en formatSheet(${sheetName}): ${error.message}`);
+    Logger.log(`[FAIL] Error en formatSheet(${sheetName}): ${error.message}`);
   }
 }
 
@@ -3044,67 +3044,67 @@ function checkSystemHealth() {
     const missingSheets = sheets.filter(name => !SS.getSheetByName(name));
 
     health.checks.sheets = {
-      status: missingSheets.length === 0 ? '✅' : '⚠️',
+      status: missingSheets.length === 0 ? '[OK]' : '[ALERT]',
       found: sheets.length - missingSheets.length,
       missing: missingSheets
     };
   } catch (e) {
-    health.checks.sheets = { status: '❌', error: e.message };
+    health.checks.sheets = { status: '[FAIL]', error: e.message };
     health.status = 'ERROR';
   }
 
   // Check 2: API Keys
   try {
     const apiKeys = {
-      openai: CONFIG.openai_api_key ? '✅' : '❌',
-      brevo: CONFIG.brevo_api_key ? '✅' : '❌',
-      resend: CONFIG.resend_api_key ? '✅' : '❌'
+      openai: CONFIG.openai_api_key ? '[OK]' : '[FAIL]',
+      brevo: CONFIG.brevo_api_key ? '[OK]' : '[FAIL]',
+      resend: CONFIG.resend_api_key ? '[OK]' : '[FAIL]'
     };
 
-    const allValid = Object.values(apiKeys).every(v => v === '✅');
+    const allValid = Object.values(apiKeys).every(v => v === '[OK]');
     health.checks.apiKeys = {
-      status: allValid ? '✅' : '⚠️',
+      status: allValid ? '[OK]' : '[ALERT]',
       keys: apiKeys
     };
   } catch (e) {
-    health.checks.apiKeys = { status: '❌', error: e.message };
+    health.checks.apiKeys = { status: '[FAIL]', error: e.message };
     health.status = 'ERROR';
   }
 
   // Check 3: Configuración de Email
   try {
     const emailConfig = {
-      email_from: CONFIG.email_from ? '✅' : '❌',
-      email_admin: CONFIG.email_admin ? '✅' : '❌',
-      email_handoff: CONFIG.email_handoff ? '✅' : '❌'
+      email_from: CONFIG.email_from ? '[OK]' : '[FAIL]',
+      email_admin: CONFIG.email_admin ? '[OK]' : '[FAIL]',
+      email_handoff: CONFIG.email_handoff ? '[OK]' : '[FAIL]'
     };
 
-    const allValid = Object.values(emailConfig).every(v => v === '✅');
+    const allValid = Object.values(emailConfig).every(v => v === '[OK]');
     health.checks.emailConfig = {
-      status: allValid ? '✅' : '⚠️',
+      status: allValid ? '[OK]' : '[ALERT]',
       config: emailConfig
     };
   } catch (e) {
-    health.checks.emailConfig = { status: '❌', error: e.message };
+    health.checks.emailConfig = { status: '[FAIL]', error: e.message };
     health.status = 'ERROR';
   }
 
   // Check 4: Brevo Lists
   try {
     const brevoLists = {
-      interesados: CONFIG.brevo_list_interesados ? '✅' : '❌',
-      junior: CONFIG.brevo_list_junior ? '✅' : '❌',
-      senior: CONFIG.brevo_list_senior ? '✅' : '❌',
-      expert: CONFIG.brevo_list_expert ? '✅' : '❌'
+      interesados: CONFIG.brevo_list_interesados ? '[OK]' : '[FAIL]',
+      junior: CONFIG.brevo_list_junior ? '[OK]' : '[FAIL]',
+      senior: CONFIG.brevo_list_senior ? '[OK]' : '[FAIL]',
+      expert: CONFIG.brevo_list_expert ? '[OK]' : '[FAIL]'
     };
 
-    const allValid = Object.values(brevoLists).every(v => v === '✅');
+    const allValid = Object.values(brevoLists).every(v => v === '[OK]');
     health.checks.brevoLists = {
-      status: allValid ? '✅' : '⚠️',
+      status: allValid ? '[OK]' : '[ALERT]',
       lists: brevoLists
     };
   } catch (e) {
-    health.checks.brevoLists = { status: '❌', error: e.message };
+    health.checks.brevoLists = { status: '[FAIL]', error: e.message };
     health.status = 'ERROR';
   }
 
@@ -3113,15 +3113,15 @@ function checkSystemHealth() {
     const candidatosSheet = SS.getSheetByName('Candidatos');
     const count = candidatosSheet ? candidatosSheet.getLastRow() - 1 : 0;
     health.checks.candidatos = {
-      status: '✅',
+      status: '[OK]',
       count: count
     };
   } catch (e) {
-    health.checks.candidatos = { status: '❌', error: e.message };
+    health.checks.candidatos = { status: '[FAIL]', error: e.message };
   }
 
   Logger.log('═══════════════════════════════════════');
-  Logger.log('📊 HEALTH CHECK DEL SISTEMA RCCC');
+  Logger.log('[CHART] HEALTH CHECK DEL SISTEMA RCCC');
   Logger.log('═══════════════════════════════════════');
   Logger.log('Timestamp: ' + health.timestamp);
   Logger.log('Estado General: ' + health.status);
