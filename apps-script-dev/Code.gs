@@ -170,9 +170,54 @@ function _initConfigDefaults(ss) {
 // ================================
 const SS = SpreadsheetApp.getActiveSpreadsheet();
 
+/**
+ * Mapa de aliases: clave interna v3.0 → nombre real en Script Properties.
+ * Permite que el código use nombres descriptivos mientras las Properties
+ * usan los nombres cortos que ya tienes configurados.
+ */
+const PROP_ALIASES = {
+  'BREVO_LIST_INTERESADOS': 'INTERESADOS',
+  'BREVO_LIST_RECHAZADOS':  'RECHAZADOS',   // en Props puede aparecer como "RECHAZADOS:"
+  'BREVO_LIST_APROBADOS':   'APROBADOS',
+  'BREVO_LIST_JUNIOR':      'JUNIOR',
+  'BREVO_LIST_SENIOR':      'SENIOR',
+  'BREVO_LIST_EXPERT':      'EXPERT',
+};
+
+/**
+ * Lee una clave de configuración.
+ * Orden de prioridad:
+ *   1. Script Properties (nombre exacto)
+ *   2. Script Properties (alias del mapa PROP_ALIASES)
+ *   3. Hoja "Config" de Google Sheets (fallback)
+ *   4. defaultValue
+ */
 function getConfig(key, defaultValue) {
   if (defaultValue === undefined) defaultValue = null;
   try {
+    const props = PropertiesService.getScriptProperties();
+
+    // 1. Nombre exacto en Script Properties
+    let raw = props.getProperty(key);
+
+    // 2. Alias (ej: BREVO_LIST_JUNIOR → JUNIOR)
+    if (raw === null && PROP_ALIASES[key]) {
+      raw = props.getProperty(PROP_ALIASES[key]);
+      // Algunos nombres tienen colon al final (ej: "RECHAZADOS:")
+      if (raw === null) raw = props.getProperty(PROP_ALIASES[key] + ':');
+    }
+
+    if (raw !== null && raw !== '') {
+      // Si es número puro, convertir
+      if (!isNaN(raw) && raw.trim() !== '') return Number(raw);
+      // Si parece JSON, parsear
+      if (raw.startsWith('{') || raw.startsWith('[')) {
+        try { return JSON.parse(raw); } catch(e) {}
+      }
+      return raw;
+    }
+
+    // 3. Fallback: hoja Config
     const sheet = SS.getSheetByName('Config');
     if (!sheet) return defaultValue;
     const data = sheet.getDataRange().getValues();
@@ -187,15 +232,37 @@ function getConfig(key, defaultValue) {
           if (type === 'number') return Number(value);
           return value;
         }
-      } else if (typeof cellValue === 'string' && cellValue.includes('=')) {
-        const [configKey, configValue] = cellValue.split('=').map(s => s.trim());
-        if (configKey === key) return configValue;
       }
     }
   } catch (e) {
     Logger.log('Error obteniendo config ' + key + ': ' + e.message);
   }
   return defaultValue;
+}
+
+/**
+ * Función de diagnóstico: verifica que todas las claves críticas
+ * están resueltas. Ejecutar desde el editor GAS para validar.
+ * Dropdown → testConfig → ▶️
+ */
+function testConfig() {
+  const keys = [
+    'OPENAI_API_KEY', 'OPENAI_MODEL',
+    'BREVO_API_KEY', 'RESEND_API_KEY',
+    'EMAIL_FROM', 'EMAIL_ADMIN',
+    'BREVO_LIST_INTERESADOS', 'BREVO_LIST_RECHAZADOS',
+    'BREVO_LIST_JUNIOR', 'BREVO_LIST_SENIOR', 'BREVO_LIST_EXPERT',
+    'ADMIN_PIN', 'TIMEZONE'
+  ];
+  Logger.log('=== TEST CONFIG ===');
+  keys.forEach(k => {
+    const v = getConfig(k);
+    const display = (k.includes('KEY') || k.includes('PIN'))
+      ? (v ? '***' + String(v).slice(-4) : 'FALTA')
+      : (v !== null ? String(v) : 'FALTA');
+    Logger.log((v !== null ? '✓' : '✗') + ' ' + k + ': ' + display);
+  });
+  Logger.log('==================');
 }
 
 const CONFIG = {
