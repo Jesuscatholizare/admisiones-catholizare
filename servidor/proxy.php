@@ -19,20 +19,38 @@ $GAS_DEPLOYMENT_ID = 'YOUR_DEPLOYMENT_ID_HERE'; // ← REEMPLAZAR
 $GAS_BASE_URL = "https://script.google.com/macros/s/{$GAS_DEPLOYMENT_ID}/exec";
 // ============================================================
 
-// Headers de respuesta
-header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Origin: *');
+// ── CORS — debe ir primero, antes de cualquier lógica ────────────────────────
+$allowed_origins = [
+    'https://catholizare.com',
+    'https://www.catholizare.com',
+    'https://profesionales.catholizare.com',
+];
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+if (in_array($origin, $allowed_origins, true)) {
+    header('Access-Control-Allow-Origin: ' . $origin);
+} else {
+    // Permite peticiones sin Origin (ej. llamadas server-side, Postman, etc.)
+    header('Access-Control-Allow-Origin: *');
+}
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
+header('Access-Control-Max-Age: 86400'); // cache preflight 24 h
+header('Content-Type: application/json; charset=utf-8');
 
-// Manejo de preflight CORS
+// Responder preflight inmediatamente
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
+    http_response_code(204);
     exit();
 }
 
-// Obtener acción
-$action = $_GET['action'] ?? null;
+// ── Obtener acción — acepta GET param o campo dentro del JSON body ────────────
+$input = file_get_contents('php://input');
+$data  = json_decode($input, true) ?? [];
+
+$action = $_GET['action']    // 1.° prioridad: query string  ?action=xxx
+       ?? $data['action']    // 2.° prioridad: campo en JSON body
+       ?? null;
+
 if (!$action) {
     http_response_code(400);
     echo json_encode(['success' => false, 'message' => 'No action specified']);
@@ -63,9 +81,7 @@ if (!in_array($action, $allowed_actions)) {
     exit();
 }
 
-// Obtener body del request
-$input = file_get_contents('php://input');
-$data = json_decode($input, true) ?? [];
+// $input y $data ya fueron leídos arriba (antes del check de action)
 
 // Construir URL de GAS
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {

@@ -1,0 +1,21 @@
+# ── CORS para api-proxy.php ──────────────────────────────────────────────────
+# Este archivo es un respaldo: si Apache responde antes que PHP (ej. errores 404/500),
+# los headers CORS seguirán presentes para que el navegador no bloquee la respuesta.
+
+<IfModule mod_headers.c>
+    <FilesMatch "proxy\.php$">
+        # Sólo permite los dominios del proyecto
+        SetEnvIf Origin "^https://(www\.)?catholizare\.com$" CORS_ORIGIN=$0
+        SetEnvIf Origin "^https://profesionales\.catholizare\.com$" CORS_ORIGIN=$0
+
+        Header always set   Access-Control-Allow-Origin    "%{CORS_ORIGIN}e" env=CORS_ORIGIN
+        Header always set   Access-Control-Allow-Methods   "GET, POST, OPTIONS"
+        Header always set   Access-Control-Allow-Headers   "Content-Type, Authorization"
+        Header always set   Access-Control-Max-Age         "86400"
+    </FilesMatch>
+</IfModule>
+
+# Responder OPTIONS directamente (preflight) sin llegar a PHP
+RewriteEngine On
+RewriteCond %{REQUEST_METHOD} OPTIONS
+RewriteRule ^proxy\.php$ - [R=204,L]
