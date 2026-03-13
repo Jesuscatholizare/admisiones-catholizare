@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Postulación · Red Catholizare</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ── Variables ──────────────────────────────────────── */
+:root {
+  --blue-900: #001A55;
+  --blue-600: #0852CC;
+  --blue-500: #0966FF;
+  --blue-100: #EEF3FF;
+  --green-bg:  #DCFCE7;
+  --green-text:#166534;
+  --red-bg:    #FEE2E2;
+  --red-text:  #991B1B;
+  --red-err:   #DC2626;
+  --gray-50:   #F8FAFC;
+  --gray-100:  #F1F5F9;
+  --gray-200:  #E2E8F0;
+  --gray-400:  #94A3B8;
+  --gray-600:  #475569;
+  --gray-900:  #0F172A;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --shadow-card: 0 4px 24px rgba(0,26,85,.08), 0 1px 4px rgba(0,0,0,.04);
+  --transition: all .2s ease;
+}
+
+/* ── Reset ──────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--gray-100);
+  color: var(--gray-900);
+  min-height: 100vh;
+  padding: 20px 16px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ── Card ───────────────────────────────────────────── */
+.card {
+  width: 100%;
+  max-width: 680px;
+  background: #fff;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  border: 1px solid var(--gray-200);
+}
+
+/* ── Header ─────────────────────────────────────────── */
+.card-header {
+  background: linear-gradient(135deg, var(--blue-900) 0%, #003399 100%);
+  padding: 36px 28px 32px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.card-header::before {
+  content: '';
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 160px; height: 160px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.05);
+}
+.card-header::after {
+  content: '';
+  position: absolute;
+  bottom: -30px; left: -30px;
+  width: 120px; height: 120px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.04);
+}
+.header-badge {
+  display: inline-block;
+  background: rgba(255,255,255,.15);
+  backdrop-filter: blur(4px);
+  color: rgba(255,255,255,.9);
+  font-size: .72rem;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 5px 14px;
+  border-radius: 50px;
+  margin-bottom: 14px;
+}
+.card-header h1 {
+  color: #fff;
+  font-size: clamp(1.35rem, 4vw, 1.75rem);
+  font-weight: 700;
+  line-height: 1.25;
+  margin-bottom: 8px;
+  position: relative;
+}
+.card-header p {
+  color: rgba(255,255,255,.75);
+  font-size: .9rem;
+  font-weight: 300;
+  position: relative;
+}
+
+/* ── Progress strip ─────────────────────────────────── */
+.progress-bar {
+  height: 3px;
+  background: var(--gray-200);
+}
+.progress-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--blue-500), #38BDF8);
+  transition: width .4s ease;
+  border-radius: 0 2px 2px 0;
+}
+
+/* ── Body ───────────────────────────────────────────── */
+.card-body { padding: 28px 24px 32px; }
+
+/* ── Alerts ─────────────────────────────────────────── */
+.alert {
+  display: none;
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  font-size: .9rem;
+  line-height: 1.5;
+  margin-bottom: 22px;
+  text-align: left;
+  animation: fadeDown .3s ease;
+}
+.alert.show { display: flex; gap: 10px; align-items: flex-start; }
+.alert-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+.alert.success { background: var(--green-bg); color: var(--green-text); border: 1px solid #BBF7D0; }
+.alert.error   { background: var(--red-bg);   color: var(--red-text);   border: 1px solid #FECACA; }
+@keyframes fadeDown { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:none; } }
+
+/* ── Section titles ─────────────────────────────────── */
+.section-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: .75rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--blue-600);
+  margin: 24px 0 16px;
+}
+.section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--gray-200);
+}
+
+/* ── Grid layout ────────────────────────────────────── */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 16px;
+}
+.col-full  { grid-column: 1 / -1; }
+.col-left  { grid-column: 1; }
+.col-right { grid-column: 2; }
+
+/* ── Field group ────────────────────────────────────── */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.field label {
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--gray-900);
+}
+.field label .req { color: var(--red-err); margin-left: 2px; }
+
+.field input,
+.field select,
+.field textarea {
+  padding: 11px 14px;
+  border: 1.5px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: .92rem;
+  color: var(--gray-900);
+  background: var(--gray-50);
+  transition: var(--transition);
+  -webkit-appearance: none;
+  appearance: none;
+}
+.field input::placeholder,
+.field textarea::placeholder { color: var(--gray-400); }
+.field select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2394A3B8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; cursor: pointer; }
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: none;
+  border-color: var(--blue-500);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(9,102,255,.1);
+}
+.field input.invalid,
+.field select.invalid,
+.field textarea.invalid {
+  border-color: var(--red-err);
+  box-shadow: 0 0 0 3px rgba(220,38,38,.08);
+}
+.field textarea { resize: vertical; min-height: 90px; line-height: 1.5; }
+
+.other-input { margin-top: 6px !important; }
+
+/* ── Error messages ─────────────────────────────────── */
+.err { font-size: .74rem; color: var(--red-err); min-height: 16px; line-height: 1.3; }
+
+/* ── Date hint ──────────────────────────────────────── */
+.field-hint {
+  font-size: .74rem;
+  color: var(--gray-600);
+  line-height: 1.4;
+  margin-top: 1px;
+}
+
+/* ── Date+time row ──────────────────────────────────── */
+.datetime-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* ── Scheduled date card ─────────────────────────────── */
+.exam-card {
+  background: var(--blue-100);
+  border: 1.5px solid #C7D9FF;
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+.exam-card-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: .83rem;
+  font-weight: 700;
+  color: var(--blue-900);
+  margin-bottom: 12px;
+}
+.exam-card-title span { font-size: 1rem; }
+
+/* ── Terms ──────────────────────────────────────────── */
+.terms-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--gray-50);
+  border: 1.5px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.terms-box:has(input:checked) { border-color: var(--blue-500); background: var(--blue-100); }
+.terms-box input[type="checkbox"] {
+  width: 18px; height: 18px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  accent-color: var(--blue-500);
+  cursor: pointer;
+}
+.terms-box p {
+  font-size: .84rem;
+  color: var(--gray-600);
+  line-height: 1.5;
+}
+.terms-box a { color: var(--blue-500); font-weight: 600; text-decoration: none; }
+.terms-box a:hover { text-decoration: underline; }
+
+/* ── Submit button ──────────────────────────────────── */
+.btn-submit {
+  width: 100%;
+  padding: 15px;
+  margin-top: 24px;
+  background: linear-gradient(135deg, var(--blue-500) 0%, var(--blue-600) 100%);
+  color: #fff;
+  border: none;
+  border-radius: 50px;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: .3px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(9,102,255,.35);
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.btn-submit:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--blue-600) 0%, var(--blue-900) 100%);
+  box-shadow: 0 6px 20px rgba(9,102,255,.4);
+  transform: translateY(-1px);
+}
+.btn-submit:active:not(:disabled) { transform: translateY(0); }
+.btn-submit:disabled { opacity: .65; cursor: wait; transform: none; }
+
+/* ── Spinner ─────────────────────────────────────────── */
+.spinner {
+  width: 18px; height: 18px;
+  border: 2px solid rgba(255,255,255,.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  display: none;
+}
+.btn-submit.loading .spinner { display: block; }
+.btn-submit.loading .btn-text { opacity: .85; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Footer note ─────────────────────────────────────── */
+.card-footer-note {
+  text-align: center;
+  font-size: .78rem;
+  color: var(--gray-400);
+  margin-top: 18px;
+}
+.card-footer-note a { color: var(--blue-500); text-decoration: none; font-weight: 500; }
+
+/* ── Responsive ──────────────────────────────────────── */
+@media (max-width: 540px) {
+  body { padding: 12px 0 32px; }
+  .card { border-radius: 0; border-left: none; border-right: none; max-width: 100%; }
+  .card-header { padding: 28px 20px 24px; }
+  .card-body { padding: 20px 16px 24px; }
+  .form-grid { grid-template-columns: 1fr; gap: 12px; }
+  .col-full, .col-left, .col-right { grid-column: 1; }
+  .datetime-row { grid-template-columns: 1fr; gap: 10px; }
+}
+</style>
+</head>
+<body>
+
+<div class="card">
+
+  <!-- Header -->
+  <div class="card-header">
+    <div class="header-badge">Red Catholizare · RCCC</div>
+    <h1>Postulación Profesional</h1>
+    <p>Únete a la Red de Psicólogos Católicos Catholizare</p>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-bar"><div class="progress-bar-fill" id="progressFill"></div></div>
+
+  <!-- Body -->
+  <div class="card-body">
+
+    <!-- Alerts -->
+    <div class="alert success" id="msgSuccess">
+      <span class="alert-icon">✅</span>
+      <div><strong>¡Solicitud enviada con éxito!</strong><br>Revisa tu correo — recibirás el acceso al Examen E1 en los próximos minutos.</div>
+    </div>
+    <div class="alert error" id="msgError">
+      <span class="alert-icon">⚠️</span>
+      <span id="msgErrorText">Hubo un problema al enviar. Verifica tu conexión e inténtalo de nuevo.</span>
+    </div>
+
+    <form id="admissionForm" novalidate>
+
+      <!-- ── Sección 1: Datos personales ── -->
+      <div class="section-label">👤 Datos personales</div>
+
+      <div class="form-grid">
+
+        <div class="field col-full">
+          <label for="full_name">Nombre Completo <span class="req">*</span></label>
+          <input type="text" id="full_name" placeholder="Ej. María García López" autocomplete="name">
+          <div class="err" id="err_full_name"></div>
+        </div>
+
+        <div class="field col-left">
+          <label for="email">Correo Electrónico <span class="req">*</span></label>
+          <input type="email" id="email" placeholder="nombre@correo.com" autocomplete="email" inputmode="email">
+          <div class="err" id="err_email"></div>
+        </div>
+
+        <div class="field col-right">
+          <label for="phone">Teléfono / WhatsApp <span class="req">*</span></label>
+          <input type="tel" id="phone" placeholder="+52 55 0000 0000" autocomplete="tel" inputmode="tel">
+          <div class="err" id="err_phone"></div>
+        </div>
+
+        <div class="field col-left">
+          <label for="birth_date">Fecha de Nacimiento <span class="req">*</span></label>
+          <input type="date" id="birth_date" autocomplete="bday">
+          <div class="err" id="err_birth_date"></div>
+        </div>
+
+        <div class="field col-right">
+          <label for="country">País de Residencia <span class="req">*</span></label>
+          <select id="country" onchange="toggleOther('country')">
+            <option value="">— Seleccionar —</option>
+            <option>México</option>
+            <option>Colombia</option>
+            <option>Argentina</option>
+            <option>Chile</option>
+            <option>España</option>
+            <option>Perú</option>
+            <option>Venezuela</option>
+            <option>Ecuador</option>
+            <option>Bolivia</option>
+            <option>Estados Unidos</option>
+            <option value="other">Otro país...</option>
+          </select>
+          <input type="text" id="country_other" class="other-input" placeholder="Escribe tu país" style="display:none;">
+          <div class="err" id="err_country"></div>
+        </div>
+
+      </div>
+
+      <!-- ── Sección 2: Perfil profesional ── -->
+      <div class="section-label">💼 Perfil profesional</div>
+
+      <div class="form-grid">
+
+        <div class="field col-left">
+          <label for="professional_type">Tipo de Profesión <span class="req">*</span></label>
+          <select id="professional_type" onchange="toggleOther('professional_type')">
+            <option value="">— Seleccionar —</option>
+            <option>Psicólogo/a</option>
+            <option>Psiquiatra</option>
+            <option>Consejero/a Pastoral</option>
+            <option>Terapeuta Familiar</option>
+            <option value="other">Otro...</option>
+          </select>
+          <input type="text" id="professional_type_other" class="other-input" placeholder="Describe tu profesión" style="display:none;">
+          <div class="err" id="err_professional_type"></div>
+        </div>
+
+        <div class="field col-right">
+          <label for="therapeutic_focus">Enfoque Terapéutico <span class="req">*</span></label>
+          <input type="text" id="therapeutic_focus" placeholder="Ej. TCC, Humanista, Logoterapia...">
+          <div class="err" id="err_therapeutic_focus"></div>
+        </div>
+
+        <div class="field col-full">
+          <label for="about_you">Reseña profesional — Cuéntanos sobre ti <span class="req">*</span></label>
+          <textarea id="about_you" placeholder="Tu experiencia, especialidades y motivación para unirte a RCCC..."></textarea>
+          <div class="err" id="err_about_you"></div>
+        </div>
+
+      </div>
+
+      <!-- ── Sección 3: Agenda tu Examen E1 ── -->
+      <div class="section-label">📅 Agenda tu Examen E1</div>
+
+      <div class="exam-card">
+        <div class="exam-card-title"><span>🗓</span> ¿Cuándo deseas contestar el Examen E1?</div>
+        <div class="datetime-row">
+          <div class="field">
+            <label for="scheduled_date">Fecha <span class="req">*</span></label>
+            <input type="date" id="scheduled_date">
+            <div class="err" id="err_scheduled_date"></div>
+          </div>
+          <div class="field">
+            <label for="scheduled_time">Hora preferida <span class="req">*</span></label>
+            <input type="time" id="scheduled_time">
+            <div class="err" id="err_scheduled_time"></div>
+          </div>
+        </div>
+        <p class="field-hint" style="margin-top:10px;">
+          Recibirás un enlace de acceso al examen en tu correo. El cuestionario estará disponible ese día.
+        </p>
+      </div>
+
+      <!-- ── Términos ── -->
+      <div style="margin-top: 20px;">
+        <label class="terms-box" for="terms">
+          <input type="checkbox" id="terms">
+          <p>He leído y acepto el <a href="/aviso-privacidad" target="_blank">Aviso de Privacidad</a> y los <a href="/terminos" target="_blank">Términos y Condiciones</a> de la Red Catholizare.</p>
+        </label>
+        <div class="err" id="err_terms"></div>
+      </div>
+
+      <!-- Submit -->
+      <button type="submit" class="btn-submit" id="submitBtn">
+        <div class="spinner" id="spinner"></div>
+        <span class="btn-text" id="btnText">Enviar Postulación ➜</span>
+      </button>
+
+    </form>
+
+    <p class="card-footer-note">
+      ¿Ya tienes una solicitud en proceso?
+      <a href="https://profesionales.catholizare.com/estado">Consulta tu estado aquí</a>
+    </p>
+
+  </div><!-- /card-body -->
+</div><!-- /card -->
+
+<script>
+const API_URL = 'https://profesionales.catholizare.com/api-proxy.php';
+
+/* ── Progress bar (based on filled required fields) ── */
+const REQUIRED_IDS = [
+  'full_name','email','phone','birth_date','country',
+  'professional_type','therapeutic_focus','about_you',
+  'scheduled_date','scheduled_time'
+];
+function updateProgress() {
+  const filled = REQUIRED_IDS.filter(id => {
+    const el = document.getElementById(id);
+    return el && el.value.trim() !== '' && el.value !== '';
+  }).length;
+  document.getElementById('progressFill').style.width = Math.round((filled / REQUIRED_IDS.length) * 100) + '%';
+}
+REQUIRED_IDS.forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', updateProgress);
+});
+
+/* ── Toggle "Otro" inputs ── */
+function toggleOther(fieldId) {
+  const select = document.getElementById(fieldId);
+  const other  = document.getElementById(fieldId + '_other');
+  if (!other) return;
+  if (select.value === 'other') {
+    other.style.display = 'block';
+    other.required = true;
+  } else {
+    other.style.display = 'none';
+    other.required = false;
+    other.value = '';
+  }
+}
+
+/* ── Set min date for scheduled_date (today) ── */
+(function setMinDate() {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('scheduled_date').min = today;
+})();
+
+/* ── Helpers ── */
+function getVal(id) {
+  const el = document.getElementById(id);
+  if (!el) return '';
+  if (el.tagName === 'SELECT' && el.value === 'other') {
+    const other = document.getElementById(id + '_other');
+    return other ? other.value.trim() : '';
+  }
+  return el.value.trim();
+}
+function markInvalid(id, msg) {
+  const el = document.getElementById(id);
+  const errEl = document.getElementById('err_' + id);
+  if (el) el.classList.add('invalid');
+  if (errEl) errEl.textContent = msg;
+}
+function clearErrors() {
+  document.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid'));
+  document.querySelectorAll('.err').forEach(el => el.textContent = '');
+  document.getElementById('msgError').classList.remove('show');
+  document.getElementById('msgSuccess').classList.remove('show');
+}
+function showAlert(type, text) {
+  if (type === 'error') {
+    document.getElementById('msgErrorText').textContent = text;
+    document.getElementById('msgError').classList.add('show');
+    document.getElementById('msgError').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  } else {
+    document.getElementById('msgSuccess').classList.add('show');
+    document.getElementById('msgSuccess').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
+function setLoading(state) {
+  const btn = document.getElementById('submitBtn');
+  const spinner = document.getElementById('spinner');
+  const text = document.getElementById('btnText');
+  btn.disabled = state;
+  btn.classList.toggle('loading', state);
+  spinner.style.display = state ? 'block' : 'none';
+  text.textContent = state ? 'Enviando...' : 'Enviar Postulación ➜';
+}
+
+/* ── Validation ── */
+function validate() {
+  let ok = true;
+  const required = [
+    { id: 'full_name',          msg: 'Ingresa tu nombre completo' },
+    { id: 'email',              msg: 'Ingresa tu correo electrónico' },
+    { id: 'phone',              msg: 'Ingresa tu teléfono o WhatsApp' },
+    { id: 'birth_date',         msg: 'Selecciona tu fecha de nacimiento' },
+    { id: 'country',            msg: 'Selecciona tu país de residencia' },
+    { id: 'professional_type',  msg: 'Selecciona tu tipo de profesión' },
+    { id: 'therapeutic_focus',  msg: 'Indica tu enfoque terapéutico' },
+    { id: 'about_you',          msg: 'Escribe una breve reseña sobre ti' },
+    { id: 'scheduled_date',     msg: 'Selecciona la fecha para tu Examen E1' },
+    { id: 'scheduled_time',     msg: 'Selecciona la hora preferida para el examen' },
+  ];
+  required.forEach(({ id, msg }) => {
+    if (!getVal(id)) { markInvalid(id, msg); ok = false; }
+  });
+  // Email format
+  const email = getVal('email');
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    markInvalid('email', 'Ingresa un correo válido');
+    ok = false;
+  }
+  // Scheduled date not in past
+  const sDate = getVal('scheduled_date');
+  if (sDate && sDate < new Date().toISOString().split('T')[0]) {
+    markInvalid('scheduled_date', 'La fecha no puede ser en el pasado');
+    ok = false;
+  }
+  // Terms
+  if (!document.getElementById('terms').checked) {
+    document.getElementById('err_terms').textContent = 'Debes aceptar los términos y condiciones';
+    ok = false;
+  }
+  return ok;
+}
+
+/* ── Submit ── */
+document.getElementById('admissionForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  clearErrors();
+  if (!validate()) {
+    // Scroll to first error
+    const firstErr = document.querySelector('.invalid');
+    if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+  setLoading(true);
+  const payload = {
+    action: 'initial_registration',
+    candidate: {
+      name:                 getVal('full_name'),
+      email:                getVal('email'),
+      phone:                getVal('phone'),
+      birthday:             getVal('birth_date'),
+      country:              getVal('country'),
+      professional_type:    getVal('professional_type'),
+      therapeutic_approach: getVal('therapeutic_focus'),
+      about:                getVal('about_you'),
+    },
+    scheduled_date: getVal('scheduled_date') + 'T' + getVal('scheduled_time') + ':00'
+  };
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('admissionForm').reset();
+      document.getElementById('progressFill').style.width = '0%';
+      showAlert('success');
+      // Hide "otro" inputs
+      ['country_other','professional_type_other'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+      });
+    } else {
+      throw new Error(data.message || 'Error desconocido');
+    }
+  } catch (err) {
+    console.error(err);
+    showAlert('error', err.message.startsWith('HTTP')
+      ? 'Error de servidor (' + err.message + '). Por favor inténtalo más tarde.'
+      : (err.message || 'No se pudo conectar. Verifica tu internet e inténtalo de nuevo.')
+    );
+  } finally {
+    setLoading(false);
+  }
+});
+</script>
+
+</body>
+</html>
