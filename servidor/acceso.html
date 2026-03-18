@@ -3,484 +3,384 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Catholizare Pro — Acceso al Sistema</title>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <title>Catholizare Pro — Acceso</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
-      --navy: #001A55;
-      --navy-deep: #000D2E;
-      --blue: #003ABA;
-      --blue-light: #4D7CFF;
-      --gold: #D4AF37;
-      --gold-soft: #E8CC6E;
-      --cream: #FFF9EB;
-      --white: #FFFFFF;
-      --gray-50: #F8F9FC;
-      --gray-100: #EEF0F5;
-      --gray-400: #9CA3B4;
-      --gray-600: #5A6275;
-      --red: #DC3545;
-      --green: #15803D;
+      --navy:   #001A55;
+      --blue:   #0052CC;
+      --gold:   #C9A84C;
+      --white:  #FFFFFF;
+      --gray-1: #F4F6FB;
+      --gray-2: #E8ECF4;
+      --gray-3: #9CA3B4;
+      --gray-4: #5A6275;
+      --red:    #D93025;
+      --green:  #1A7F3C;
     }
     body {
-      font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--gray-1);
       min-height: 100vh;
       display: flex;
-      background: var(--navy-deep);
-      overflow: hidden;
-    }
-    /* ── LEFT PANEL: Branding ── */
-    .brand-panel {
-      flex: 1;
-      background: linear-gradient(160deg, var(--navy) 0%, var(--navy-deep) 60%, #001040 100%);
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
       align-items: center;
-      padding: 60px;
-      position: relative;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    /* ─── Card ─────────────────────────────────────── */
+    .card {
+      background: var(--white);
+      border-radius: 20px;
+      box-shadow: 0 8px 40px rgba(0,26,85,0.10);
+      width: 100%;
+      max-width: 420px;
       overflow: hidden;
     }
-    .brand-panel::before {
-      content: '';
-      position: absolute;
-      top: -20%; right: -30%;
-      width: 600px; height: 600px;
-      background: radial-gradient(circle, rgba(0,58,186,0.15) 0%, transparent 70%);
-      border-radius: 50%;
+
+    /* ─── Header ────────────────────────────────────── */
+    .card-header {
+      background: linear-gradient(135deg, var(--navy) 0%, #003399 100%);
+      padding: 32px 32px 28px;
+      text-align: center;
+      position: relative;
     }
-    .brand-panel::after {
-      content: '';
-      position: absolute;
-      bottom: -10%; left: -20%;
-      width: 400px; height: 400px;
-      background: radial-gradient(circle, rgba(212,175,55,0.08) 0%, transparent 70%);
-      border-radius: 50%;
-    }
-    .brand-content {
-      position: relative; z-index: 1;
-      text-align: center; max-width: 420px;
-    }
-    .brand-cross {
-      width: 72px; height: 72px;
-      background: linear-gradient(135deg, var(--gold) 0%, var(--gold-soft) 100%);
-      border-radius: 20px;
+    .logo-mark {
+      width: 56px; height: 56px;
+      background: rgba(255,255,255,0.10);
+      border: 2px solid rgba(201,168,76,0.5);
+      border-radius: 16px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 36px;
-      margin: 0 auto 32px;
-      box-shadow: 0 8px 32px rgba(212,175,55,0.25);
-      animation: float 6s ease-in-out infinite;
+      font-size: 26px;
+      margin: 0 auto 16px;
     }
-    @keyframes float {
-      0%, 100% { transform: translateY(0); }
-      50%       { transform: translateY(-8px); }
+    .card-header h1 {
+      font-size: 22px; font-weight: 800;
+      color: var(--white); letter-spacing: -0.3px;
     }
-    .brand-title {
-      font-weight: 800; font-size: 42px;
-      color: var(--white); letter-spacing: -0.5px; margin-bottom: 8px;
+    .card-header p {
+      font-size: 13px; color: rgba(255,255,255,0.55);
+      margin-top: 4px; font-weight: 400;
     }
-    .brand-subtitle {
-      font-size: 15px; color: var(--gold);
-      font-weight: 600; letter-spacing: 3px;
-      text-transform: uppercase; margin-bottom: 32px;
-    }
-    .brand-desc { font-size: 16px; color: rgba(255,255,255,0.6); line-height: 1.7; }
-    .brand-features {
-      margin-top: 48px; display: flex;
-      flex-direction: column; gap: 16px; width: 100%;
-    }
-    .brand-feature {
-      display: flex; align-items: center; gap: 14px;
-      padding: 14px 20px;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 12px; backdrop-filter: blur(10px);
-    }
-    .brand-feature-icon {
-      width: 40px; height: 40px;
-      background: rgba(212,175,55,0.1); border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 18px; flex-shrink: 0;
-    }
-    .brand-feature-text { font-size: 14px; color: rgba(255,255,255,0.75); font-weight: 500; }
-    /* ── RIGHT PANEL: Login ── */
-    .login-panel {
-      width: 520px; background: var(--white);
-      display: flex; flex-direction: column;
-      justify-content: center; padding: 60px 56px; position: relative;
-    }
-    .login-panel::before {
-      content: '';
-      position: absolute; top: 0; left: 0;
-      width: 4px; height: 100%;
-      background: linear-gradient(180deg, var(--gold), var(--blue), var(--navy));
-    }
-    .login-header { margin-bottom: 40px; }
-    .login-header h2 {
-      font-weight: 800; font-size: 30px;
-      color: var(--navy); margin-bottom: 8px;
-    }
-    .login-header p { font-size: 15px; color: var(--gray-600); line-height: 1.5; }
-    /* Tabs */
+
+    /* ─── Tabs ──────────────────────────────────────── */
     .tabs {
-      display: flex; gap: 4px;
-      background: var(--gray-50); border-radius: 12px;
-      padding: 4px; margin-bottom: 32px;
+      display: grid; grid-template-columns: 1fr 1fr;
+      background: var(--gray-1);
+      border-bottom: 1px solid var(--gray-2);
     }
     .tab {
-      flex: 1; padding: 12px 16px;
-      border: none; background: transparent;
-      font-family: 'Montserrat', sans-serif;
-      font-size: 14px; font-weight: 600;
-      color: var(--gray-400); cursor: pointer;
-      border-radius: 10px; transition: all 0.25s ease;
-      display: flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 14px; border: none; background: transparent;
+      font-family: 'Inter', sans-serif; font-size: 13px;
+      font-weight: 600; color: var(--gray-3);
+      cursor: pointer; transition: all 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
     }
     .tab:hover { color: var(--navy); }
     .tab.active {
       background: var(--white); color: var(--navy);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      border-bottom: 2px solid var(--navy);
     }
-    /* Input */
-    .input-group { margin-bottom: 24px; }
-    .input-label {
-      display: block; font-size: 13px; font-weight: 600;
-      color: var(--navy); margin-bottom: 8px; letter-spacing: 0.3px;
+
+    /* ─── Body ──────────────────────────────────────── */
+    .card-body { padding: 28px 32px 32px; }
+
+    .field { margin-bottom: 20px; }
+    .field label {
+      display: block; font-size: 12px; font-weight: 700;
+      color: var(--navy); letter-spacing: 0.5px;
+      text-transform: uppercase; margin-bottom: 8px;
     }
-    .token-input {
-      width: 100%; padding: 16px;
-      border: 2px solid var(--gray-100); border-radius: 12px;
-      font-family: 'Montserrat', monospace;
-      font-size: 16px; font-weight: 500;
-      color: var(--navy); letter-spacing: 1px;
-      transition: all 0.25s ease; background: var(--gray-50);
+    .field input {
+      width: 100%; padding: 14px 16px;
+      border: 2px solid var(--gray-2); border-radius: 12px;
+      font-family: 'Inter', monospace; font-size: 15px;
+      font-weight: 500; color: var(--navy);
+      background: var(--gray-1);
+      letter-spacing: 0.5px;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
     }
-    .token-input:focus {
+    .field input:focus {
       outline: none; border-color: var(--blue);
       background: var(--white);
-      box-shadow: 0 0 0 4px rgba(0,58,186,0.08);
+      box-shadow: 0 0 0 4px rgba(0,82,204,0.08);
     }
-    .token-input::placeholder { color: var(--gray-400); font-weight: 400; letter-spacing: 0; }
-    .token-input.error {
+    .field input.is-error {
       border-color: var(--red);
-      box-shadow: 0 0 0 4px rgba(220,53,69,0.08);
+      box-shadow: 0 0 0 4px rgba(217,48,37,0.08);
     }
-    .input-hint {
-      display: flex; align-items: center; gap: 6px;
-      margin-top: 8px; font-size: 12px; color: var(--gray-400);
+    .field input::placeholder { color: var(--gray-3); font-weight: 400; letter-spacing: 0; }
+
+    .hint {
+      margin-top: 6px; font-size: 11.5px;
+      color: var(--gray-3); display: flex; align-items: center; gap: 5px;
     }
     .error-msg {
-      display: none; align-items: center; gap: 6px;
-      margin-top: 8px; font-size: 13px;
+      margin-top: 6px; font-size: 12.5px;
       color: var(--red); font-weight: 500;
+      display: none; align-items: center; gap: 5px;
     }
     .error-msg.show { display: flex; }
-    /* Button */
-    .btn-enter {
-      width: 100%; padding: 16px; border: none; border-radius: 12px;
-      font-family: 'Montserrat', sans-serif;
-      font-size: 16px; font-weight: 700;
-      cursor: pointer; transition: all 0.3s ease;
-      display: flex; align-items: center; justify-content: center;
-      gap: 10px; margin-top: 8px;
-    }
-    .btn-professional {
-      background: linear-gradient(135deg, var(--navy) 0%, var(--blue) 100%);
-      color: var(--white);
-      box-shadow: 0 4px 16px rgba(0,26,85,0.25);
-    }
-    .btn-professional:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,26,85,0.3); }
-    .btn-admin {
-      background: linear-gradient(135deg, var(--gold) 0%, #C4A030 100%);
-      color: var(--navy-deep);
-      box-shadow: 0 4px 16px rgba(212,175,55,0.3);
-    }
-    .btn-admin:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(212,175,55,0.35); }
-    .btn-enter:active { transform: translateY(0); }
-    .btn-enter:disabled { opacity: 0.7; cursor: not-allowed; transform: none !important; }
-    /* Help */
-    .help-section {
-      margin-top: 40px; padding-top: 24px;
-      border-top: 1px solid var(--gray-100);
-    }
-    .help-text { font-size: 13px; color: var(--gray-400); text-align: center; line-height: 1.6; }
-    .help-text a { color: var(--blue); text-decoration: none; font-weight: 600; }
-    .wa-link {
+
+    /* ─── Button ────────────────────────────────────── */
+    .btn {
+      width: 100%; padding: 15px;
+      border: none; border-radius: 12px;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px; font-weight: 700;
+      cursor: pointer; transition: all 0.25s;
       display: flex; align-items: center; justify-content: center; gap: 8px;
-      margin-top: 16px; padding: 12px 20px;
+    }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important; }
+    .btn-navy {
+      background: var(--navy); color: var(--white);
+      box-shadow: 0 4px 14px rgba(0,26,85,0.2);
+    }
+    .btn-navy:hover:not(:disabled) {
+      background: #002580;
+      box-shadow: 0 6px 20px rgba(0,26,85,0.28);
+      transform: translateY(-1px);
+    }
+    .btn-gold {
+      background: var(--gold); color: var(--navy);
+      box-shadow: 0 4px 14px rgba(201,168,76,0.25);
+    }
+    .btn-gold:hover:not(:disabled) {
+      background: #B8943F;
+      box-shadow: 0 6px 20px rgba(201,168,76,0.35);
+      transform: translateY(-1px);
+    }
+
+    /* ─── Spinner ───────────────────────────────────── */
+    .spin {
+      width: 18px; height: 18px;
+      border: 2.5px solid rgba(255,255,255,0.35);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: rotate 0.7s linear infinite;
+    }
+    .spin-dark { border-color: rgba(0,26,85,0.2); border-top-color: var(--navy); }
+    @keyframes rotate { to { transform: rotate(360deg); } }
+
+    /* ─── Help ──────────────────────────────────────── */
+    .help {
+      margin-top: 24px; padding-top: 20px;
+      border-top: 1px solid var(--gray-2);
+      text-align: center;
+    }
+    .help p { font-size: 12px; color: var(--gray-3); line-height: 1.7; }
+    .help a { color: var(--blue); font-weight: 600; text-decoration: none; }
+    .wa-btn {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      margin-top: 12px; padding: 11px 16px;
       background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 10px;
-      color: #15803D; font-size: 14px; font-weight: 600;
-      text-decoration: none; transition: all 0.2s;
+      color: var(--green); font-size: 13px; font-weight: 600;
+      text-decoration: none; transition: background 0.2s;
     }
-    .wa-link:hover { background: #DCFCE7; transform: translateY(-1px); }
-    .login-footer {
-      position: absolute; bottom: 24px; left: 56px; right: 56px;
-      text-align: center; font-size: 11px; color: var(--gray-400);
+    .wa-btn:hover { background: #DCFCE7; }
+
+    /* ─── Footer ────────────────────────────────────── */
+    .card-footer {
+      text-align: center; padding: 0 32px 24px;
+      font-size: 11px; color: var(--gray-3);
     }
-    /* Responsive */
-    @media (max-width: 960px) {
-      body { flex-direction: column; overflow: auto; }
-      .brand-panel { display: none; }
-      .login-panel { width: 100%; min-height: 100vh; padding: 40px 24px; }
-      .login-panel::before { display: none; }
-      .mobile-brand {
-        display: flex; align-items: center; gap: 12px;
-        margin-bottom: 32px; padding-bottom: 24px;
-        border-bottom: 1px solid var(--gray-100);
-      }
-      .mobile-brand .m-cross {
-        width: 48px; height: 48px;
-        background: linear-gradient(135deg, var(--navy), var(--blue));
-        border-radius: 14px;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 24px; box-shadow: 0 4px 16px rgba(0,26,85,0.2);
-      }
-      .mobile-brand h3 { font-weight: 800; font-size: 22px; color: var(--navy); }
-      .mobile-brand span { font-size: 11px; color: var(--gold); font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
-      .login-footer { position: static; margin-top: 40px; }
-    }
-    @media (min-width: 961px) { .mobile-brand { display: none; } }
-    /* Spinner */
-    .spinner {
-      width: 20px; height: 20px;
-      border: 3px solid rgba(255,255,255,0.3);
-      border-top-color: white; border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-    }
-    .spinner-dark {
-      border: 3px solid rgba(0,13,46,0.2);
-      border-top-color: var(--navy-deep);
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ─── Hidden ────────────────────────────────────── */
     .hidden { display: none !important; }
   </style>
 </head>
 <body>
-  <!-- LEFT: BRAND -->
-  <div class="brand-panel">
-    <div class="brand-content">
-      <div class="brand-cross">✝</div>
-      <h1 class="brand-title">Catholizare</h1>
-      <p class="brand-subtitle">Pro · Profesionales</p>
-      <p class="brand-desc">
-        Sistema de admisiones y gestión para la red de psicólogos católicos profesionales.
-      </p>
-      <div class="brand-features">
-        <div class="brand-feature">
-          <div class="brand-feature-icon">📋</div>
-          <span class="brand-feature-text">Proceso de admisión estructurado y transparente</span>
-        </div>
-        <div class="brand-feature">
-          <div class="brand-feature-icon">📝</div>
-          <span class="brand-feature-text">Evaluaciones técnicas y psicológicas</span>
-        </div>
-        <div class="brand-feature">
-          <div class="brand-feature-icon">🎓</div>
-          <span class="brand-feature-text">Formación continua y recursos exclusivos</span>
-        </div>
-        <div class="brand-feature">
-          <div class="brand-feature-icon">🤝</div>
-          <span class="brand-feature-text">Comunidad de profesionales católicos</span>
-        </div>
-      </div>
-    </div>
+
+<div class="card">
+  <!-- Header -->
+  <div class="card-header">
+    <div class="logo-mark">✝</div>
+    <h1>Catholizare Pro</h1>
+    <p>Sistema de admisiones y evaluación</p>
   </div>
 
-  <!-- RIGHT: LOGIN -->
-  <div class="login-panel">
-    <!-- Mobile header -->
-    <div class="mobile-brand">
-      <div class="m-cross">✝</div>
-      <div>
-        <h3>Catholizare</h3>
-        <span>Pro · Sistema</span>
-      </div>
-    </div>
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" id="tabProf" onclick="setTab('prof')">
+      👤 Profesional
+    </button>
+    <button class="tab" id="tabAdmin" onclick="setTab('admin')">
+      🛡️ Administrador
+    </button>
+  </div>
 
-    <div class="login-header">
-      <h2>Acceder al sistema</h2>
-      <p>Ingresa tu clave de acceso para continuar</p>
-    </div>
+  <!-- Body -->
+  <div class="card-body">
 
-    <!-- Tabs -->
-    <div class="tabs">
-      <button class="tab active" id="tabProf" onclick="switchTab('professional')">
-        <span>👤</span> Profesional
-      </button>
-      <button class="tab" id="tabAdmin" onclick="switchTab('admin')">
-        <span>🛡️</span> Administrador
-      </button>
-    </div>
-
-    <!-- FORM: Professional -->
+    <!-- FORM: Profesional -->
     <div id="formProf">
-      <div class="input-group">
-        <label class="input-label">Token de Acceso</label>
+      <div class="field">
+        <label>Token de acceso</label>
         <input
-          type="text"
-          class="token-input"
           id="tokenProf"
-          placeholder="Ej: ONB-a3f7b2c1"
+          type="text"
+          placeholder="Ej: E1_CANDIDAT_123456_abc1de"
           autocomplete="off"
           spellcheck="false"
-          maxlength="30"
+          maxlength="50"
         >
-        <div class="input-hint">🔑 Lo encontrarás en el correo de bienvenida que recibiste</div>
-        <div class="error-msg" id="errProf">⚠️ Token inválido. Verifica el correo de bienvenida.</div>
+        <div class="hint">🔑 Lo encontrarás en tu correo de bienvenida</div>
+        <div class="error-msg" id="errProf">Token inválido. Revisa tu correo.</div>
       </div>
-      <button class="btn-enter btn-professional" id="btnProf" onclick="enterSystem('professional')">
-        Entrar al proceso <span>→</span>
+      <button class="btn btn-navy" id="btnProf" onclick="enterProf()">
+        Acceder al examen <span>→</span>
       </button>
     </div>
 
     <!-- FORM: Admin -->
     <div id="formAdmin" class="hidden">
-      <div class="input-group">
-        <label class="input-label">Token de Administrador</label>
+      <div class="field">
+        <label>Token de administrador</label>
         <input
-          type="text"
-          class="token-input"
           id="tokenAdmin"
-          placeholder="Ej: ADMIN-x9k2m4p7"
+          type="password"
+          placeholder="••••••••••••"
           autocomplete="off"
-          spellcheck="false"
-          maxlength="30"
+          maxlength="60"
         >
-        <div class="input-hint">🔐 Proporcionado por el Super Administrador</div>
-        <div class="error-msg" id="errAdmin">⚠️ Token inválido o no autorizado.</div>
+        <div class="hint">🔐 Proporcionado por coordinación</div>
+        <div class="error-msg" id="errAdmin">Token inválido o sin permisos.</div>
       </div>
-      <button class="btn-enter btn-admin" id="btnAdmin" onclick="enterSystem('admin')">
-        Acceder como Admin <span>→</span>
+      <button class="btn btn-gold" id="btnAdmin" onclick="enterAdmin()">
+        Entrar como admin <span>→</span>
       </button>
     </div>
 
     <!-- Help -->
-    <div class="help-section">
-      <p class="help-text">
-        ¿No tienes tu clave de acceso? Revisa tu correo electrónico<br>
-        o contacta al equipo de coordinación.
-      </p>
-      <a class="wa-link" href="https://wa.me/5215510223883?text=Hola%2C%20necesito%20ayuda%20para%20acceder%20al%20sistema%20de%20Catholizare%20Pro" target="_blank">
-        💬 Contactar por WhatsApp
+    <div class="help">
+      <p>¿Problemas para acceder? Revisa tu bandeja de entrada<br>o contacta al equipo de coordinación.</p>
+      <a class="wa-btn" href="https://wa.me/5215510223883?text=Hola%2C+necesito+ayuda+para+acceder+al+sistema+de+Catholizare+Pro" target="_blank">
+        💬 Ayuda por WhatsApp
       </a>
-    </div>
-
-    <div class="login-footer">
-      © 2026 Catholizare Pro · Todos los derechos reservados
     </div>
   </div>
 
-  <script>
-    const API_BASE = 'https://profesionales.catholizare.com/catholizare_sistem/proxy.php';
+  <div class="card-footer">© 2026 Catholizare Pro · Todos los derechos reservados</div>
+</div>
 
-    // ── TAB SWITCHING ──────────────────────────────────
-    function switchTab(role) {
-      const isProf = role === 'professional';
-      document.getElementById('tabProf').classList.toggle('active', isProf);
-      document.getElementById('tabAdmin').classList.toggle('active', !isProf);
-      document.getElementById('formProf').classList.toggle('hidden', !isProf);
-      document.getElementById('formAdmin').classList.toggle('hidden', isProf);
-      clearErrors();
-      setTimeout(() => {
-        document.getElementById(isProf ? 'tokenProf' : 'tokenAdmin').focus();
-      }, 100);
+<script>
+  const API_BASE = 'https://profesionales.catholizare.com/catholizare_sistem/proxy.php';
+
+  // ── Tabs ──────────────────────────────────────────
+  function setTab(tab) {
+    const isProf = tab === 'prof';
+    document.getElementById('tabProf').classList.toggle('active', isProf);
+    document.getElementById('tabAdmin').classList.toggle('active', !isProf);
+    document.getElementById('formProf').classList.toggle('hidden', !isProf);
+    document.getElementById('formAdmin').classList.toggle('hidden', isProf);
+    clearErrors();
+    setTimeout(() => document.getElementById(isProf ? 'tokenProf' : 'tokenAdmin').focus(), 80);
+  }
+
+  function clearErrors() {
+    document.querySelectorAll('.error-msg').forEach(el => el.classList.remove('show'));
+    document.querySelectorAll('input').forEach(el => el.classList.remove('is-error'));
+  }
+
+  // ── Profesional ───────────────────────────────────
+  function enterProf() {
+    clearErrors();
+    const raw   = document.getElementById('tokenProf').value.trim();
+    const token = raw.toUpperCase();
+
+    if (token.length < 8) {
+      document.getElementById('tokenProf').classList.add('is-error');
+      document.getElementById('errProf').classList.add('show');
+      return;
     }
 
-    function clearErrors() {
-      document.querySelectorAll('.error-msg').forEach(el => el.classList.remove('show'));
-      document.querySelectorAll('.token-input').forEach(el => el.classList.remove('error'));
+    // Detectar examen desde prefijo del token (E1_, E2_, E3_)
+    let exam = 'E1';
+    if (token.startsWith('E2_')) exam = 'E2';
+    else if (token.startsWith('E3_')) exam = 'E3';
+
+    const btn = document.getElementById('btnProf');
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spin"></div> Cargando...';
+
+    setTimeout(() => {
+      window.location.href = 'examen/?token=' + encodeURIComponent(raw) + '&exam=' + exam;
+    }, 300);
+  }
+
+  // ── Admin ─────────────────────────────────────────
+  async function enterAdmin() {
+    clearErrors();
+    const token = document.getElementById('tokenAdmin').value.trim();
+
+    if (!token || token.length < 6) {
+      document.getElementById('tokenAdmin').classList.add('is-error');
+      document.getElementById('errAdmin').classList.add('show');
+      return;
     }
 
-    // ── ENTER SYSTEM ───────────────────────────────────
-    async function enterSystem(role) {
-      clearErrors();
+    const btn = document.getElementById('btnAdmin');
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spin spin-dark"></div> Verificando...';
 
-      if (role === 'professional') {
-        const token = document.getElementById('tokenProf').value.trim().toUpperCase();
-        if (!token || token.length < 6) {
-          document.getElementById('tokenProf').classList.add('error');
-          document.getElementById('errProf').classList.add('show');
-          return;
-        }
-        const btn = document.getElementById('btnProf');
-        btn.disabled = true;
-        btn.innerHTML = '<div class="spinner"></div> Verificando...';
-        // Redirect to exam webapp with token
-        setTimeout(() => {
-          window.location.href = 'exam-webapp.html?token=' + encodeURIComponent(token);
-        }, 400);
-
-      } else {
-        const token = document.getElementById('tokenAdmin').value.trim().toUpperCase();
-        if (!token || !token.startsWith('ADMIN-') || token.length < 10) {
-          document.getElementById('tokenAdmin').classList.add('error');
-          document.getElementById('errAdmin').textContent = '⚠️ Formato inválido. Debe iniciar con ADMIN-';
-          document.getElementById('errAdmin').classList.add('show');
-          return;
-        }
-        const btn = document.getElementById('btnAdmin');
-        btn.disabled = true;
-        btn.innerHTML = '<div class="spinner spinner-dark"></div> Verificando...';
-
-        try {
-          const resp = await fetch(API_BASE, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'verifyAdminToken', token })
-          });
-          const data = await resp.json();
-          if (data.success) {
-            sessionStorage.setItem('adminToken', token);
-            btn.innerHTML = '✓ Acceso concedido...';
-            setTimeout(() => {
-              window.location.href = 'admin-dashboard.html?adminToken=' + encodeURIComponent(token);
-            }, 500);
-          } else {
-            document.getElementById('tokenAdmin').classList.add('error');
-            document.getElementById('errAdmin').textContent = '⚠️ ' + (data.message || 'Token inválido');
-            document.getElementById('errAdmin').classList.add('show');
-            btn.disabled = false;
-            btn.innerHTML = 'Acceder como Admin <span>→</span>';
-          }
-        } catch (err) {
-          document.getElementById('errAdmin').textContent = '⚠️ Error de conexión. Intenta de nuevo.';
-          document.getElementById('errAdmin').classList.add('show');
-          btn.disabled = false;
-          btn.innerHTML = 'Acceder como Admin <span>→</span>';
-        }
-      }
-    }
-
-    // ── KEYBOARD ────────────────────────────────────────
-    document.getElementById('tokenProf').addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') enterSystem('professional');
-    });
-    document.getElementById('tokenAdmin').addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') enterSystem('admin');
-    });
-
-    // ── AUTO-FORMAT ─────────────────────────────────────
-    document.querySelectorAll('.token-input').forEach(input => {
-      input.addEventListener('input', function() {
-        this.value = this.value.toUpperCase();
-        clearErrors();
+    try {
+      const resp = await fetch(API_BASE, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ action: 'verifyAdminToken', token })
       });
-    });
+      const data = await resp.json();
 
-    // ── AUTO-FILL FROM URL ──────────────────────────────
-    (function() {
-      const params = new URLSearchParams(window.location.search);
-      const token = params.get('token');
-      if (token) {
-        if (token.toUpperCase().startsWith('ADMIN-')) {
-          switchTab('admin');
-          document.getElementById('tokenAdmin').value = token.toUpperCase();
-        } else {
-          document.getElementById('tokenProf').value = token.toUpperCase();
-        }
+      if (data.success) {
+        sessionStorage.setItem('adminToken', token);
+        btn.innerHTML = '✓ Acceso concedido';
+        setTimeout(() => {
+          window.location.href = 'admin-dashboard.html?adminToken=' + encodeURIComponent(token);
+        }, 400);
+      } else {
+        showAdminError(data.message || 'Token inválido');
+        btn.disabled = false;
+        btn.innerHTML = 'Entrar como admin <span>→</span>';
       }
-    })();
-  </script>
+    } catch (e) {
+      showAdminError('Error de conexión. Intenta de nuevo.');
+      btn.disabled = false;
+      btn.innerHTML = 'Entrar como admin <span>→</span>';
+    }
+  }
+
+  function showAdminError(msg) {
+    document.getElementById('tokenAdmin').classList.add('is-error');
+    document.getElementById('errAdmin').textContent = msg;
+    document.getElementById('errAdmin').classList.add('show');
+  }
+
+  // ── Keyboard shortcuts ────────────────────────────
+  document.getElementById('tokenProf').addEventListener('keydown',  e => { if (e.key === 'Enter') enterProf(); });
+  document.getElementById('tokenAdmin').addEventListener('keydown', e => { if (e.key === 'Enter') enterAdmin(); });
+
+  // Limpiar errores al escribir
+  document.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('input', () => {
+      inp.classList.remove('is-error');
+      clearErrors();
+    });
+  });
+
+  // ── Auto-fill desde URL ───────────────────────────
+  (function () {
+    const p = new URLSearchParams(window.location.search);
+    const t = p.get('token');
+    if (t) {
+      if (t.toUpperCase().startsWith('ADMIN')) {
+        setTab('admin');
+        document.getElementById('tokenAdmin').value = t;
+      } else {
+        document.getElementById('tokenProf').value = t;
+      }
+    }
+  })();
+</script>
 </body>
 </html>
