@@ -473,6 +473,38 @@
             </div>
         </div>
     </div>
+    <!-- Modal: Correos Manuales -->
+    <div id="emailModal" class="modal">
+      <div class="modal-content" style="max-width:500px;">
+        <div class="modal-header">
+          <h3>✉ Correos — <span id="emailModalName"></span></h3>
+          <button class="modal-close" onclick="closeModal('emailModal')">&times;</button>
+        </div>
+        <div style="padding:1.5rem;display:flex;flex-direction:column;gap:0.75rem;">
+          <p style="font-size:0.85em;color:#666;margin-bottom:0.5rem;">Selecciona el correo a enviar. Los que requieren token generan uno nuevo.</p>
+          <button class="btn btn-approve" style="justify-content:flex-start;gap:10px;" onclick="sendManualEmail('welcome')">📨 Bienvenida + Token E1</button>
+          <button class="btn" style="background:#6c757d;color:white;justify-content:flex-start;gap:10px;" onclick="sendManualEmail('terms')">📋 Aceptar Términos (post-E1)</button>
+          <button class="btn" style="background:#0d6efd;color:white;justify-content:flex-start;gap:10px;" onclick="sendManualEmail('e2')">📝 Acceso Examen E2 (nuevo token)</button>
+          <button class="btn" style="background:#6610f2;color:white;justify-content:flex-start;gap:10px;" onclick="sendManualEmail('e3')">📝 Acceso Examen E3 (nuevo token)</button>
+          <button class="btn" style="background:#fd7e14;color:white;justify-content:flex-start;gap:10px;" onclick="sendManualEmail('awaiting_interview')">🤝 Pendiente de Entrevista</button>
+          <hr style="margin:0.5rem 0;">
+          <div>
+            <label style="font-size:0.85em;font-weight:600;color:#333;">Correo de Rechazo (opcional: motivo)</label>
+            <input type="text" id="emailRejectReason" placeholder="Motivo de rechazo..." style="width:100%;margin-top:6px;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:0.9em;">
+            <button class="btn btn-reject" style="margin-top:8px;justify-content:flex-start;gap:10px;width:100%;" onclick="sendManualEmail('rejected')">❌ Enviar Rechazo</button>
+          </div>
+          <div>
+            <label style="font-size:0.85em;font-weight:600;color:#333;">Correo de Aprobación</label>
+            <select id="emailApproveCategory" style="width:100%;margin-top:6px;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:0.9em;">
+              <option value="JUNIOR">🥉 Junior</option>
+              <option value="SENIOR">🥈 Senior</option>
+              <option value="EXPERT">🥇 Expert</option>
+            </select>
+            <button class="btn btn-approve" style="margin-top:8px;justify-content:flex-start;gap:10px;width:100%;" onclick="sendManualEmail('approved')">✅ Enviar Aprobación</button>
+          </div>
+        </div>
+      </div>
+    </div>
     <!-- Toast Container -->
     <div id="toastContainer"></div>
     <script>
@@ -613,20 +645,29 @@
             if (candidate.status === 'awaiting_interview') {
                 buttons += `<button class="btn btn-category" onclick="openCategoryModal('${candidate.candidato_id}','${candidate.nombre}')"><i class="fas fa-star"></i> Categorizar</button>`;
             }
-            buttons += `<button class="btn" style="background:#6c757d;color:white;" onclick="resendWelcomeEmail('${candidate.candidato_id}','${candidate.nombre}')"><i class="fas fa-envelope"></i> Reenviar Email</button>`;
+            buttons += `<button class="btn" style="background:#495057;color:white;" onclick="openEmailModal('${candidate.candidato_id}','${candidate.nombre}')"><i class="fas fa-envelope"></i> Correos</button>`;
             return buttons;
         }
 
-        async function resendWelcomeEmail(candidateId, name) {
-            if (!confirm(`¿Reenviar correo de bienvenida a ${name}?`)) return;
+        function openEmailModal(candidateId, name) {
+            currentCandidateId = candidateId;
+            document.getElementById('emailModalName').textContent = name;
+            document.getElementById('emailRejectReason').value = '';
+            document.getElementById('emailModal').style.display = 'block';
+        }
+
+        async function sendManualEmail(emailType) {
+            const reason   = document.getElementById('emailRejectReason').value.trim();
+            const category = document.getElementById('emailApproveCategory').value;
             try {
                 const response = await fetch(API_BASE, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'resendWelcomeEmail', candidateId, adminToken: ADMIN_TOKEN })
+                    body: JSON.stringify({ action: 'sendEmailManual', candidateId: currentCandidateId, emailType, reason, category, adminToken: ADMIN_TOKEN })
                 });
                 const data = await response.json();
-                showToast(data.message || (data.success ? 'Correo reenviado' : 'Error al reenviar'), data.success ? 'success' : 'error');
+                showToast(data.message || (data.success ? 'Correo enviado' : 'Error'), data.success ? 'success' : 'error');
+                if (data.success) closeModal('emailModal');
             } catch (error) {
                 showToast('Error de conexión', 'error');
             }

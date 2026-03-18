@@ -76,6 +76,7 @@ $allowed_actions = [
     'verifyAdminToken',
     // Acciones extras
     'resendWelcomeEmail',
+    'sendEmailManual',
 ];
 
 if (!in_array($action, $allowed_actions)) {

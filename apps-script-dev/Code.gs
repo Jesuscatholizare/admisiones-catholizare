@@ -327,6 +327,7 @@ function doPost(e) {
       case 'resendWelcomeEmail':   return handleResendWelcomeEmail(data);
       case 'verifyAdminToken':     return handleVerifyAdminToken(data);
       case 'getDashboardData':     return handleGetDashboardData();
+      case 'sendEmailManual':      return handleSendEmailManual(data);
       default:
         return jsonResponse(false, 'Accion no valida: ' + action);
     }
@@ -694,6 +695,97 @@ function handleResendWelcomeEmail(data) {
     return jsonResponse(true, 'Correo de bienvenida reenviado a ' + candidate.email);
   } catch (error) {
     Logger.log('[ERROR handleResendWelcomeEmail] ' + error.message);
+    return jsonResponse(false, 'Error: ' + error.message);
+  }
+}
+
+/**
+ * POST action=sendEmailManual
+ * Body: { candidateId, emailType, reason?, category? }
+ *
+ * emailType:
+ *   'welcome'           → bienvenida + token E1
+ *   'terms'             → aceptar términos (post E1 aprobado)
+ *   'e2'                → acceso examen E2
+ *   'e3'                → acceso examen E3
+ *   'awaiting_interview'→ espera de entrevista
+ *   'rejected'          → rechazo (requiere reason)
+ *   'approved'          → aprobado + categoría (requiere category)
+ */
+function handleSendEmailManual(data) {
+  try {
+    const { candidateId, emailType, reason, category } = data;
+    if (!candidateId || !emailType) return jsonResponse(false, 'candidateId y emailType requeridos');
+
+    // Cargar datos del candidato
+    const sheet = SS.getSheetByName('Candidatos');
+    if (!sheet) return jsonResponse(false, 'Sheet Candidatos no encontrada');
+    const rows = sheet.getDataRange().getValues();
+    let candidate = null;
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][0] === candidateId) {
+        candidate = { name: rows[i][2], email: rows[i][3] };
+        break;
+      }
+    }
+    if (!candidate) return jsonResponse(false, 'Candidato no encontrado');
+
+    const { name, email } = candidate;
+    let result;
+
+    switch (emailType) {
+      case 'welcome': {
+        // Obtener scheduled_date del último token E1
+        const tokenSheet = SS.getSheetByName('Tokens');
+        let scheduled_date = new Date().toISOString().split('T')[0];
+        if (tokenSheet) {
+          const tokenRows = tokenSheet.getDataRange().getValues();
+          for (let i = tokenRows.length - 1; i >= 1; i--) {
+            if (tokenRows[i][1] === candidateId && tokenRows[i][2] === 'E1') {
+              scheduled_date = tokenRows[i][10] || scheduled_date; break;
+            }
+          }
+        }
+        const token = generateToken(candidateId, 'E1');
+        saveToken(token, candidateId, 'E1', email, name, scheduled_date);
+        result = sendWelcomeEmail(email, name, token, candidateId, scheduled_date);
+        break;
+      }
+      case 'terms':
+        result = sendEmailTerms(email, name, candidateId);
+        break;
+      case 'e2': {
+        const token = generateToken(candidateId, 'E2');
+        saveToken(token, candidateId, 'E2', email, name, new Date().toISOString().split('T')[0]);
+        result = sendEmailE2(email, name, token, candidateId);
+        break;
+      }
+      case 'e3': {
+        const token = generateToken(candidateId, 'E3');
+        saveToken(token, candidateId, 'E3', email, name, new Date().toISOString().split('T')[0]);
+        result = sendEmailE3(email, name, token, candidateId);
+        break;
+      }
+      case 'awaiting_interview':
+        result = sendEmailAwaitingInterview(email, name, candidateId);
+        break;
+      case 'rejected':
+        result = sendEmailRejected(email, name, 'N/A', reason || '');
+        break;
+      case 'approved':
+        result = sendEmailApproved(email, name, category || 'APROBADO');
+        break;
+      default:
+        return jsonResponse(false, 'emailType no reconocido: ' + emailType);
+    }
+
+    if (result && result.success) {
+      addTimelineEvent(candidateId, 'EMAIL_MANUAL_ENVIADO', { emailType, provider: result.provider });
+      return jsonResponse(true, 'Correo "' + emailType + '" enviado a ' + email);
+    }
+    return jsonResponse(false, 'Error al enviar correo: ' + (result ? result.error : 'desconocido'));
+  } catch (error) {
+    Logger.log('[ERROR handleSendEmailManual] ' + error.message);
     return jsonResponse(false, 'Error: ' + error.message);
   }
 }
@@ -1154,15 +1246,12 @@ function moveContactBetweenLists(email, fromListId, toListId) {
 // ================================
 // MODULO: EMAILS
 // ================================
+/**
+ * Envía email via Resend (primero) → GmailApp (fallback).
+ * Brevo se usa SOLO para gestión de listas, no para correos transaccionales.
+ */
 function sendEmail(to, subject, htmlBody) {
-  const brevoKey  = CONFIG.brevo_api_key;
   const resendKey = CONFIG.resend_api_key;
-
-  if (brevoKey) {
-    const r = sendViaBrevo(to, subject, htmlBody, brevoKey);
-    if (r.success) { logNotificationEvent(to, subject, 'BREVO', 'SENT'); return r; }
-    Logger.log('[Email] Brevo fallo: ' + r.error);
-  }
   if (resendKey) {
     const r = sendViaResend(to, subject, htmlBody, resendKey);
     if (r.success) { logNotificationEvent(to, subject, 'RESEND', 'SENT'); return r; }
