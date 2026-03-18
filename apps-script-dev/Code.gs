@@ -322,6 +322,7 @@ function doPost(e) {
       case 'assignCategory':       return handleAssignCategory(data);
       case 'adminLogin':           return handleAdminLogin(data);
       case 'verifyOTP':            return handleVerifyOTP(data);
+      case 'resendWelcomeEmail':   return handleResendWelcomeEmail(data);
       default:
         return jsonResponse(false, 'Accion no valida: ' + action);
     }
@@ -628,6 +629,51 @@ function handleAdminLogin(data) {
  */
 function handleVerifyOTP(data) {
   return jsonResponse(false, 'OTP no implementado en esta versión');
+}
+
+/**
+ * POST action=resendWelcomeEmail
+ * Body: { candidateId }
+ * Genera un nuevo token E1 y reenvía el correo de bienvenida.
+ */
+function handleResendWelcomeEmail(data) {
+  try {
+    const candidateId = data.candidateId;
+    if (!candidateId) return jsonResponse(false, 'candidateId requerido');
+
+    const sheet = SS.getSheetByName('Candidatos');
+    if (!sheet) return jsonResponse(false, 'Sheet Candidatos no encontrada');
+    const rows = sheet.getDataRange().getValues();
+    let candidate = null;
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][0] === candidateId) {
+        candidate = { name: rows[i][2], email: rows[i][3] };
+        break;
+      }
+    }
+    if (!candidate) return jsonResponse(false, 'Candidato no encontrado');
+
+    // Get scheduled_date from the most recent E1 token
+    const tokenSheet = SS.getSheetByName('Tokens');
+    let scheduled_date = new Date().toISOString().split('T')[0];
+    if (tokenSheet) {
+      const tokenRows = tokenSheet.getDataRange().getValues();
+      for (let i = tokenRows.length - 1; i >= 1; i--) {
+        if (tokenRows[i][1] === candidateId && tokenRows[i][2] === 'E1') {
+          scheduled_date = tokenRows[i][10] || scheduled_date;
+          break;
+        }
+      }
+    }
+
+    const token = generateToken(candidateId, 'E1');
+    saveToken(token, candidateId, 'E1', candidate.email, candidate.name, scheduled_date);
+    sendWelcomeEmail(candidate.email, candidate.name, token, candidateId, scheduled_date);
+    return jsonResponse(true, 'Correo de bienvenida reenviado a ' + candidate.email);
+  } catch (error) {
+    Logger.log('[ERROR handleResendWelcomeEmail] ' + error.message);
+    return jsonResponse(false, 'Error: ' + error.message);
+  }
 }
 
 // ================================

@@ -599,7 +599,23 @@
             if (candidate.status === 'awaiting_interview') {
                 buttons += `<button class="btn btn-category" onclick="openCategoryModal('${candidate.candidato_id}','${candidate.nombre}')"><i class="fas fa-star"></i> Categorizar</button>`;
             }
+            buttons += `<button class="btn" style="background:#6c757d;color:white;" onclick="resendWelcomeEmail('${candidate.candidato_id}','${candidate.nombre}')"><i class="fas fa-envelope"></i> Reenviar Email</button>`;
             return buttons;
+        }
+
+        async function resendWelcomeEmail(candidateId, name) {
+            if (!confirm(`¿Reenviar correo de bienvenida a ${name}?`)) return;
+            try {
+                const response = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'resendWelcomeEmail', candidateId })
+                });
+                const data = await response.json();
+                showToast(data.message || (data.success ? 'Correo reenviado' : 'Error al reenviar'), data.success ? 'success' : 'error');
+            } catch (error) {
+                showToast('Error de conexión', 'error');
+            }
         }
 
         function filterTable() {
