@@ -157,6 +157,8 @@ function _initConfigDefaults(ss) {
     ['BREVO_LIST_JUNIOR',       '6',                      'number'],
     ['BREVO_LIST_SENIOR',       '7',                      'number'],
     ['BREVO_LIST_EXPERT',       '8',                      'number'],
+    ['BREVO_LIST_AGENDA',       '9',                      'number'],
+    ['BREVO_LIST_INCONCLUSOS',  '10',                     'number'],
     ['INACTIVE_DAYS_THRESHOLD', '20',                     'number'],
     ['ADMIN_TOKEN',             '',                       'string']
   ];
@@ -183,6 +185,8 @@ const PROP_ALIASES = {
   'BREVO_LIST_JUNIOR':      'JUNIOR',
   'BREVO_LIST_SENIOR':      'SENIOR',
   'BREVO_LIST_EXPERT':      'EXPERT',
+  'BREVO_LIST_AGENDA':      'AGENDA',
+  'BREVO_LIST_INCONCLUSOS': 'INCONCLUSOS',
 };
 
 /**
@@ -299,6 +303,8 @@ const CONFIG = {
   get brevo_list_junior()       { return getConfig('BREVO_LIST_JUNIOR', 6); },
   get brevo_list_senior()       { return getConfig('BREVO_LIST_SENIOR', 7); },
   get brevo_list_expert()       { return getConfig('BREVO_LIST_EXPERT', 8); },
+  get brevo_list_agenda()       { return getConfig('BREVO_LIST_AGENDA', 9); },
+  get brevo_list_inconclusos()  { return getConfig('BREVO_LIST_INCONCLUSOS', 10); },
   get inactive_days()           { return getConfig('INACTIVE_DAYS_THRESHOLD', 20); },
   get admin_token()             { return getConfig('ADMIN_TOKEN', ''); }
 };
@@ -328,6 +334,8 @@ function doPost(e) {
       case 'verifyAdminToken':     return handleVerifyAdminToken(data);
       case 'getDashboardData':     return handleGetDashboardData();
       case 'sendEmailManual':      return handleSendEmailManual(data);
+      case 'addToBrevoListManual': return handleAddToBrevoListManual(data);
+      case 'markAsIncomplete':     return handleMarkAsIncomplete(data);
       default:
         return jsonResponse(false, 'Accion no valida: ' + action);
     }
@@ -786,6 +794,79 @@ function handleSendEmailManual(data) {
     return jsonResponse(false, 'Error al enviar correo: ' + (result ? result.error : 'desconocido'));
   } catch (error) {
     Logger.log('[ERROR handleSendEmailManual] ' + error.message);
+    return jsonResponse(false, 'Error: ' + error.message);
+  }
+}
+
+// ================================
+// ACCIONES MANUALES DE ADMIN
+// ================================
+
+/**
+ * Añade manualmente un contacto a una lista Brevo por nombre de lista.
+ * No cambia el status del candidato — solo lo agrega al grupo.
+ */
+function handleAddToBrevoListManual(data) {
+  try {
+    const { candidateId, listName } = data;
+    if (!candidateId || !listName) return jsonResponse(false, 'candidateId y listName requeridos');
+
+    const sheet = SS.getSheetByName('Candidatos');
+    if (!sheet) return jsonResponse(false, 'Sheet Candidatos no encontrada');
+    const rows = sheet.getDataRange().getValues();
+    let email = null, name = '';
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][0] === candidateId) { email = rows[i][3]; name = rows[i][2]; break; }
+    }
+    if (!email) return jsonResponse(false, 'Candidato no encontrado');
+
+    const listMap = {
+      'interesados': CONFIG.brevo_list_interesados,
+      'rechazados':  CONFIG.brevo_list_rechazados,
+      'aprobados':   CONFIG.brevo_list_aprobados,
+      'junior':      CONFIG.brevo_list_junior,
+      'senior':      CONFIG.brevo_list_senior,
+      'expert':      CONFIG.brevo_list_expert,
+      'agenda':      CONFIG.brevo_list_agenda,
+      'inconclusos': CONFIG.brevo_list_inconclusos,
+    };
+    const listId = listMap[listName];
+    if (!listId) return jsonResponse(false, 'Lista no reconocida: ' + listName);
+
+    addContactToBrevoList(email, name, '', listId);
+    addTimelineEvent(candidateId, 'BREVO_LISTA_MANUAL', { lista: listName, listId });
+    return jsonResponse(true, 'Contacto añadido a lista "' + listName + '"');
+  } catch (error) {
+    Logger.log('[ERROR handleAddToBrevoListManual] ' + error.message);
+    return jsonResponse(false, 'Error: ' + error.message);
+  }
+}
+
+/**
+ * Marca un candidato como inconcluso (no asistió a la entrevista).
+ * Cambia status a 'inconclusive' y lo agrega a la lista Brevo inconclusos.
+ */
+function handleMarkAsIncomplete(data) {
+  try {
+    const { candidateId } = data;
+    if (!candidateId) return jsonResponse(false, 'candidateId requerido');
+
+    const sheet = SS.getSheetByName('Candidatos');
+    if (!sheet) return jsonResponse(false, 'Sheet Candidatos no encontrada');
+    const rows = sheet.getDataRange().getValues();
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][0] === candidateId) {
+        const email = rows[i][3];
+        const name  = rows[i][2];
+        sheet.getRange(i + 1, 11).setValue('inconclusive');
+        addContactToBrevoList(email, name, '', CONFIG.brevo_list_inconclusos);
+        addTimelineEvent(candidateId, 'CANDIDATO_INCOMPLETO', { motivo: 'No asistió a entrevista' });
+        return jsonResponse(true, 'Candidato marcado como incompleto');
+      }
+    }
+    return jsonResponse(false, 'Candidato no encontrado');
+  } catch (error) {
+    Logger.log('[ERROR handleMarkAsIncomplete] ' + error.message);
     return jsonResponse(false, 'Error: ' + error.message);
   }
 }

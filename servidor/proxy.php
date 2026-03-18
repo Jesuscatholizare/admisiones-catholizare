@@ -77,6 +77,8 @@ $allowed_actions = [
     // Acciones extras
     'resendWelcomeEmail',
     'sendEmailManual',
+    'addToBrevoListManual',
+    'markAsIncomplete',
 ];
 
 if (!in_array($action, $allowed_actions)) {
