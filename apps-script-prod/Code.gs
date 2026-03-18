@@ -926,12 +926,12 @@ function brevoUpsertAndAdd_(email, attributes, listId) {
   const cleanEmail = String(email || '').trim().toLowerCase();
   if (!cleanEmail) throw new Error('Missing email for Brevo');
 
-  // 1) upsert contacto (PUT /contacts/{email})
-  const putUrl = 'https://api.brevo.com/v3/contacts/' + encodeURIComponent(cleanEmail);
+  // 1) upsert contacto (POST /contacts con updateEnabled:true — crea o actualiza)
+  const putUrl = 'https://api.brevo.com/v3/contacts';
   const putBody = { email: cleanEmail, attributes: attributes || {}, updateEnabled: true };
 
   const putRes = UrlFetchApp.fetch(putUrl, {
-    method: 'put',
+    method: 'post',
     contentType: 'application/json',
     payload: JSON.stringify(putBody),
     muteHttpExceptions: true,
