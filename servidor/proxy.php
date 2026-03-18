@@ -73,6 +73,9 @@ $allowed_actions = [
     // Auth admin
     'adminLogin',
     'verifyOTP',
+    'verifyAdminToken',
+    // Acciones extras
+    'resendWelcomeEmail',
 ];
 
 if (!in_array($action, $allowed_actions)) {

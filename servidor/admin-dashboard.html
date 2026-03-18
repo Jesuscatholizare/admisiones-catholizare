@@ -476,22 +476,36 @@
     <!-- Toast Container -->
     <div id="toastContainer"></div>
     <script>
-        // TODO: Reemplazar con la URL real de tu servidor
         const API_BASE = 'https://profesionales.catholizare.com/catholizare_sistem/proxy.php';
         const REFRESH_INTERVAL = 30000; // 30 segundos
 
         let currentCandidateId = null;
         let candidates         = [];
         let autoRefreshInterval = null;
+        let ADMIN_TOKEN        = '';
 
         document.addEventListener('DOMContentLoaded', function() {
+            // Verificar token admin
+            const params = new URLSearchParams(window.location.search);
+            const urlToken = params.get('adminToken');
+            const ssToken  = sessionStorage.getItem('adminToken');
+            ADMIN_TOKEN = urlToken || ssToken || '';
+            if (!ADMIN_TOKEN) {
+                window.location.href = 'acceso.html';
+                return;
+            }
+            sessionStorage.setItem('adminToken', ADMIN_TOKEN);
             loadData();
             startAutoRefresh();
         });
 
         async function loadData() {
             try {
-                const response = await fetch(`${API_BASE}?action=getDashboardData`);
+                const response = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'getDashboardData', adminToken: ADMIN_TOKEN })
+                });
                 const data = await response.json();
                 if (data.success) {
                     candidates = data.candidates || [];
@@ -609,7 +623,7 @@
                 const response = await fetch(API_BASE, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'resendWelcomeEmail', candidateId })
+                    body: JSON.stringify({ action: 'resendWelcomeEmail', candidateId, adminToken: ADMIN_TOKEN })
                 });
                 const data = await response.json();
                 showToast(data.message || (data.success ? 'Correo reenviado' : 'Error al reenviar'), data.success ? 'success' : 'error');
@@ -660,7 +674,7 @@
                 const response = await fetch(`${API_BASE}?action=approveExam`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ candidateId: currentCandidateId, exam, notes })
+                    body: JSON.stringify({ candidateId: currentCandidateId, exam, notes, adminToken: ADMIN_TOKEN })
                 });
                 const data = await response.json();
                 if (data.success) { showToast(`Examen ${exam} aprobado`, 'success'); closeModal('approveModal'); loadData(); }
@@ -677,7 +691,7 @@
                 const response = await fetch(`${API_BASE}?action=rejectExam`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ candidateId: currentCandidateId, exam, reason })
+                    body: JSON.stringify({ candidateId: currentCandidateId, exam, reason, adminToken: ADMIN_TOKEN })
                 });
                 const data = await response.json();
                 if (data.success) { showToast(`Examen ${exam} rechazado`, 'success'); closeModal('rejectModal'); loadData(); }
@@ -694,7 +708,7 @@
                 const response = await fetch(`${API_BASE}?action=assignCategory`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ candidateId: currentCandidateId, category, comments })
+                    body: JSON.stringify({ candidateId: currentCandidateId, category, comments, adminToken: ADMIN_TOKEN })
                 });
                 const data = await response.json();
                 if (data.success) { showToast(`Categoría ${category} asignada`, 'success'); closeModal('categoryModal'); loadData(); }
@@ -713,7 +727,10 @@
         function refreshData() { loadData(); showToast('Datos actualizados', 'success'); }
         function startAutoRefresh() { autoRefreshInterval = setInterval(loadData, REFRESH_INTERVAL); }
         function logout() {
-            if (confirm('¿Cerrar sesión?')) window.location.href = '/';
+            if (confirm('¿Cerrar sesión?')) {
+                sessionStorage.removeItem('adminToken');
+                window.location.href = 'acceso.html';
+            }
         }
 
         function showToast(message, type = 'info') {

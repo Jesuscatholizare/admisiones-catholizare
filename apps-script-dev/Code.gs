@@ -157,7 +157,8 @@ function _initConfigDefaults(ss) {
     ['BREVO_LIST_JUNIOR',       '6',                      'number'],
     ['BREVO_LIST_SENIOR',       '7',                      'number'],
     ['BREVO_LIST_EXPERT',       '8',                      'number'],
-    ['INACTIVE_DAYS_THRESHOLD', '20',                     'number']
+    ['INACTIVE_DAYS_THRESHOLD', '20',                     'number'],
+    ['ADMIN_TOKEN',             '',                       'string']
   ];
   defaults.forEach((row, idx) => {
     sheet.getRange(idx + 2, 1, 1, 3).setValues([row]);
@@ -298,7 +299,8 @@ const CONFIG = {
   get brevo_list_junior()       { return getConfig('BREVO_LIST_JUNIOR', 6); },
   get brevo_list_senior()       { return getConfig('BREVO_LIST_SENIOR', 7); },
   get brevo_list_expert()       { return getConfig('BREVO_LIST_EXPERT', 8); },
-  get inactive_days()           { return getConfig('INACTIVE_DAYS_THRESHOLD', 20); }
+  get inactive_days()           { return getConfig('INACTIVE_DAYS_THRESHOLD', 20); },
+  get admin_token()             { return getConfig('ADMIN_TOKEN', ''); }
 };
 
 // ================================
@@ -323,6 +325,8 @@ function doPost(e) {
       case 'adminLogin':           return handleAdminLogin(data);
       case 'verifyOTP':            return handleVerifyOTP(data);
       case 'resendWelcomeEmail':   return handleResendWelcomeEmail(data);
+      case 'verifyAdminToken':     return handleVerifyAdminToken(data);
+      case 'getDashboardData':     return handleGetDashboardData();
       default:
         return jsonResponse(false, 'Accion no valida: ' + action);
     }
@@ -629,6 +633,24 @@ function handleAdminLogin(data) {
  */
 function handleVerifyOTP(data) {
   return jsonResponse(false, 'OTP no implementado en esta versión');
+}
+
+/**
+ * POST action=verifyAdminToken
+ * Body: { token }
+ */
+function handleVerifyAdminToken(data) {
+  try {
+    const token = (data.token || '').trim();
+    if (!token) return jsonResponse(false, 'Token requerido');
+    const adminToken = CONFIG.admin_token;
+    if (!adminToken) return jsonResponse(false, 'Token de admin no configurado en Config');
+    if (token === adminToken) return jsonResponse(true, 'Token válido');
+    return jsonResponse(false, 'Token inválido');
+  } catch (error) {
+    Logger.log('[ERROR handleVerifyAdminToken] ' + error.message);
+    return jsonResponse(false, 'Error: ' + error.message);
+  }
 }
 
 /**

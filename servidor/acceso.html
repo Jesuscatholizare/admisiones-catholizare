@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Catholizare Pro — Acceso al Sistema</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --navy: #001A55;
+      --navy-deep: #000D2E;
+      --blue: #003ABA;
+      --blue-light: #4D7CFF;
+      --gold: #D4AF37;
+      --gold-soft: #E8CC6E;
+      --cream: #FFF9EB;
+      --white: #FFFFFF;
+      --gray-50: #F8F9FC;
+      --gray-100: #EEF0F5;
+      --gray-400: #9CA3B4;
+      --gray-600: #5A6275;
+      --red: #DC3545;
+      --green: #15803D;
+    }
+    body {
+      font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      background: var(--navy-deep);
+      overflow: hidden;
+    }
+    /* ── LEFT PANEL: Branding ── */
+    .brand-panel {
+      flex: 1;
+      background: linear-gradient(160deg, var(--navy) 0%, var(--navy-deep) 60%, #001040 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 60px;
+      position: relative;
+      overflow: hidden;
+    }
+    .brand-panel::before {
+      content: '';
+      position: absolute;
+      top: -20%; right: -30%;
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(0,58,186,0.15) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+    .brand-panel::after {
+      content: '';
+      position: absolute;
+      bottom: -10%; left: -20%;
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(212,175,55,0.08) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+    .brand-content {
+      position: relative; z-index: 1;
+      text-align: center; max-width: 420px;
+    }
+    .brand-cross {
+      width: 72px; height: 72px;
+      background: linear-gradient(135deg, var(--gold) 0%, var(--gold-soft) 100%);
+      border-radius: 20px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px;
+      margin: 0 auto 32px;
+      box-shadow: 0 8px 32px rgba(212,175,55,0.25);
+      animation: float 6s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-8px); }
+    }
+    .brand-title {
+      font-weight: 800; font-size: 42px;
+      color: var(--white); letter-spacing: -0.5px; margin-bottom: 8px;
+    }
+    .brand-subtitle {
+      font-size: 15px; color: var(--gold);
+      font-weight: 600; letter-spacing: 3px;
+      text-transform: uppercase; margin-bottom: 32px;
+    }
+    .brand-desc { font-size: 16px; color: rgba(255,255,255,0.6); line-height: 1.7; }
+    .brand-features {
+      margin-top: 48px; display: flex;
+      flex-direction: column; gap: 16px; width: 100%;
+    }
+    .brand-feature {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 20px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px; backdrop-filter: blur(10px);
+    }
+    .brand-feature-icon {
+      width: 40px; height: 40px;
+      background: rgba(212,175,55,0.1); border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+    }
+    .brand-feature-text { font-size: 14px; color: rgba(255,255,255,0.75); font-weight: 500; }
+    /* ── RIGHT PANEL: Login ── */
+    .login-panel {
+      width: 520px; background: var(--white);
+      display: flex; flex-direction: column;
+      justify-content: center; padding: 60px 56px; position: relative;
+    }
+    .login-panel::before {
+      content: '';
+      position: absolute; top: 0; left: 0;
+      width: 4px; height: 100%;
+      background: linear-gradient(180deg, var(--gold), var(--blue), var(--navy));
+    }
+    .login-header { margin-bottom: 40px; }
+    .login-header h2 {
+      font-weight: 800; font-size: 30px;
+      color: var(--navy); margin-bottom: 8px;
+    }
+    .login-header p { font-size: 15px; color: var(--gray-600); line-height: 1.5; }
+    /* Tabs */
+    .tabs {
+      display: flex; gap: 4px;
+      background: var(--gray-50); border-radius: 12px;
+      padding: 4px; margin-bottom: 32px;
+    }
+    .tab {
+      flex: 1; padding: 12px 16px;
+      border: none; background: transparent;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 14px; font-weight: 600;
+      color: var(--gray-400); cursor: pointer;
+      border-radius: 10px; transition: all 0.25s ease;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .tab:hover { color: var(--navy); }
+    .tab.active {
+      background: var(--white); color: var(--navy);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    /* Input */
+    .input-group { margin-bottom: 24px; }
+    .input-label {
+      display: block; font-size: 13px; font-weight: 600;
+      color: var(--navy); margin-bottom: 8px; letter-spacing: 0.3px;
+    }
+    .token-input {
+      width: 100%; padding: 16px;
+      border: 2px solid var(--gray-100); border-radius: 12px;
+      font-family: 'Montserrat', monospace;
+      font-size: 16px; font-weight: 500;
+      color: var(--navy); letter-spacing: 1px;
+      transition: all 0.25s ease; background: var(--gray-50);
+    }
+    .token-input:focus {
+      outline: none; border-color: var(--blue);
+      background: var(--white);
+      box-shadow: 0 0 0 4px rgba(0,58,186,0.08);
+    }
+    .token-input::placeholder { color: var(--gray-400); font-weight: 400; letter-spacing: 0; }
+    .token-input.error {
+      border-color: var(--red);
+      box-shadow: 0 0 0 4px rgba(220,53,69,0.08);
+    }
+    .input-hint {
+      display: flex; align-items: center; gap: 6px;
+      margin-top: 8px; font-size: 12px; color: var(--gray-400);
+    }
+    .error-msg {
+      display: none; align-items: center; gap: 6px;
+      margin-top: 8px; font-size: 13px;
+      color: var(--red); font-weight: 500;
+    }
+    .error-msg.show { display: flex; }
+    /* Button */
+    .btn-enter {
+      width: 100%; padding: 16px; border: none; border-radius: 12px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 16px; font-weight: 700;
+      cursor: pointer; transition: all 0.3s ease;
+      display: flex; align-items: center; justify-content: center;
+      gap: 10px; margin-top: 8px;
+    }
+    .btn-professional {
+      background: linear-gradient(135deg, var(--navy) 0%, var(--blue) 100%);
+      color: var(--white);
+      box-shadow: 0 4px 16px rgba(0,26,85,0.25);
+    }
+    .btn-professional:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,26,85,0.3); }
+    .btn-admin {
+      background: linear-gradient(135deg, var(--gold) 0%, #C4A030 100%);
+      color: var(--navy-deep);
+      box-shadow: 0 4px 16px rgba(212,175,55,0.3);
+    }
+    .btn-admin:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(212,175,55,0.35); }
+    .btn-enter:active { transform: translateY(0); }
+    .btn-enter:disabled { opacity: 0.7; cursor: not-allowed; transform: none !important; }
+    /* Help */
+    .help-section {
+      margin-top: 40px; padding-top: 24px;
+      border-top: 1px solid var(--gray-100);
+    }
+    .help-text { font-size: 13px; color: var(--gray-400); text-align: center; line-height: 1.6; }
+    .help-text a { color: var(--blue); text-decoration: none; font-weight: 600; }
+    .wa-link {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      margin-top: 16px; padding: 12px 20px;
+      background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 10px;
+      color: #15803D; font-size: 14px; font-weight: 600;
+      text-decoration: none; transition: all 0.2s;
+    }
+    .wa-link:hover { background: #DCFCE7; transform: translateY(-1px); }
+    .login-footer {
+      position: absolute; bottom: 24px; left: 56px; right: 56px;
+      text-align: center; font-size: 11px; color: var(--gray-400);
+    }
+    /* Responsive */
+    @media (max-width: 960px) {
+      body { flex-direction: column; overflow: auto; }
+      .brand-panel { display: none; }
+      .login-panel { width: 100%; min-height: 100vh; padding: 40px 24px; }
+      .login-panel::before { display: none; }
+      .mobile-brand {
+        display: flex; align-items: center; gap: 12px;
+        margin-bottom: 32px; padding-bottom: 24px;
+        border-bottom: 1px solid var(--gray-100);
+      }
+      .mobile-brand .m-cross {
+        width: 48px; height: 48px;
+        background: linear-gradient(135deg, var(--navy), var(--blue));
+        border-radius: 14px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 24px; box-shadow: 0 4px 16px rgba(0,26,85,0.2);
+      }
+      .mobile-brand h3 { font-weight: 800; font-size: 22px; color: var(--navy); }
+      .mobile-brand span { font-size: 11px; color: var(--gold); font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+      .login-footer { position: static; margin-top: 40px; }
+    }
+    @media (min-width: 961px) { .mobile-brand { display: none; } }
+    /* Spinner */
+    .spinner {
+      width: 20px; height: 20px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-top-color: white; border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    .spinner-dark {
+      border: 3px solid rgba(0,13,46,0.2);
+      border-top-color: var(--navy-deep);
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <!-- LEFT: BRAND -->
+  <div class="brand-panel">
+    <div class="brand-content">
+      <div class="brand-cross">✝</div>
+      <h1 class="brand-title">Catholizare</h1>
+      <p class="brand-subtitle">Pro · Profesionales</p>
+      <p class="brand-desc">
+        Sistema de admisiones y gestión para la red de psicólogos católicos profesionales.
+      </p>
+      <div class="brand-features">
+        <div class="brand-feature">
+          <div class="brand-feature-icon">📋</div>
+          <span class="brand-feature-text">Proceso de admisión estructurado y transparente</span>
+        </div>
+        <div class="brand-feature">
+          <div class="brand-feature-icon">📝</div>
+          <span class="brand-feature-text">Evaluaciones técnicas y psicológicas</span>
+        </div>
+        <div class="brand-feature">
+          <div class="brand-feature-icon">🎓</div>
+          <span class="brand-feature-text">Formación continua y recursos exclusivos</span>
+        </div>
+        <div class="brand-feature">
+          <div class="brand-feature-icon">🤝</div>
+          <span class="brand-feature-text">Comunidad de profesionales católicos</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: LOGIN -->
+  <div class="login-panel">
+    <!-- Mobile header -->
+    <div class="mobile-brand">
+      <div class="m-cross">✝</div>
+      <div>
+        <h3>Catholizare</h3>
+        <span>Pro · Sistema</span>
+      </div>
+    </div>
+
+    <div class="login-header">
+      <h2>Acceder al sistema</h2>
+      <p>Ingresa tu clave de acceso para continuar</p>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" id="tabProf" onclick="switchTab('professional')">
+        <span>👤</span> Profesional
+      </button>
+      <button class="tab" id="tabAdmin" onclick="switchTab('admin')">
+        <span>🛡️</span> Administrador
+      </button>
+    </div>
+
+    <!-- FORM: Professional -->
+    <div id="formProf">
+      <div class="input-group">
+        <label class="input-label">Token de Acceso</label>
+        <input
+          type="text"
+          class="token-input"
+          id="tokenProf"
+          placeholder="Ej: ONB-a3f7b2c1"
+          autocomplete="off"
+          spellcheck="false"
+          maxlength="30"
+        >
+        <div class="input-hint">🔑 Lo encontrarás en el correo de bienvenida que recibiste</div>
+        <div class="error-msg" id="errProf">⚠️ Token inválido. Verifica el correo de bienvenida.</div>
+      </div>
+      <button class="btn-enter btn-professional" id="btnProf" onclick="enterSystem('professional')">
+        Entrar al proceso <span>→</span>
+      </button>
+    </div>
+
+    <!-- FORM: Admin -->
+    <div id="formAdmin" class="hidden">
+      <div class="input-group">
+        <label class="input-label">Token de Administrador</label>
+        <input
+          type="text"
+          class="token-input"
+          id="tokenAdmin"
+          placeholder="Ej: ADMIN-x9k2m4p7"
+          autocomplete="off"
+          spellcheck="false"
+          maxlength="30"
+        >
+        <div class="input-hint">🔐 Proporcionado por el Super Administrador</div>
+        <div class="error-msg" id="errAdmin">⚠️ Token inválido o no autorizado.</div>
+      </div>
+      <button class="btn-enter btn-admin" id="btnAdmin" onclick="enterSystem('admin')">
+        Acceder como Admin <span>→</span>
+      </button>
+    </div>
+
+    <!-- Help -->
+    <div class="help-section">
+      <p class="help-text">
+        ¿No tienes tu clave de acceso? Revisa tu correo electrónico<br>
+        o contacta al equipo de coordinación.
+      </p>
+      <a class="wa-link" href="https://wa.me/5215510223883?text=Hola%2C%20necesito%20ayuda%20para%20acceder%20al%20sistema%20de%20Catholizare%20Pro" target="_blank">
+        💬 Contactar por WhatsApp
+      </a>
+    </div>
+
+    <div class="login-footer">
+      © 2026 Catholizare Pro · Todos los derechos reservados
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'https://profesionales.catholizare.com/catholizare_sistem/proxy.php';
+
+    // ── TAB SWITCHING ──────────────────────────────────
+    function switchTab(role) {
+      const isProf = role === 'professional';
+      document.getElementById('tabProf').classList.toggle('active', isProf);
+      document.getElementById('tabAdmin').classList.toggle('active', !isProf);
+      document.getElementById('formProf').classList.toggle('hidden', !isProf);
+      document.getElementById('formAdmin').classList.toggle('hidden', isProf);
+      clearErrors();
+      setTimeout(() => {
+        document.getElementById(isProf ? 'tokenProf' : 'tokenAdmin').focus();
+      }, 100);
+    }
+
+    function clearErrors() {
+      document.querySelectorAll('.error-msg').forEach(el => el.classList.remove('show'));
+      document.querySelectorAll('.token-input').forEach(el => el.classList.remove('error'));
+    }
+
+    // ── ENTER SYSTEM ───────────────────────────────────
+    async function enterSystem(role) {
+      clearErrors();
+
+      if (role === 'professional') {
+        const token = document.getElementById('tokenProf').value.trim().toUpperCase();
+        if (!token || token.length < 6) {
+          document.getElementById('tokenProf').classList.add('error');
+          document.getElementById('errProf').classList.add('show');
+          return;
+        }
+        const btn = document.getElementById('btnProf');
+        btn.disabled = true;
+        btn.innerHTML = '<div class="spinner"></div> Verificando...';
+        // Redirect to exam webapp with token
+        setTimeout(() => {
+          window.location.href = 'exam-webapp.html?token=' + encodeURIComponent(token);
+        }, 400);
+
+      } else {
+        const token = document.getElementById('tokenAdmin').value.trim().toUpperCase();
+        if (!token || !token.startsWith('ADMIN-') || token.length < 10) {
+          document.getElementById('tokenAdmin').classList.add('error');
+          document.getElementById('errAdmin').textContent = '⚠️ Formato inválido. Debe iniciar con ADMIN-';
+          document.getElementById('errAdmin').classList.add('show');
+          return;
+        }
+        const btn = document.getElementById('btnAdmin');
+        btn.disabled = true;
+        btn.innerHTML = '<div class="spinner spinner-dark"></div> Verificando...';
+
+        try {
+          const resp = await fetch(API_BASE, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'verifyAdminToken', token })
+          });
+          const data = await resp.json();
+          if (data.success) {
+            sessionStorage.setItem('adminToken', token);
+            btn.innerHTML = '✓ Acceso concedido...';
+            setTimeout(() => {
+              window.location.href = 'admin-dashboard.html?adminToken=' + encodeURIComponent(token);
+            }, 500);
+          } else {
+            document.getElementById('tokenAdmin').classList.add('error');
+            document.getElementById('errAdmin').textContent = '⚠️ ' + (data.message || 'Token inválido');
+            document.getElementById('errAdmin').classList.add('show');
+            btn.disabled = false;
+            btn.innerHTML = 'Acceder como Admin <span>→</span>';
+          }
+        } catch (err) {
+          document.getElementById('errAdmin').textContent = '⚠️ Error de conexión. Intenta de nuevo.';
+          document.getElementById('errAdmin').classList.add('show');
+          btn.disabled = false;
+          btn.innerHTML = 'Acceder como Admin <span>→</span>';
+        }
+      }
+    }
+
+    // ── KEYBOARD ────────────────────────────────────────
+    document.getElementById('tokenProf').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') enterSystem('professional');
+    });
+    document.getElementById('tokenAdmin').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') enterSystem('admin');
+    });
+
+    // ── AUTO-FORMAT ─────────────────────────────────────
+    document.querySelectorAll('.token-input').forEach(input => {
+      input.addEventListener('input', function() {
+        this.value = this.value.toUpperCase();
+        clearErrors();
+      });
+    });
+
+    // ── AUTO-FILL FROM URL ──────────────────────────────
+    (function() {
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get('token');
+      if (token) {
+        if (token.toUpperCase().startsWith('ADMIN-')) {
+          switchTab('admin');
+          document.getElementById('tokenAdmin').value = token.toUpperCase();
+        } else {
+          document.getElementById('tokenProf').value = token.toUpperCase();
+        }
+      }
+    })();
+  </script>
+</body>
+</html>
