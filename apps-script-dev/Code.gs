@@ -100,6 +100,77 @@ function initializeSpreadsheet() {
   Logger.log('Spreadsheet inicializado. Configura las API keys en la hoja Config.');
 }
 
+/**
+ * MIGRACIÓN: Limpia y reconstruye la hoja Candidatos con el schema correcto.
+ * Preserva: candidate_id, registration_date, name, email, phone, country,
+ *            birthday, professional_type, therapeutic_approach, about, status.
+ * Ejecutar UNA SOLA VEZ desde el editor GAS: selecciona esta función y presiona ▶️
+ */
+function migrateCandidatosSheet() {
+  const sheet = SS.getSheetByName('Candidatos');
+  if (!sheet) { Logger.log('Sheet Candidatos no encontrada'); return; }
+
+  const data = sheet.getDataRange().getValues();
+
+  // Leer solo las columnas confiables (A-K: cols 0-10)
+  const backup = [];
+  for (let i = 1; i < data.length; i++) {
+    if (!data[i][0]) continue; // saltar filas vacías
+    backup.push([
+      data[i][0],  // candidate_id
+      data[i][1],  // registration_date
+      data[i][2],  // name
+      data[i][3],  // email
+      data[i][4],  // phone
+      data[i][5],  // country
+      data[i][6],  // birthday
+      data[i][7],  // professional_type
+      data[i][8],  // therapeutic_approach
+      data[i][9],  // about
+      data[i][10], // status (col K — tiene los valores reales del proceso)
+      '', '', '', '', '', '', '', '', '' // E1_score→notes vacíos por ahora
+    ]);
+  }
+
+  // Borrar todo el contenido
+  sheet.clearContents();
+
+  // Eliminar columnas sobrantes
+  const maxCols = sheet.getMaxColumns();
+  const targetCols = 20;
+  if (maxCols > targetCols) {
+    sheet.deleteColumns(targetCols + 1, maxCols - targetCols);
+  } else if (maxCols < targetCols) {
+    sheet.insertColumnsAfter(maxCols, targetCols - maxCols);
+  }
+
+  // Escribir headers correctos
+  const headers = [
+    'candidate_id', 'registration_date', 'name', 'email', 'phone', 'country',
+    'birthday', 'professional_type', 'therapeutic_approach', 'about',
+    'status', 'E1_score', 'E1_date', 'E2_score', 'E2_date',
+    'E3_score', 'E3_date', 'final_category', 'last_interaction', 'notes'
+  ];
+  const headRange = sheet.getRange(1, 1, 1, headers.length);
+  headRange.setValues([headers]);
+  headRange.setBackground('#001A55');
+  headRange.setFontColor('#FFFFFF');
+  headRange.setFontWeight('bold');
+  headRange.setHorizontalAlignment('center');
+  sheet.setFrozenRows(1);
+  sheet.autoResizeColumns(1, headers.length);
+
+  // Restaurar datos
+  if (backup.length > 0) {
+    sheet.getRange(2, 1, backup.length, headers.length).setValues(backup);
+  }
+
+  Logger.log('Migracion completada. Candidatos: ' + backup.length);
+  try {
+    SpreadsheetApp.getUi().alert('✅ Migración completada.\n' + backup.length + ' candidatos preservados con columnas corregidas.');
+  } catch(e) {}
+}
+
 function _setSheetHeaders(sheet, headers, bgColor, fgColor) {
   const maxCols = sheet.getMaxColumns();
   if (maxCols < headers.length) {
