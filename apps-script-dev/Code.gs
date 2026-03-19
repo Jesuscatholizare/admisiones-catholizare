@@ -295,20 +295,21 @@ function getConfig(key, defaultValue) {
     }
 
     // 3. Fallback: hoja Config
+    // Los datos están en columnas J(9), K(10), L(11) — no en A,B,C
     const sheet = SS.getSheetByName('Config');
     if (!sheet) return defaultValue;
     const data = sheet.getDataRange().getValues();
     for (let i = 0; i < data.length; i++) {
-      const cellValue = String(data[i][0] || '').trim();
+      const cellValue = String(data[i][9] || '').trim();   // columna J
       if (!cellValue) continue;
-      if (data[i][1] !== undefined && data[i][1] !== '') {
-        if (cellValue === key) {
-          const value = typeof data[i][1] === 'string' ? data[i][1].trim() : data[i][1];
-          const type  = data[i][2] || 'string';
-          if (type === 'json')   return JSON.parse(value);
-          if (type === 'number') return Number(value);
-          return value;
-        }
+      const rawVal = data[i][10];                          // columna K
+      if (rawVal === undefined || rawVal === '') continue;
+      if (cellValue === key) {
+        const value = typeof rawVal === 'string' ? rawVal.trim() : rawVal;
+        const type  = String(data[i][11] || 'string').trim().toLowerCase();
+        if (type === 'json')   return JSON.parse(value);
+        if (type === 'number') return Number(value);
+        return value;
       }
     }
   } catch (e) {
