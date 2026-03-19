@@ -28,7 +28,8 @@ function initializeSpreadsheet() {
     'Candidatos': {
       headers: ['candidate_id', 'registration_date', 'name', 'email', 'phone', 'country',
                 'birthday', 'professional_type', 'therapeutic_approach', 'about',
-                'status', 'last_interaction_date', 'final_category', 'final_status', 'notes']
+                'status', 'E1_score', 'E1_date', 'E2_score', 'E2_date',
+                'E3_score', 'E3_date', 'final_category', 'last_interaction', 'notes']
     },
     'Tokens': {
       headers: ['token', 'candidate_id', 'exam', 'created_at', 'valid_from', 'valid_until',
@@ -525,6 +526,22 @@ function handleExamSubmit(data) {
     });
 
     updateCandidateStatus(candidate_id, 'pending_review_' + exam);
+
+    // Escribir score y fecha en columnas dedicadas de Candidatos
+    const candSheet = SS.getSheetByName('Candidatos');
+    if (candSheet) {
+      const candData = candSheet.getDataRange().getValues();
+      for (let ci = 1; ci < candData.length; ci++) {
+        if (candData[ci][0] === candidate_id) {
+          const scoreCol = exam === 'E1' ? 12 : exam === 'E2' ? 14 : 16;
+          const dateCol  = exam === 'E1' ? 13 : exam === 'E2' ? 15 : 17;
+          candSheet.getRange(ci + 1, scoreCol).setValue(score);
+          candSheet.getRange(ci + 1, dateCol).setValue(new Date(finishedAt));
+          break;
+        }
+      }
+    }
+
     updateLastInteraction(candidate_id);
     addTimelineEvent(candidate_id, 'TEST_' + exam + '_COMPLETADO', {
       puntaje: score, veredicto: verdict, flags: flags
@@ -889,10 +906,15 @@ function getCandidatesForAdmin() {
           email:            data[i][3],
           telefono:         data[i][4],
           status:           data[i][10],
-          last_interaction: data[i][11],
-          final_category:   data[i][12],
-          final_status:     data[i][13],
-          notes:            data[i][14]
+          E1_score:         data[i][11],
+          E1_date:          data[i][12],
+          E2_score:         data[i][13],
+          E2_date:          data[i][14],
+          E3_score:         data[i][15],
+          E3_date:          data[i][16],
+          final_category:   data[i][17],
+          last_interaction: data[i][18],
+          notes:            data[i][19]
         });
       }
     }
@@ -976,7 +998,7 @@ function assignCategoryAndApprove(candidateId, category) {
         else                            toListId = CONFIG.brevo_list_aprobados;
         moveContactBetweenLists(email, CONFIG.brevo_list_interesados, toListId);
         sheet.getRange(i + 1, 11).setValue('approved_' + category.toLowerCase());
-        sheet.getRange(i + 1, 13).setValue(category);
+        sheet.getRange(i + 1, 18).setValue(category);
         sendEmailApproved(email, name, category);
         addTimelineEvent(candidateId, 'CANDIDATO_CATEGORIZADO_APROBADO', {
           category: category, lista_brevo: toListId
@@ -1488,7 +1510,7 @@ function updateLastInteraction(candidate_id) {
   if (!sheet) return;
   const data = sheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
-    if (data[i][0] === candidate_id) { sheet.getRange(i + 1, 12).setValue(new Date()); break; }
+    if (data[i][0] === candidate_id) { sheet.getRange(i + 1, 19).setValue(new Date()); break; }
   }
 }
 
