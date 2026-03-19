@@ -286,6 +286,7 @@
                         showSuccess('Código enviado a tu email');
                     } else {
                         showSuccess('¡Acceso concedido! Redirigiendo...');
+                        sessionStorage.setItem('adminToken', pin || 'admin_session');
                         setTimeout(() => { window.location.href = '/dashboard'; }, 1500);
                     }
                 } else {

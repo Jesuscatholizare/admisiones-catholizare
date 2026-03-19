@@ -577,8 +577,14 @@
             document.addEventListener('contextmenu', e => { e.preventDefault(); });
             window.addEventListener('blur', () => {
                 blurCount++;
-                if (blurCount >= 3) showAlert(`Cambios de ventana detectados (${blurCount}). Se enviará al llegar a 5.`);
-                if (blurCount >= 5) { showAlert('Enviando examen...'); setTimeout(confirmSubmit, 2000); }
+                if (blurCount < 3) {
+                    showAlert(`⚠️ Cambio de ventana detectado (${blurCount}/5). Permanece en esta página.`);
+                } else if (blurCount < 5) {
+                    showAlert(`⚠️ Cambios de ventana: ${blurCount}/5. Al llegar a 5 se enviará automáticamente.`);
+                } else {
+                    showAlert('🚨 Límite de cambios alcanzado. Enviando examen...');
+                    setTimeout(confirmSubmit, 2000);
+                }
             });
         }
 
