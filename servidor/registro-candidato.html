@@ -543,9 +543,12 @@ function toggleOther(fieldId) {
   }
 }
 
-/* ── Set min date for scheduled_date (today) ── */
+/* ── Set min date for scheduled_date (today, local timezone) ── */
 (function setMinDate() {
-  const today = new Date().toISOString().split('T')[0];
+  const d = new Date();
+  const today = d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0');
   document.getElementById('scheduled_date').min = today;
 })();
 
@@ -615,9 +618,13 @@ function validate() {
     markInvalid('email', 'Ingresa un correo válido');
     ok = false;
   }
-  // Scheduled date not in past
+  // Scheduled date not in past (local timezone)
   const sDate = getVal('scheduled_date');
-  if (sDate && sDate < new Date().toISOString().split('T')[0]) {
+  const _d = new Date();
+  const todayLocal = _d.getFullYear() + '-' +
+    String(_d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(_d.getDate()).padStart(2, '0');
+  if (sDate && sDate < todayLocal) {
     markInvalid('scheduled_date', 'La fecha no puede ser en el pasado');
     ok = false;
   }
