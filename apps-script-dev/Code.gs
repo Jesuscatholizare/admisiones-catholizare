@@ -607,7 +607,9 @@ function handleExamSubmit(data) {
         if (candData[ci][0] === candidate_id) {
           const scoreCol = exam === 'E1' ? 12 : exam === 'E2' ? 14 : 16;
           const dateCol  = exam === 'E1' ? 13 : exam === 'E2' ? 15 : 17;
-          candSheet.getRange(ci + 1, scoreCol).setValue(score);
+          const scoreRange = candSheet.getRange(ci + 1, scoreCol);
+          scoreRange.setValue(score);
+          scoreRange.setNumberFormat('0');   // forzar formato numérico, no fecha
           candSheet.getRange(ci + 1, dateCol).setValue(new Date(finishedAt));
           break;
         }

@@ -236,16 +236,26 @@
     <!-- FORM: Admin -->
     <div id="formAdmin" class="hidden">
       <div class="field">
-        <label>Token de administrador</label>
-        <input
-          id="tokenAdmin"
-          type="password"
-          placeholder="••••••••••••"
-          autocomplete="off"
-          maxlength="60"
-        >
-        <div class="hint">🔐 Proporcionado por coordinación</div>
-        <div class="error-msg" id="errAdmin">Token inválido o sin permisos.</div>
+        <label>PIN de administrador</label>
+        <div style="position:relative; display:flex; align-items:center;">
+          <input
+            id="tokenAdmin"
+            type="password"
+            placeholder="••••••••••••"
+            autocomplete="off"
+            maxlength="60"
+            style="flex:1; padding-right:2.5rem;"
+          >
+          <button
+            type="button"
+            onclick="toggleAdminPassword()"
+            style="position:absolute; right:0.6rem; background:none; border:none; cursor:pointer; font-size:1.2rem; color:#666; padding:0.2rem;"
+            title="Mostrar/ocultar"
+            id="eyeBtn"
+          >👁</button>
+        </div>
+        <div class="hint">🔐 PIN configurado por coordinación</div>
+        <div class="error-msg" id="errAdmin">PIN inválido o sin permisos.</div>
       </div>
       <button class="btn btn-gold" id="btnAdmin" onclick="enterAdmin()">
         Entrar como admin <span>→</span>
@@ -328,7 +338,7 @@
       const resp = await fetch(API_BASE, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ action: 'verifyAdminToken', token })
+        body:    JSON.stringify({ action: 'adminLogin', pin: token })
       });
       const data = await resp.json();
 
@@ -347,6 +357,18 @@
       showAdminError('Error de conexión. Intenta de nuevo.');
       btn.disabled = false;
       btn.innerHTML = 'Entrar como admin <span>→</span>';
+    }
+  }
+
+  function toggleAdminPassword() {
+    const inp = document.getElementById('tokenAdmin');
+    const btn = document.getElementById('eyeBtn');
+    if (inp.type === 'password') {
+      inp.type = 'text';
+      btn.textContent = '🙈';
+    } else {
+      inp.type = 'password';
+      btn.textContent = '👁';
     }
   }
 
