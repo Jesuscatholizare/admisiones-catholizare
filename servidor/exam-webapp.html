@@ -370,8 +370,57 @@
     </div>
     <!-- Alert Banner -->
     <div class="alert-banner" id="alertBanner"></div>
+
+    <!-- Pantalla de Reglas (se muestra antes de iniciar) -->
+    <div id="rulesScreen" style="display:none; max-width:680px; margin:3rem auto; padding:0 1rem;">
+        <div style="background:#fff; border-radius:12px; box-shadow:0 4px 24px rgba(0,0,0,0.12); overflow:hidden;">
+            <div style="background:linear-gradient(135deg,#001A55,#0966FF); color:#fff; padding:1.5rem 2rem;">
+                <h2 style="margin:0; font-size:1.4rem;">Instrucciones del Examen <span id="rulesExamTitle">E1</span></h2>
+                <p style="margin:0.5rem 0 0; opacity:0.85; font-size:0.95rem;">Lee con atención antes de comenzar</p>
+            </div>
+            <div style="padding:1.5rem 2rem;">
+                <div style="display:grid; gap:1rem;">
+                    <div style="display:flex; gap:1rem; align-items:flex-start; padding:1rem; background:#f0f4ff; border-radius:8px;">
+                        <span style="font-size:1.8rem; line-height:1;">⏱</span>
+                        <div>
+                            <strong>Duración</strong>
+                            <p style="margin:0.25rem 0 0; color:#444; font-size:0.95rem;">Tienes <strong id="rulesDuration">120 minutos</strong> para completar el examen. El tiempo corre desde que presionas "Comenzar".</p>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:1rem; align-items:flex-start; padding:1rem; background:#fff8e1; border-radius:8px; border-left:4px solid #f59e0b;">
+                        <span style="font-size:1.8rem; line-height:1;">🚨</span>
+                        <div>
+                            <strong>Cambios de ventana — IMPORTANTE</strong>
+                            <p style="margin:0.25rem 0 0; color:#444; font-size:0.95rem;">
+                                Cada vez que cambies de pestaña o minimices la ventana queda registrado.<br>
+                                <strong>Al tercer cambio el examen se enviará automáticamente</strong>, sin importar si terminaste o no.
+                            </p>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:1rem; align-items:flex-start; padding:1rem; background:#fce8e8; border-radius:8px; border-left:4px solid #e53935;">
+                        <span style="font-size:1.8rem; line-height:1;">🚫</span>
+                        <div>
+                            <strong>Copiar y pegar no está permitido</strong>
+                            <p style="margin:0.25rem 0 0; color:#444; font-size:0.95rem;">No se permite usar Ctrl+C, Ctrl+V ni el menú contextual. Las respuestas deben ser escritas directamente.</p>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:1rem; align-items:flex-start; padding:1rem; background:#e8f5e9; border-radius:8px;">
+                        <span style="font-size:1.8rem; line-height:1;">✅</span>
+                        <div>
+                            <strong>Envío</strong>
+                            <p style="margin:0.25rem 0 0; color:#444; font-size:0.95rem;">Una vez enviado no podrás hacer cambios. Revisa bien antes de enviar.</p>
+                        </div>
+                    </div>
+                </div>
+                <button onclick="startExam()" style="width:100%; margin-top:1.5rem; padding:1rem; background:linear-gradient(135deg,#0966FF,#0044cc); color:#fff; border:none; border-radius:8px; font-size:1.1rem; font-weight:700; cursor:pointer; transition:transform 0.1s;">
+                    Entendido — Comenzar Examen
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Main Content -->
-    <div class="container">
+    <div class="container" id="examContainer" style="display:none;">
         <!-- Progress -->
         <div class="progress-section">
             <div class="progress-bar">
@@ -397,6 +446,7 @@
                 ✓ Enviar Examen
             </button>
         </div>
+    </div>
     </div>
     <!-- Confirmation Modal -->
     <div class="confirmation-modal" id="confirmationModal">
@@ -442,9 +492,17 @@
                 document.body.innerHTML = '<div style="padding:2rem;text-align:center;color:#f44336;"><h2>Token inválido</h2><p>No se proporcionó un token válido.</p></div>';
                 return;
             }
+            // Mostrar pantalla de reglas antes de iniciar
+            document.getElementById('rulesExamTitle').textContent = EXAM;
+            document.getElementById('rulesScreen').style.display = 'block';
+        });
+
+        function startExam() {
+            document.getElementById('rulesScreen').style.display = 'none';
+            document.getElementById('examContainer').style.display = 'block';
             loadExam();
             setupSecurityMeasures();
-        });
+        }
 
         // Cargar datos del examen
         async function loadExam() {
@@ -578,11 +636,9 @@
             window.addEventListener('blur', () => {
                 blurCount++;
                 if (blurCount < 3) {
-                    showAlert(`⚠️ Cambio de ventana detectado (${blurCount}/5). Permanece en esta página.`);
-                } else if (blurCount < 5) {
-                    showAlert(`⚠️ Cambios de ventana: ${blurCount}/5. Al llegar a 5 se enviará automáticamente.`);
+                    showAlert(`⚠️ Cambio de ventana detectado (${blurCount}/3). Al tercer cambio el examen se enviará automáticamente.`);
                 } else {
-                    showAlert('🚨 Límite de cambios alcanzado. Enviando examen...');
+                    showAlert('🚨 Tercer cambio de ventana detectado. Enviando examen automáticamente...');
                     setTimeout(confirmSubmit, 2000);
                 }
             });
