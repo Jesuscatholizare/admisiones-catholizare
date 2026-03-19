@@ -473,7 +473,7 @@ function handleRegistration(data) {
       candidate.phone || '', candidate.country || '',
       candidate.birthday || '', candidate.professional_type || '',
       candidate.therapeutic_approach || '', candidate.about || '',
-      'registered', registration_date, '', '', ''
+      'registered'
     ]);
 
     const token = generateToken(candidate_id, 'E1');
