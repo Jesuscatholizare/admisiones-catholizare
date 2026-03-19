@@ -547,8 +547,9 @@
                     return;
                 }
                 if (data.success) {
-                    candidates = data.candidates || [];
-                    updateStats(data.stats);
+                    const payload = data.data || {};
+                    candidates = payload.candidates || [];
+                    updateStats(payload.stats || { total: 0, pending: 0, approved: 0, rejected: 0 });
                     renderTable(candidates);
                     updateLastUpdate();
                 } else {
