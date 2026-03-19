@@ -29,7 +29,7 @@ function initializeSpreadsheet() {
       headers: ['candidate_id', 'registration_date', 'name', 'email', 'phone', 'country',
                 'birthday', 'professional_type', 'therapeutic_approach', 'about',
                 'status', 'E1_score', 'E1_date', 'E2_score', 'E2_date',
-                'E3_score', 'E3_date', 'final_category', 'last_interaction', 'notes']
+                'E3_score', 'E3_date', 'interview_notes', 'final_category', 'last_interaction', 'notes']
     },
     'Tokens': {
       headers: ['token', 'candidate_id', 'exam', 'created_at', 'valid_from', 'valid_until',
@@ -128,7 +128,7 @@ function migrateCandidatosSheet() {
       data[i][8],  // therapeutic_approach
       data[i][9],  // about
       data[i][10], // status (col K — tiene los valores reales del proceso)
-      '', '', '', '', '', '', '', '', '' // E1_score→notes vacíos por ahora
+      '', '', '', '', '', '', '', '', '', '' // E1_score→notes vacíos por ahora
     ]);
   }
 
@@ -137,7 +137,7 @@ function migrateCandidatosSheet() {
 
   // Eliminar columnas sobrantes
   const maxCols = sheet.getMaxColumns();
-  const targetCols = 20;
+  const targetCols = 21;
   if (maxCols > targetCols) {
     sheet.deleteColumns(targetCols + 1, maxCols - targetCols);
   } else if (maxCols < targetCols) {
@@ -149,7 +149,7 @@ function migrateCandidatosSheet() {
     'candidate_id', 'registration_date', 'name', 'email', 'phone', 'country',
     'birthday', 'professional_type', 'therapeutic_approach', 'about',
     'status', 'E1_score', 'E1_date', 'E2_score', 'E2_date',
-    'E3_score', 'E3_date', 'final_category', 'last_interaction', 'notes'
+    'E3_score', 'E3_date', 'interview_notes', 'final_category', 'last_interaction', 'notes'
   ];
   const headRange = sheet.getRange(1, 1, 1, headers.length);
   headRange.setValues([headers]);
@@ -407,7 +407,8 @@ function doPost(e) {
       case 'getDashboardData':     return handleGetDashboardData();
       case 'sendEmailManual':      return handleSendEmailManual(data);
       case 'addToBrevoListManual': return handleAddToBrevoListManual(data);
-      case 'markAsIncomplete':     return handleMarkAsIncomplete(data);
+      case 'markAsIncomplete':          return handleMarkAsIncomplete(data);
+      case 'registerInterviewResult':   return handleRegisterInterviewResult(data);
       default:
         return jsonResponse(false, 'Accion no valida: ' + action);
     }
@@ -959,6 +960,60 @@ function handleMarkAsIncomplete(data) {
   }
 }
 
+/**
+ * POST action=registerInterviewResult
+ * Body: { candidateId, result: 'pass'|'fail', interviewNotes }
+ * Pass → status awaiting_category (admin asigna categoría después)
+ * Fail → status rejected + email de rechazo con notas como campo personalizado
+ */
+function handleRegisterInterviewResult(data) {
+  try {
+    const { candidateId, result, interviewNotes } = data;
+    if (!candidateId || !result) return jsonResponse(false, 'candidateId y result requeridos');
+    if (result !== 'pass' && result !== 'fail') return jsonResponse(false, 'result debe ser "pass" o "fail"');
+    const res = interviewResultAdmin(candidateId, result, interviewNotes || '');
+    if (res.success) {
+      return jsonResponse(true, result === 'pass'
+        ? 'Entrevista aprobada. Asigna la categoría al candidato.'
+        : 'Candidato rechazado. Correo enviado con retroalimentación.');
+    }
+    return jsonResponse(false, res.error || 'Error al registrar resultado de entrevista');
+  } catch (error) {
+    Logger.log('[ERROR handleRegisterInterviewResult] ' + error.message);
+    return jsonResponse(false, 'Error: ' + error.message);
+  }
+}
+
+function interviewResultAdmin(candidateId, result, interviewNotes) {
+  try {
+    const sheet = SS.getSheetByName('Candidatos');
+    const data  = sheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === candidateId) {
+        const email = data[i][3];
+        const name  = data[i][2];
+        // Guardar notas de entrevista (col 18, índice 17)
+        sheet.getRange(i + 1, 18).setValue(interviewNotes);
+        if (result === 'pass') {
+          sheet.getRange(i + 1, 11).setValue('awaiting_category');
+          addTimelineEvent(candidateId, 'ENTREVISTA_APROBADA', { notas: interviewNotes });
+        } else {
+          sheet.getRange(i + 1, 11).setValue('rejected');
+          moveContactBetweenLists(email, CONFIG.brevo_list_interesados, CONFIG.brevo_list_rechazados);
+          sendEmailRejectedInterview(email, name, interviewNotes);
+          addTimelineEvent(candidateId, 'ENTREVISTA_RECHAZADA', { notas: interviewNotes });
+        }
+        updateLastInteraction(candidateId);
+        return { success: true };
+      }
+    }
+    return { success: false, error: 'Candidato no encontrado' };
+  } catch (error) {
+    Logger.log('[interviewResultAdmin Error] ' + error.message);
+    return { success: false, error: error.message };
+  }
+}
+
 // ================================
 // MODULO: FLUJO DE ADMIN (helpers)
 // ================================
@@ -983,9 +1038,10 @@ function getCandidatesForAdmin() {
           E2_date:          data[i][14],
           E3_score:         data[i][15],
           E3_date:          data[i][16],
-          final_category:   data[i][17],
-          last_interaction: data[i][18],
-          notes:            data[i][19]
+          interview_notes:  data[i][17],
+          final_category:   data[i][18],
+          last_interaction: data[i][19],
+          notes:            data[i][20]
         });
       }
     }
@@ -1069,7 +1125,7 @@ function assignCategoryAndApprove(candidateId, category) {
         else                            toListId = CONFIG.brevo_list_aprobados;
         moveContactBetweenLists(email, CONFIG.brevo_list_interesados, toListId);
         sheet.getRange(i + 1, 11).setValue('approved_' + category.toLowerCase());
-        sheet.getRange(i + 1, 18).setValue(category);
+        sheet.getRange(i + 1, 19).setValue(category);
         sendEmailApproved(email, name, category);
         addTimelineEvent(candidateId, 'CANDIDATO_CATEGORIZADO_APROBADO', {
           category: category, lista_brevo: toListId
@@ -1093,7 +1149,7 @@ function performHandoff(candidateId) {
         const email    = data[i][3];
         const name     = data[i][2];
         const phone    = data[i][4];
-        const category = data[i][12] || '';
+        const category = data[i][18] || '';
         const handoffId = CONFIG.handoff_spreadsheet_id;
         if (!handoffId) return { success: false, error: 'HANDOFF_SPREADSHEET_ID no configurado' };
         const onboardingSpreadsheet = SpreadsheetApp.openById(handoffId);
@@ -1539,6 +1595,31 @@ function sendEmailRejected(email, name, exam, reason) {
   return sendEmail(email, 'Resultado de tu proceso en RCCC', html);
 }
 
+/**
+ * Correo de rechazo post-entrevista.
+ * Las notas de la entrevista se insertan como campo personalizado en el cuerpo del correo.
+ */
+function sendEmailRejectedInterview(email, name, interviewNotes) {
+  const html =
+    '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">' +
+    '<div style="background:linear-gradient(135deg,#001A55,#0966FF);color:white;padding:20px;text-align:center;border-radius:8px 8px 0 0;">' +
+    '<h1>Resultado de tu Proceso</h1><p>Red de Psicólogos Católicos</p></div>' +
+    '<div style="padding:20px;background:#f9f9f9;">' +
+    '<p>Hola <strong>' + name + '</strong>,</p>' +
+    '<p>Agradecemos sinceramente el tiempo y el esfuerzo que dedicaste a nuestro proceso de selección, incluyendo tu entrevista personal.</p>' +
+    '<p>Tras una cuidadosa evaluación, lamentamos informarte que en este momento no continuaremos con tu candidatura en la Red de Psicólogos Católicos.</p>' +
+    (interviewNotes
+      ? '<div style="background:white;border-left:4px solid #0966FF;padding:12px 16px;margin:16px 0;border-radius:0 6px 6px 0;">' +
+        '<p style="font-size:0.85em;font-weight:700;color:#001A55;margin:0 0 6px 0;">RETROALIMENTACIÓN DE TU ENTREVISTA</p>' +
+        '<p style="font-size:0.9em;color:#444;margin:0;">' + interviewNotes + '</p></div>'
+      : '') +
+    '<p>Te animamos a seguir creciendo en tu vocación y no descartes postularte nuevamente en el futuro cuando las circunstancias cambien.</p>' +
+    '<p>Que Dios te bendiga.</p>' +
+    '<p style="font-size:0.85em;color:#999;margin-top:20px;">— Equipo RCCC</p>' +
+    '</div></div>';
+  return sendEmail(email, 'Resultado de tu proceso en RCCC', html);
+}
+
 function sendEmailApproved(email, name, category) {
   const labels = { JUNIOR: 'Fundamentos Sólidos (Junior)', SENIOR: 'Muy Competente (Senior)', EXPERT: 'Excepcional (Expert)' };
   const html = '<div style="font-family:Arial;">' +
@@ -1581,7 +1662,7 @@ function updateLastInteraction(candidate_id) {
   if (!sheet) return;
   const data = sheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
-    if (data[i][0] === candidate_id) { sheet.getRange(i + 1, 19).setValue(new Date()); break; }
+    if (data[i][0] === candidate_id) { sheet.getRange(i + 1, 20).setValue(new Date()); break; }
   }
 }
 

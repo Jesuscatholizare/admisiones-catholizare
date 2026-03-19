@@ -166,6 +166,7 @@
         .badge-junior     { background: #C8E6C9; color: #1B5E20; }
         .badge-senior     { background: #BBE3F5; color: #0D47A1; }
         .badge-expert     { background: #F3E5F5; color: #4A148C; }
+        .badge-awaiting-cat { background: #E8EAF6; color: #283593; }
         /* Action Buttons */
         .actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
         .btn {
@@ -462,9 +463,30 @@
             </div>
           </section>
 
-          <!-- 4. DECISIÓN FINAL -->
+          <!-- 4. RESULTADO DE ENTREVISTA -->
           <section>
-            <h4 class="acc-section-title" style="color:#6f42c1;">🛡️ Decisión Final (Crítica)</h4>
+            <h4 class="acc-section-title" style="color:#0d6efd;">🎤 Resultado de Entrevista</h4>
+            <div class="form-group" style="margin-bottom:0.6rem;">
+              <label style="font-size:0.8em;font-weight:700;color:#001A55;display:block;margin-bottom:5px;">Notas de la entrevista <span style="color:#888;font-weight:400;">(aparecen en el correo de rechazo)</span></label>
+              <textarea id="accionesInterviewNotes" rows="3" placeholder="Escribe aquí las notas o retroalimentación de la entrevista..." style="width:100%;padding:8px 12px;border:1.5px solid #dee2e6;border-radius:6px;font-size:0.88em;font-family:inherit;resize:vertical;"></textarea>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
+              <button class="acc-card acc-success" onclick="doInterviewResult('pass')">
+                <span class="acc-icon">✅</span>
+                <span class="acc-title">PASS</span>
+                <span class="acc-sub">Pasa a asignación de categoría</span>
+              </button>
+              <button class="acc-card" style="border-color:#f5c2c7;background:#fff5f5;" onclick="doInterviewResult('fail')">
+                <span class="acc-icon">❌</span>
+                <span class="acc-title" style="color:#842029;">FAIL</span>
+                <span class="acc-sub">Cierra el proceso — envía correo</span>
+              </button>
+            </div>
+          </section>
+
+          <!-- 5. DECISIÓN FINAL (categoría) -->
+          <section>
+            <h4 class="acc-section-title" style="color:#6f42c1;">🛡️ Asignar Categoría (post-entrevista PASS)</h4>
             <div class="acc-grid" style="grid-template-columns:repeat(2,1fr);">
               <button class="acc-card acc-success" onclick="doFinalDecision('JUNIOR')"><span class="acc-icon">🥉</span><span class="acc-title">Aprobar Junior</span><span class="acc-sub">Asigna nivel Junior</span></button>
               <button class="acc-card acc-success" onclick="doFinalDecision('SENIOR')"><span class="acc-icon">🥈</span><span class="acc-title">Aprobar Senior</span><span class="acc-sub">Asigna nivel Senior</span></button>
@@ -472,7 +494,7 @@
               <button class="acc-card acc-warning" onclick="doMarkIncomplete()"><span class="acc-icon">⚠️</span><span class="acc-title">Incompleto</span><span class="acc-sub">No asistió a entrevista</span></button>
             </div>
             <div style="margin-top:1rem;padding:1rem;border:1px solid #f5c2c7;border-radius:8px;background:#fff5f5;">
-              <label style="font-size:0.8em;font-weight:700;color:#842029;display:block;margin-bottom:6px;">Motivo de rechazo (requerido)</label>
+              <label style="font-size:0.8em;font-weight:700;color:#842029;display:block;margin-bottom:6px;">Rechazo manual — motivo (requerido)</label>
               <input type="text" id="accionesRejectReason" placeholder="Describe el motivo del rechazo..." style="width:100%;padding:8px 12px;border:1px solid #f5c2c7;border-radius:6px;font-size:0.88em;margin-bottom:8px;">
               <button onclick="doReject()" style="width:100%;padding:10px;background:#dc3545;color:white;border:none;border-radius:6px;font-weight:700;cursor:pointer;font-size:0.88em;">❌ Rechazar — Cierra proceso</button>
             </div>
@@ -589,7 +611,7 @@
             const map = {
                 'registered': 10, 'pending_review_E1': 20, 'awaiting_terms_acceptance': 35,
                 'pending_review_E2': 50, 'pending_review_E3': 70,
-                'awaiting_interview': 85, 'approved_junior': 100,
+                'awaiting_interview': 85, 'awaiting_category': 92, 'approved_junior': 100,
                 'approved_senior': 100, 'approved_expert': 100, 'rejected': 0
             };
             return map[status] || 5;
@@ -602,8 +624,9 @@
                 'pending_review_E2':         ['badge-pending',   'Revisión E2'],
                 'pending_review_E3':         ['badge-pending',   'Revisión E3'],
                 'awaiting_terms_acceptance': ['badge-terms',     'Términos'],
-                'awaiting_interview':        ['badge-interview', 'Entrevista'],
-                'rejected':                  ['badge-rejected',  'Rechazado'],
+                'awaiting_interview':        ['badge-interview',    'Entrevista'],
+                'awaiting_category':         ['badge-awaiting-cat','Asignar Categoría'],
+                'rejected':                  ['badge-rejected',    'Rechazado'],
                 'approved_junior':           ['badge-junior',    '🥉 Junior'],
                 'approved_senior':           ['badge-senior',    '🥈 Senior'],
                 'approved_expert':           ['badge-expert',    '🥇 Expert'],
@@ -624,7 +647,8 @@
             document.getElementById('accionesEmail').textContent  = c.email  || '';
             document.getElementById('accionesId').textContent     = candidateId;
             document.getElementById('accionesStatus').innerHTML   = getStatusBadge(c.status);
-            document.getElementById('accionesRejectReason').value = '';
+            document.getElementById('accionesRejectReason').value  = '';
+            document.getElementById('accionesInterviewNotes').value = '';
             document.getElementById('accionesModal').style.display = 'block';
         }
 
@@ -645,6 +669,24 @@
         async function doMarkIncomplete() {
             if (!confirm('¿Marcar como incompleto? (no asistió a entrevista)')) return;
             await callApi({ action: 'markAsIncomplete', candidateId: currentCandidateId, adminToken: ADMIN_TOKEN }, '⚠️ Marcado como incompleto', true);
+        }
+        async function doInterviewResult(result) {
+            const interviewNotes = document.getElementById('accionesInterviewNotes').value.trim();
+            if (result === 'fail' && !interviewNotes) {
+                showToast('Escribe las notas de la entrevista antes de rechazar', 'error');
+                return;
+            }
+            const confirmMsg = result === 'pass'
+                ? '¿Confirmar PASS? El candidato pasará a asignación de categoría.'
+                : '¿Confirmar FAIL? Se cerrará el proceso y se enviará correo de rechazo con las notas.';
+            if (!confirm(confirmMsg)) return;
+            await callApi({
+                action: 'registerInterviewResult',
+                candidateId: currentCandidateId,
+                result,
+                interviewNotes,
+                adminToken: ADMIN_TOKEN
+            }, result === 'pass' ? '✅ Entrevista aprobada' : '❌ Candidato rechazado', true);
         }
         async function doReject() {
             const reason = document.getElementById('accionesRejectReason').value.trim();
