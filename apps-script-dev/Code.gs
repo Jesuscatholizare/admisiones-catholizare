@@ -1211,7 +1211,10 @@ function saveToken(token, candidate_id, exam, email, name, scheduled_date) {
   if (!sheet) { Logger.log('[saveToken] Hoja Tokens no encontrada'); return; }
   let valid_from, valid_until;
   if (scheduled_date) {
-    const parts    = scheduled_date.split('-').map(Number);
+    // scheduled_date puede llegar como "YYYY-MM-DD" o "YYYY-MM-DDTHH:mm:ss"
+    // Extraer solo los primeros 10 caracteres para evitar NaN con el componente de tiempo
+    const datePart = String(scheduled_date).substring(0, 10);
+    const parts    = datePart.split('-').map(Number);
     const dateObj  = new Date(parts[0], parts[1] - 1, parts[2]);
     valid_from     = new Date(dateObj);
     valid_from.setHours(6, 1, 0);
