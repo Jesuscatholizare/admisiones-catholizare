@@ -299,11 +299,11 @@ function getConfig(key, defaultValue) {
     if (!sheet) return defaultValue;
     const data = sheet.getDataRange().getValues();
     for (let i = 0; i < data.length; i++) {
-      const cellValue = data[i][0];
+      const cellValue = String(data[i][0] || '').trim();
       if (!cellValue) continue;
       if (data[i][1] !== undefined && data[i][1] !== '') {
         if (cellValue === key) {
-          const value = data[i][1];
+          const value = typeof data[i][1] === 'string' ? data[i][1].trim() : data[i][1];
           const type  = data[i][2] || 'string';
           if (type === 'json')   return JSON.parse(value);
           if (type === 'number') return Number(value);
@@ -1213,16 +1213,19 @@ function saveToken(token, candidate_id, exam, email, name, scheduled_date) {
   if (!sheet) { Logger.log('[saveToken] Hoja Tokens no encontrada'); return; }
   let valid_from, valid_until;
   if (scheduled_date) {
-    // scheduled_date puede llegar como "YYYY-MM-DD" o "YYYY-MM-DDTHH:mm:ss"
-    // Extraer solo los primeros 10 caracteres para evitar NaN con el componente de tiempo
-    const datePart = String(scheduled_date).substring(0, 10);
-    const parts    = datePart.split('-').map(Number);
-    const dateObj  = new Date(parts[0], parts[1] - 1, parts[2]);
-    valid_from     = new Date(dateObj);
-    valid_from.setHours(6, 1, 0);
-    valid_until    = new Date(dateObj);
-    valid_until.setDate(valid_until.getDate() + 1);
-    valid_until.setHours(23, 59, 59);
+    // scheduled_date llega como "YYYY-MM-DDTHH:mm:ss" (fecha + hora elegida por el candidato)
+    const sd      = String(scheduled_date);
+    const datePart = sd.substring(0, 10);               // "YYYY-MM-DD"
+    const timePart = sd.length >= 16 ? sd.substring(11, 16) : '00:00'; // "HH:mm"
+    const [dY, dM, dD] = datePart.split('-').map(Number);
+    const [tH, tMin]   = timePart.split(':').map(Number);
+
+    // valid_from = hora agendada menos 30 minutos (margen de entrada)
+    const scheduled = new Date(dY, dM - 1, dD, tH, tMin, 0);
+    valid_from = new Date(scheduled.getTime() - 30 * 60 * 1000);
+
+    // valid_until = final del día agendado (23:59:59)
+    valid_until = new Date(dY, dM - 1, dD, 23, 59, 59);
   } else {
     valid_from  = new Date();
     valid_until = new Date(valid_from.getTime() + 48 * 60 * 60 * 1000);
@@ -1742,7 +1745,7 @@ function validateAdminPin(pin) {
   try {
     const savedPin = CONFIG.admin_pin;
     if (!savedPin) return false;
-    return String(pin) === String(savedPin);
+    return String(pin).trim() === String(savedPin).trim();
   } catch (e) {
     Logger.log('Error validando PIN: ' + e);
     return false;
