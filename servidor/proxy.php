@@ -79,6 +79,12 @@ $allowed_actions = [
     'sendEmailManual',
     'addToBrevoListManual',
     'markAsIncomplete',
+    // Vistas admin
+    'getExamResponses',
+    'getAdminUsers',
+    'generateAdminToken',
+    'health',
+    'registerInterviewResult',
 ];
 
 if (!in_array($action, $allowed_actions)) {

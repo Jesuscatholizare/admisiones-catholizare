@@ -410,6 +410,10 @@ function doPost(e) {
       case 'addToBrevoListManual': return handleAddToBrevoListManual(data);
       case 'markAsIncomplete':          return handleMarkAsIncomplete(data);
       case 'registerInterviewResult':   return handleRegisterInterviewResult(data);
+      case 'getExamResponses':          return handleGetExamResponses(data);
+      case 'getAdminUsers':             return handleGetAdminUsers();
+      case 'generateAdminToken':        return handleGenerateAdminToken(data);
+      case 'health':                    return jsonResponse(true, 'OK', checkSystemHealth());
       default:
         return jsonResponse(false, 'Accion no valida: ' + action);
     }
@@ -1801,4 +1805,114 @@ function checkSystemHealth() {
 
   Logger.log('=== HEALTH CHECK ===\n' + JSON.stringify(health, null, 2));
   return health;
+}
+
+// ================================
+// MODULO: RESPUESTAS DE EXAMEN
+// ================================
+function handleGetExamResponses(data) {
+  try {
+    const candidate_id = data.candidate_id;
+    const exam = (data.exam || 'E1').toUpperCase();
+    if (!candidate_id) return jsonResponse(false, 'candidate_id requerido');
+
+    const pregSheet = SS.getSheetByName('Preguntas');
+    if (!pregSheet) return jsonResponse(false, 'Hoja Preguntas no encontrada');
+    const pregData = pregSheet.getDataRange().getValues();
+    const questions = {};
+    for (let i = 1; i < pregData.length; i++) {
+      const row = pregData[i];
+      if (String(row[0] || '').toUpperCase() !== exam) continue;
+      const qId = String(row[2] || '').trim();
+      if (!qId) continue;
+      questions[qId] = {
+        n: row[1], id: qId,
+        type: String(row[3] || 'multiple').toLowerCase(),
+        text: row[6],
+        options: [row[7], row[8], row[9], row[10], row[11]].filter(o => o !== '' && o !== null && o !== undefined),
+        correct: String(row[12] || '').trim()
+      };
+    }
+
+    const respSheet = SS.getSheetByName('Test_' + exam + '_Respuestas');
+    if (!respSheet) return jsonResponse(false, 'Hoja Test_' + exam + '_Respuestas no encontrada');
+    const respData = respSheet.getDataRange().getValues();
+    let examResult = null;
+    for (let i = 1; i < respData.length; i++) {
+      if (String(respData[i][0]) === String(candidate_id)) {
+        examResult = {
+          candidate_id: respData[i][0], started_at: respData[i][1],
+          finished_at: respData[i][2], elapsed_seconds: respData[i][3],
+          responses_json: respData[i][4], blur_events: respData[i][5],
+          copy_attempts: respData[i][6], ai_detection_count: respData[i][7],
+          verdict: respData[i][8], openai_score_json: respData[i][9], flags: respData[i][10]
+        };
+        break;
+      }
+    }
+    if (!examResult) return jsonResponse(false, 'No se encontraron respuestas para ' + candidate_id + ' en ' + exam);
+
+    let responses = {};
+    try { responses = JSON.parse(examResult.responses_json || '{}'); } catch(e) {}
+    let openaiScores = {};
+    try { openaiScores = JSON.parse(examResult.openai_score_json || '{}'); } catch(e) {}
+
+    const results = Object.values(questions).map(q => {
+      const answer = responses[q.id] !== undefined ? responses[q.id] : null;
+      const isCorrect = q.type === 'multiple' ? (answer !== null && String(answer).trim() === q.correct) : null;
+      return { n: q.n, id: q.id, type: q.type, text: q.text, options: q.options, correct: q.correct, answer, is_correct: isCorrect };
+    });
+    results.sort((a, b) => (a.n || 0) - (b.n || 0));
+
+    return jsonResponse(true, 'OK', {
+      candidate_id, exam, verdict: examResult.verdict,
+      blur_events: examResult.blur_events, ai_detection_count: examResult.ai_detection_count,
+      flags: examResult.flags, openai_scores: openaiScores, questions: results
+    });
+  } catch (e) {
+    Logger.log('[handleGetExamResponses Error] ' + e.message);
+    return jsonResponse(false, 'Error: ' + e.message);
+  }
+}
+
+// ================================
+// MODULO: USUARIOS ADMIN
+// ================================
+function handleGetAdminUsers() {
+  try {
+    const sheet = SS.getSheetByName('Usuarios');
+    if (!sheet) return jsonResponse(false, 'Hoja Usuarios no encontrada');
+    const data = sheet.getDataRange().getValues();
+    const users = [];
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (!row[0]) continue;
+      users.push({ email: row[0], role: row[2] || 'admin', created_date: row[3], last_login: row[4], status: row[5] || 'active' });
+    }
+    return jsonResponse(true, 'OK', { users });
+  } catch (e) {
+    Logger.log('[handleGetAdminUsers Error] ' + e.message);
+    return jsonResponse(false, 'Error: ' + e.message);
+  }
+}
+
+function handleGenerateAdminToken(data) {
+  try {
+    if (!validateAdminPin(data.admin_pin)) return jsonResponse(false, 'PIN de admin incorrecto');
+    const email = (data.email || '').trim().toLowerCase();
+    if (!email || !isValidEmail(email)) return jsonResponse(false, 'Email invalido');
+    const role  = data.role || 'admin';
+    const token = Utilities.getUuid();
+    const sheet = SS.getSheetByName('Usuarios');
+    if (!sheet) return jsonResponse(false, 'Hoja Usuarios no encontrada');
+    const existing = sheet.getDataRange().getValues();
+    for (let i = 1; i < existing.length; i++) {
+      if (String(existing[i][0]).toLowerCase() === email) return jsonResponse(false, 'El email ya esta registrado');
+    }
+    sheet.appendRow([email, token, role, new Date(), '', 'active']);
+    return jsonResponse(true, 'Usuario creado', { email, token, role });
+  } catch (e) {
+    Logger.log('[handleGenerateAdminToken Error] ' + e.message);
+    return jsonResponse(false, 'Error: ' + e.message);
+  }
 }
