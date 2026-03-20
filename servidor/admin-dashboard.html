@@ -452,8 +452,10 @@
         .top-nav-user { display: flex; align-items: center; gap: 0.75rem; margin-left: auto; padding-left: 1.25rem; border-left: 1px solid #eee; }
         .top-nav-email { font-size: 0.82rem; font-weight: 600; color: #222; }
         .top-nav-role  { font-size: 0.7rem; color: #aaa; }
-        .top-nav-logout { background: none; border: none; cursor: pointer; color: #bbb; font-size: 1rem; padding: 0.3rem 0.4rem; border-radius: 5px; transition: all 0.15s; }
-        .top-nav-logout:hover { background: #fff0f0; color: #dc3545; }
+        .top-nav-logout { background: none; border: none; cursor: pointer; color: #dc3545; font-size: 0.84rem; padding: 0.3rem 0.6rem; border-radius: 6px; transition: all 0.15s; display:flex; align-items:center; gap:5px; font-weight:600; }
+        .top-nav-logout:hover { background: #fff0f0; }
+        .top-nav-role-badge { display:inline-block; background:#f0a500; color:white; font-size:0.63rem; font-weight:800; padding:1px 7px; border-radius:4px; letter-spacing:0.5px; text-transform:uppercase; }
+        .top-nav-avatar { font-size:1.6rem; color:#ddd; line-height:1; }
         /* ── Dashboard layout ── */
         .dash-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.25rem; }
         .dash-grid   { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
@@ -464,6 +466,41 @@
         .dash-activity-item { display: flex; gap: 0.7rem; align-items: flex-start; padding: 0.6rem 0; border-bottom: 1px solid #f5f5f5; }
         .dash-activity-item:last-child { border-bottom: none; }
         .dash-activity-icon { width: 30px; height: 30px; border-radius: 50%; background: #e8eeff; display: flex; align-items: center; justify-content: center; color: #0d6efd; font-size: 0.75rem; flex-shrink: 0; margin-top: 1px; }
+        /* ── Centro de Ayuda (panel derecho) ── */
+        .help-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.35); z-index:200; opacity:0; pointer-events:none; transition:opacity 0.25s; }
+        .help-overlay.open { opacity:1; pointer-events:all; }
+        .help-drawer { position:fixed; top:0; right:0; bottom:0; width:360px; background:white; box-shadow:-4px 0 24px rgba(0,0,0,0.15); z-index:201; transform:translateX(100%); transition:transform 0.25s ease; display:flex; flex-direction:column; }
+        .help-drawer.open { transform:translateX(0); }
+        .help-header-top { display:flex; justify-content:space-between; align-items:flex-start; padding:1.25rem 1.25rem 0; }
+        .help-title { font-size:1rem; font-weight:800; color:#001A55; display:flex; align-items:center; gap:8px; }
+        .help-subtitle { font-size:0.78rem; color:#999; margin-top:4px; line-height:1.45; padding:0 1.25rem; }
+        .help-close { background:none; border:none; font-size:1.5rem; cursor:pointer; color:#bbb; padding:0; line-height:1; transition:color 0.15s; }
+        .help-close:hover { color:#555; }
+        .help-tabs { display:flex; border-bottom:2px solid #f0f0f0; margin:0.9rem 0 0; padding:0 1.25rem; }
+        .help-tab { flex:1; padding:0.55rem 0; border:none; background:none; font-size:0.82rem; font-weight:600; color:#aaa; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-2px; transition:all 0.15s; }
+        .help-tab.active { color:#001A55; border-bottom-color:#001A55; }
+        .help-body { flex:1; overflow-y:auto; padding:1.1rem 1.25rem; }
+        .help-footer { text-align:center; font-size:0.7rem; color:#ccc; padding:0.6rem; border-top:1px solid #f0f0f0; }
+        /* Manual */
+        .help-section { margin-bottom:1.1rem; }
+        .help-section-title { font-size:0.72rem; font-weight:800; color:#001A55; text-transform:uppercase; letter-spacing:1px; margin-bottom:0.6rem; padding-bottom:0.35rem; border-bottom:1px solid #f0f0f0; }
+        .manual-row { display:flex; gap:0.7rem; padding:0.55rem 0; border-bottom:1px solid #f8f8f8; }
+        .manual-row:last-child { border-bottom:none; }
+        .manual-icon { width:28px; height:28px; border-radius:6px; background:#e8eeff; display:flex; align-items:center; justify-content:center; color:#001A55; font-size:0.72rem; flex-shrink:0; }
+        .manual-text { font-size:0.81rem; color:#555; line-height:1.5; }
+        .manual-text strong { color:#001A55; display:block; font-size:0.83rem; }
+        /* FAQ */
+        .faq-item { border:1px solid #eee; border-radius:8px; margin-bottom:6px; overflow:hidden; }
+        .faq-q { width:100%; text-align:left; padding:0.75rem 1rem; background:none; border:none; cursor:pointer; font-size:0.83rem; font-weight:600; color:#222; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+        .faq-q:hover { background:#fafafa; }
+        .faq-a { padding:0 1rem 0.75rem; font-size:0.8rem; color:#666; line-height:1.6; display:none; }
+        .faq-a.open { display:block; }
+        /* Contacto */
+        .contact-card { border:1px solid #eee; border-radius:8px; padding:0.9rem 1rem; margin-bottom:8px; }
+        .contact-card h4 { font-size:0.85rem; font-weight:700; color:#001A55; margin-bottom:2px; }
+        .contact-card p { font-size:0.78rem; color:#999; margin-bottom:8px; line-height:1.4; }
+        .contact-link { display:inline-flex; align-items:center; gap:6px; font-size:0.81rem; color:#0d6efd; padding:0.28rem 0.7rem; border:1px solid #c5d3ff; border-radius:6px; text-decoration:none; transition:all 0.15s; }
+        .contact-link:hover { background:#e8eeff; }
     </style>
 </head>
 <body>
@@ -513,19 +550,20 @@
             <i class="fas fa-shield-alt"></i> Catholizare
         </div>
         <nav class="top-nav-tabs">
-            <button class="top-tab active"><i class="fas fa-th-large"></i> Selección</button>
-            <button class="top-tab"><i class="fas fa-headset"></i> Soporte</button>
+            <button class="top-tab active"><i class="fas fa-border-all"></i> Selección</button>
+            <button class="top-tab" onclick="toggleHelp()"><i class="fas fa-headset"></i> Soporte</button>
             <button class="top-tab icon-only" onclick="showView('superadmin')" title="Configuración">
                 <i class="fas fa-cog"></i>
             </button>
         </nav>
         <div class="top-nav-user">
-            <div>
+            <div style="text-align:right;">
                 <div class="top-nav-email" id="topNavEmail">Admin</div>
-                <div class="top-nav-role"  id="topNavRole">Administrador</div>
+                <div><span id="topNavRole" class="top-nav-role-badge">Admin</span></div>
             </div>
-            <button class="top-nav-logout" onclick="logout()" title="Cerrar sesión">
-                <i class="fas fa-sign-out-alt"></i>
+            <i class="fas fa-user-circle top-nav-avatar"></i>
+            <button class="top-nav-logout" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> Salir
             </button>
         </div>
     </div>
@@ -1546,6 +1584,113 @@
                 if (event.target === modal) modal.style.display = 'none';
             });
         };
+
+        // ── Centro de Ayuda ─────────────────────────────────────────────────
+        function toggleHelp() {
+            document.getElementById('helpOverlay').classList.toggle('open');
+            document.getElementById('helpDrawer').classList.toggle('open');
+            if (document.getElementById('helpDrawer').classList.contains('open')) {
+                switchHelpTab('manual', document.querySelector('.help-tab'));
+            }
+        }
+        function switchHelpTab(tab, btn) {
+            document.querySelectorAll('.help-tab').forEach(t => t.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            const body = document.getElementById('helpBody');
+            if (tab === 'manual')   body.innerHTML = getManualHTML();
+            else if (tab === 'faq') body.innerHTML = getFAQHTML();
+            else                    body.innerHTML = getContactoHTML();
+        }
+        function toggleFAQ(el) {
+            const ans = el.nextElementSibling;
+            ans.classList.toggle('open');
+            el.querySelector('.faq-chev').textContent = ans.classList.contains('open') ? '▲' : '▼';
+        }
+        function getManualHTML() {
+            return `
+            <div class="help-section">
+                <div class="help-section-title">Menú Lateral</div>
+                <div class="manual-row"><div class="manual-icon"><i class="fas fa-chart-bar"></i></div><div class="manual-text"><strong>Dashboard</strong>Resumen de acciones pendientes y actividad reciente.</div></div>
+                <div class="manual-row"><div class="manual-icon"><i class="fas fa-users"></i></div><div class="manual-text"><strong>Profesionales</strong>Listado completo con filtros de búsqueda y estado.</div></div>
+                <div class="manual-row"><div class="manual-icon"><i class="fas fa-clipboard-list"></i></div><div class="manual-text"><strong>Ver Respuestas</strong>Respuestas de E1, E2 y E3 con marcadores correcto/incorrecto.</div></div>
+                <div class="manual-row"><div class="manual-icon"><i class="fas fa-user-shield"></i></div><div class="manual-text"><strong>Gestión de Usuarios</strong>Administra los accesos al panel.</div></div>
+                <div class="manual-row"><div class="manual-icon"><i class="fas fa-heartbeat"></i></div><div class="manual-text"><strong>System Health</strong>Estado de los servicios del sistema en tiempo real.</div></div>
+            </div>
+            <div class="help-section">
+                <div class="help-section-title">Botón ⚙ Acciones (por candidato)</div>
+                <div class="manual-row"><div class="manual-icon"><i class="fas fa-envelope"></i></div><div class="manual-text"><strong>Reenviar Correos</strong>Reenvía invitación a E1/E2/E3, términos, entrevista o bienvenida.</div></div>
+                <div class="manual-row"><div class="manual-icon"><i class="fas fa-users"></i></div><div class="manual-text"><strong>Listas Brevo</strong>Añade al candidato a grupos: interesados, agenda, rechazados, inconclusos.</div></div>
+                <div class="manual-row"><div class="manual-icon"><i class="fas fa-check-circle"></i></div><div class="manual-text"><strong>Aprobar Examen</strong>Marca E1, E2 o E3 como aprobado manualmente.</div></div>
+                <div class="manual-row"><div class="manual-icon"><i class="fas fa-handshake"></i></div><div class="manual-text"><strong>Resultado Entrevista</strong>Registra PASS (pasa a categoría) o FAIL (envía correo de rechazo).</div></div>
+                <div class="manual-row"><div class="manual-icon"><i class="fas fa-award"></i></div><div class="manual-text"><strong>Asignar Categoría</strong>Tras entrevista PASS: asigna Junior, Senior o Expert.</div></div>
+                <div class="manual-row"><div class="manual-icon"><i class="fas fa-times-circle"></i></div><div class="manual-text"><strong>Rechazar</strong>Cierra el proceso definitivamente con correo de rechazo.</div></div>
+            </div>`;
+        }
+        function getFAQHTML() {
+            const faqs = [
+                ['¿En qué consiste el proceso de admisión?', 'El proceso tiene 5 etapas: Registro → E1 → E2 → E3 → Entrevista → Aprobación. Cada etapa debe superarse para avanzar.'],
+                ['¿Cómo sé cuándo revisar un examen?', 'El Dashboard muestra en "Acciones Pendientes" los candidatos con revisión pendiente. En Profesionales verás el estado "Revisión E1/E2/E3".'],
+                ['¿Cómo paso un candidato de E1 a E2?', 'Abre ⚙ Acciones → "Aprobar E1". El sistema envía automáticamente el correo con enlace a E2.'],
+                ['¿Qué hago si un candidato reprueba?', 'Usa ⚙ Acciones → "Rechazar". Escribe el motivo y el sistema cierra el proceso enviando correo al candidato.'],
+                ['¿Cómo se califican los exámenes?', 'Las preguntas de opción múltiple se califican automáticamente. Las preguntas abiertas las evalúa IA (OpenAI) según calidad y autenticidad.'],
+                ['¿Qué es "Firma de Términos"?', 'Tras aprobar E1, el candidato debe aceptar términos antes de continuar. Puedes reenviar el correo de términos desde ⚙ Acciones.'],
+                ['¿Cómo agendo una entrevista?', 'Cuando el estado es "Entrevista por agendar": ⚙ Acciones → Reenviar Correos → "Agendar" para enviar el enlace de agendamiento.'],
+                ['¿Cómo asigno la categoría final?', 'Después de entrevista PASS, en el modal de Acciones aparece la sección "Asignar Categoría". Selecciona Junior, Senior o Expert.'],
+                ['¿Qué hago si no recibió un correo?', 'Ve a ⚙ Acciones → "Reenviar Correos" y selecciona el tipo correspondiente a la etapa actual del candidato.'],
+                ['¿Cómo veo las respuestas de un examen?', 'Ve a "Ver Respuestas" en el menú lateral. Selecciona el candidato y navega entre las tabs E1, E2 y E3.'],
+            ];
+            return '<div class="help-section"><div class="help-section-title">Preguntas Frecuentes</div>' +
+                faqs.map(([q, a]) => `
+                <div class="faq-item">
+                    <button class="faq-q" onclick="toggleFAQ(this)">
+                        <span>${q}</span><span class="faq-chev" style="font-size:0.7rem;opacity:0.45;flex-shrink:0;">▼</span>
+                    </button>
+                    <div class="faq-a">${a}</div>
+                </div>`).join('') + '</div>';
+        }
+        function getContactoHTML() {
+            return `
+            <div class="contact-card">
+                <h4><i class="fas fa-envelope" style="color:#0d6efd;margin-right:6px;"></i>Soporte por Correo</h4>
+                <p>Para problemas técnicos, dudas o sugerencias, no dudes en escribirnos.</p>
+                <a class="contact-link" href="mailto:sistemascatholizare@gmail.com"><i class="fas fa-envelope"></i> sistemascatholizare@gmail.com</a>
+            </div>
+            <div class="contact-card">
+                <h4><i class="fab fa-whatsapp" style="color:#25d366;margin-right:6px;"></i>WhatsApp</h4>
+                <p>Contáctanos directamente para una respuesta rápida.</p>
+                <a class="contact-link" href="https://wa.me/573001234567" target="_blank"><i class="fab fa-whatsapp"></i> Abrir WhatsApp</a>
+            </div>
+            <div class="contact-card">
+                <h4><i class="fas fa-video" style="color:#2d8cff;margin-right:6px;"></i>Reunión por Zoom</h4>
+                <p>Únete a nuestra sala de soporte para asistencia en tiempo real.</p>
+                <a class="contact-link" href="#" target="_blank"><i class="fas fa-video"></i> Unirse a Zoom</a>
+            </div>
+            <div class="contact-card">
+                <h4><i class="fas fa-clock" style="color:#888;margin-right:6px;"></i>Horario de Atención</h4>
+                <p>Nuestro equipo está disponible en el siguiente horario:</p>
+                <div style="font-size:0.84rem;font-weight:700;color:#001A55;">Lunes a Viernes: 9:00 AM – 6:00 PM (CST)</div>
+            </div>`;
+        }
+        // ────────────────────────────────────────────────────────────────────
     </script>
+
+    <!-- Centro de Ayuda: overlay + drawer -->
+    <div id="helpOverlay" class="help-overlay" onclick="toggleHelp()"></div>
+    <div id="helpDrawer" class="help-drawer">
+        <div class="help-header-top">
+            <div>
+                <div class="help-title"><i class="fas fa-cog"></i> Centro de Ayuda</div>
+            </div>
+            <button class="help-close" onclick="toggleHelp()">&times;</button>
+        </div>
+        <div class="help-subtitle">Encuentra respuestas, guías y contacta a nuestro equipo de soporte.</div>
+        <div class="help-tabs">
+            <button class="help-tab active" onclick="switchHelpTab('manual', this)">📖 Manual</button>
+            <button class="help-tab"        onclick="switchHelpTab('faq', this)">❓ FAQ</button>
+            <button class="help-tab"        onclick="switchHelpTab('contacto', this)">📮 Contacto</button>
+        </div>
+        <div id="helpBody" class="help-body"></div>
+        <div class="help-footer">Versión del sistema: 1.0</div>
+    </div>
 </body>
 </html>
