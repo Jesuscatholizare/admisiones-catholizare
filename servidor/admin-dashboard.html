@@ -435,6 +435,35 @@
         .quick-btn { background: #f8f9fc; border: 1.5px solid #e8e8e8; border-radius: 10px; padding: 0.9rem 1rem; cursor: pointer; text-align: center; transition: all 0.15s; font-size: 0.85rem; color: #333; font-weight: 500; }
         .quick-btn i { display: block; font-size: 1.4rem; margin-bottom: 0.4rem; color: #001A55; opacity: 0.7; }
         .quick-btn:hover { background: #eff3ff; border-color: #c5d3ff; color: #001A55; }
+        /* ── Top Navbar ── */
+        .top-navbar {
+            background: white; border-bottom: 1px solid #eaeaea;
+            height: 54px; display: flex; align-items: center; gap: 1rem;
+            padding: 0 1.5rem; position: sticky; top: 0; z-index: 50;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.05); flex-shrink: 0;
+        }
+        .top-nav-brand { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 1rem; color: #001A55; padding-right: 1.25rem; border-right: 1px solid #eee; white-space: nowrap; }
+        .top-nav-brand i { color: #0d6efd; font-size: 1.05rem; }
+        .top-nav-tabs { display: flex; gap: 2px; align-items: center; }
+        .top-tab { padding: 0.38rem 0.9rem; border: none; background: none; border-radius: 6px; cursor: pointer; font-size: 0.84rem; color: #777; display: flex; align-items: center; gap: 0.35rem; transition: all 0.15s; font-weight: 500; white-space: nowrap; }
+        .top-tab:hover  { background: #f5f7ff; color: #001A55; }
+        .top-tab.active { background: #001A55; color: white; }
+        .top-tab.icon-only { padding: 0.38rem 0.55rem; }
+        .top-nav-user { display: flex; align-items: center; gap: 0.75rem; margin-left: auto; padding-left: 1.25rem; border-left: 1px solid #eee; }
+        .top-nav-email { font-size: 0.82rem; font-weight: 600; color: #222; }
+        .top-nav-role  { font-size: 0.7rem; color: #aaa; }
+        .top-nav-logout { background: none; border: none; cursor: pointer; color: #bbb; font-size: 1rem; padding: 0.3rem 0.4rem; border-radius: 5px; transition: all 0.15s; }
+        .top-nav-logout:hover { background: #fff0f0; color: #dc3545; }
+        /* ── Dashboard layout ── */
+        .dash-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.25rem; }
+        .dash-grid   { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+        .dash-pending-item { padding: 0.75rem 0.9rem; border: 1px solid #f0f0f0; border-radius: 8px; display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; transition: border-color 0.15s; }
+        .dash-pending-item:hover { border-color: #c5d3ff; }
+        .dash-pending-item:last-child { margin-bottom: 0; }
+        .dash-avatar { width: 34px; height: 34px; border-radius: 50%; background: #e8eeff; display: flex; align-items: center; justify-content: center; color: #001A55; font-size: 0.75rem; font-weight: 700; flex-shrink: 0; }
+        .dash-activity-item { display: flex; gap: 0.7rem; align-items: flex-start; padding: 0.6rem 0; border-bottom: 1px solid #f5f5f5; }
+        .dash-activity-item:last-child { border-bottom: none; }
+        .dash-activity-icon { width: 30px; height: 30px; border-radius: 50%; background: #e8eeff; display: flex; align-items: center; justify-content: center; color: #0d6efd; font-size: 0.75rem; flex-shrink: 0; margin-top: 1px; }
     </style>
 </head>
 <body>
@@ -477,20 +506,44 @@
     </aside>
     <!-- Main Content -->
     <div class="main-content">
-    <!-- Vista: Dashboard + Profesionales (actual) -->
+
+    <!-- Top Navbar -->
+    <div class="top-navbar">
+        <div class="top-nav-brand">
+            <i class="fas fa-shield-alt"></i> Catholizare
+        </div>
+        <nav class="top-nav-tabs">
+            <button class="top-tab active"><i class="fas fa-th-large"></i> Selección</button>
+            <button class="top-tab"><i class="fas fa-headset"></i> Soporte</button>
+            <button class="top-tab icon-only" onclick="showView('superadmin')" title="Configuración">
+                <i class="fas fa-cog"></i>
+            </button>
+        </nav>
+        <div class="top-nav-user">
+            <div>
+                <div class="top-nav-email" id="topNavEmail">Admin</div>
+                <div class="top-nav-role"  id="topNavRole">Administrador</div>
+            </div>
+            <button class="top-nav-logout" onclick="logout()" title="Cerrar sesión">
+                <i class="fas fa-sign-out-alt"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Vista: Dashboard -->
     <div id="view-dashboard" class="view active">
     <div class="container">
         <div class="header-section">
             <div>
-                <h1>Gestión de Candidatos</h1>
+                <h1>Dashboard</h1>
                 <small id="lastUpdate">Última actualización: --:--</small>
             </div>
         </div>
-        <!-- Stats -->
-        <div class="stats-grid">
+        <!-- Stats (4 cards, IDs intactos para updateStats) -->
+        <div class="dash-stats">
             <div class="stat-card">
                 <div class="stat-value" id="statTotal">0</div>
-                <div class="stat-label">Candidatos Totales</div>
+                <div class="stat-label">Total Candidatos</div>
                 <div class="stat-meta">Registrados en el sistema</div>
             </div>
             <div class="stat-card">
@@ -506,8 +559,38 @@
             <div class="stat-card">
                 <div class="stat-value" id="statRejected">0</div>
                 <div class="stat-label">Rechazados</div>
-                <div class="stat-meta">No continuaron en proceso</div>
+                <div class="stat-meta">No continuaron</div>
             </div>
+        </div>
+        <!-- Panels: Acciones Pendientes + Actividad Reciente -->
+        <div class="dash-grid">
+            <div class="admin-card" style="overflow-y:auto;max-height:420px;">
+                <h3 style="margin-bottom:0.9rem;"><i class="fas fa-bolt" style="color:#f0a500;margin-right:6px;font-size:0.9rem;"></i>Acciones Pendientes</h3>
+                <div id="dashPendingList">
+                    <div class="resp-empty" style="padding:2rem;"><i class="fas fa-spinner fa-spin"></i></div>
+                </div>
+            </div>
+            <div class="admin-card" style="overflow-y:auto;max-height:420px;">
+                <h3 style="margin-bottom:0.9rem;"><i class="fas fa-history" style="color:#0d6efd;margin-right:6px;font-size:0.9rem;"></i>Actividad Reciente</h3>
+                <div id="dashActivity">
+                    <div class="resp-empty" style="padding:2rem;"><i class="fas fa-spinner fa-spin"></i></div>
+                </div>
+            </div>
+        </div>
+    </div><!-- /.container -->
+    </div><!-- /#view-dashboard -->
+
+    <!-- Vista: Profesionales (tabla completa) -->
+    <div id="view-profesionales" class="view">
+    <div class="container">
+        <div class="header-section">
+            <div>
+                <h1><i class="fas fa-users" style="color:var(--primary);font-size:1.3rem;vertical-align:middle;margin-right:0.5rem;"></i>Profesionales</h1>
+                <small>Candidatos del proceso de selección</small>
+            </div>
+            <button class="btn" style="background:#001A55;color:white;" onclick="refreshData()">
+                <i class="fas fa-sync-alt"></i> Actualizar
+            </button>
         </div>
         <!-- Filters -->
         <div class="filters-section">
@@ -538,7 +621,7 @@
             </div>
         </div>
     </div><!-- /.container -->
-    </div><!-- /#view-dashboard -->
+    </div><!-- /#view-profesionales -->
 
     <!-- Vista: Ver Respuestas -->
     <div id="view-respuestas" class="view">
@@ -838,6 +921,7 @@
                     candidates = payload.candidates || [];
                     updateStats(payload.stats || { total: 0, pending: 0, approved: 0, rejected: 0 });
                     renderTable(candidates);
+                    buildDashboard();
                     updateLastUpdate();
                 } else {
                     showToast('Error al cargar datos: ' + data.message, 'error');
@@ -1035,13 +1119,94 @@
             document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
             const viewEl = document.getElementById('view-' + view);
             if (viewEl) viewEl.classList.add('active');
-            // aliases y hooks por vista
-            if (view === 'profesionales') document.getElementById('view-dashboard').classList.add('active');
-            if (view === 'respuestas')    renderRespCandidates('');
-            if (view === 'usuarios')      loadAdminUsers();
-            if (view === 'superadmin')    initSuperAdmin();
-            if (view === 'health')        loadHealth();
+            // hooks por vista
+            if (view === 'dashboard')  buildDashboard();
+            if (view === 'respuestas') renderRespCandidates('');
+            if (view === 'usuarios')   loadAdminUsers();
+            if (view === 'superadmin') initSuperAdmin();
+            if (view === 'health')     loadHealth();
         }
+
+        // ── Dashboard ───────────────────────────────────────────────────────
+        const PENDING_STATUSES = ['registered','pending_review_E1','awaiting_terms_acceptance','pending_review_E2','pending_review_E3','awaiting_interview','awaiting_category'];
+        const STATUS_LABEL = {
+            'registered':               'Revisión E1 pendiente',
+            'pending_review_E1':        'Revisión E1 pendiente',
+            'awaiting_terms_acceptance':'Firma de términos pendiente',
+            'pending_review_E2':        'Revisión E2 pendiente',
+            'pending_review_E3':        'Revisión E3 pendiente',
+            'awaiting_interview':       'Entrevista por agendar',
+            'awaiting_category':        'Asignación de categoría',
+            'approved_junior':          'Aprobado Junior',
+            'approved_senior':          'Aprobado Senior',
+            'approved_expert':          'Aprobado Expert',
+            'rejected':                 'Rechazado',
+        };
+        const STATUS_ICON = {
+            'registered':'fa-user-plus', 'pending_review_E1':'fa-file-alt',
+            'awaiting_terms_acceptance':'fa-file-signature', 'pending_review_E2':'fa-file-alt',
+            'pending_review_E3':'fa-file-alt', 'awaiting_interview':'fa-handshake',
+            'awaiting_category':'fa-award', 'approved_junior':'fa-check-circle',
+            'approved_senior':'fa-check-circle', 'approved_expert':'fa-check-circle',
+            'rejected':'fa-times-circle',
+        };
+
+        function buildDashboard() {
+            buildPendingList();
+            buildActivityFeed();
+        }
+
+        function buildPendingList() {
+            const el = document.getElementById('dashPendingList');
+            if (!el) return;
+            const pending = candidates.filter(c => PENDING_STATUSES.includes(c.status));
+            if (!pending.length) {
+                el.innerHTML = '<div class="resp-empty" style="padding:2rem;"><i class="fas fa-check-circle" style="color:#198754;font-size:1.8rem;"></i><p style="margin-top:0.5rem;color:#aaa;">Sin acciones pendientes</p></div>';
+                return;
+            }
+            el.innerHTML = pending.map(c => {
+                const initials = (c.nombre || '?').split(' ').slice(0,2).map(w => w[0] || '').join('').toUpperCase() || '?';
+                return `<div class="dash-pending-item">
+                    <div class="dash-avatar">${initials}</div>
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-weight:600;font-size:0.875rem;color:#001A55;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.nombre || c.candidato_id}</div>
+                        <div style="font-size:0.77rem;color:#888;margin-top:1px;">${STATUS_LABEL[c.status] || c.status}</div>
+                    </div>
+                    <button class="btn" style="font-size:0.75rem;padding:0.28rem 0.65rem;background:#001A55;color:white;flex-shrink:0;"
+                            onclick="openAcciones('${c.candidato_id}')">
+                        <i class="fas fa-bolt"></i>
+                    </button>
+                </div>`;
+            }).join('');
+        }
+
+        function buildActivityFeed() {
+            const el = document.getElementById('dashActivity');
+            if (!el) return;
+            const sorted = [...candidates]
+                .filter(c => c.last_interaction)
+                .sort((a, b) => new Date(b.last_interaction) - new Date(a.last_interaction))
+                .slice(0, 10);
+            if (!sorted.length) {
+                el.innerHTML = '<div class="resp-empty" style="padding:2rem;"><i class="fas fa-history" style="font-size:1.8rem;"></i><p style="margin-top:0.5rem;">Sin actividad reciente</p></div>';
+                return;
+            }
+            el.innerHTML = sorted.map(c => {
+                const icon   = STATUS_ICON[c.status] || 'fa-circle';
+                const diff   = Date.now() - new Date(c.last_interaction);
+                const days   = Math.floor(diff / 86400000);
+                const timeAgo = days === 0 ? 'Hoy' : days === 1 ? 'Ayer' : `Hace ${days}d`;
+                return `<div class="dash-activity-item">
+                    <div class="dash-activity-icon"><i class="fas ${icon}"></i></div>
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-size:0.875rem;font-weight:600;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.nombre || c.candidato_id}</div>
+                        <div style="font-size:0.77rem;color:#888;">${STATUS_LABEL[c.status] || c.status}</div>
+                    </div>
+                    <div style="font-size:0.72rem;color:#ccc;flex-shrink:0;margin-left:0.5rem;">${timeAgo}</div>
+                </div>`;
+            }).join('');
+        }
+        // ───────────────────────────────────────────────────────────────────
 
         // ── Ver Respuestas ──────────────────────────────────────────────────
         let respSelectedId   = null;
