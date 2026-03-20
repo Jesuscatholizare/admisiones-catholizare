@@ -1127,25 +1127,55 @@
 
         function renderTLPerfil(c) {
             if (!c) return '';
+            const fmtDate = d => d ? new Date(d).toLocaleDateString('es-MX') : '—';
+            const fmtScore = s => (s !== null && s !== undefined && s !== '') ? `<strong>${s}</strong>` : '—';
             const fields = [
                 ['ID',          c.candidato_id || '—'],
                 ['Nombre',      c.nombre       || '—'],
                 ['Email',       c.email        || '—'],
                 ['Estado',      getStatusBadge(c.status)],
-                ['Registrado',  c.fecha_registro ? new Date(c.fecha_registro).toLocaleDateString('es-MX') : '—'],
+                ['Registrado',  fmtDate(c.registration_date)],
                 ['Teléfono',    c.telefono     || '—'],
                 ['País',        c.pais         || '—'],
                 ['Profesión',   c.profesion    || '—'],
             ];
+            if (c.final_category) fields.push(['Categoría final', `<span style="font-weight:700;color:#2e7d32">${c.final_category}</span>`]);
+            if (c.last_interaction) fields.push(['Última interacción', fmtDate(c.last_interaction)]);
             const rows = fields.map(([k,v]) =>
                 `<div class="tl-field-row"><span class="tl-field-label">${k}</span><span class="tl-field-value">${v}</span></div>`
             ).join('');
+
+            // Card: Resultados de Exámenes
+            const exams = [
+                { label:'Examen E1', score: c.E1_score, date: c.E1_date },
+                { label:'Examen E2', score: c.E2_score, date: c.E2_date },
+                { label:'Examen E3', score: c.E3_score, date: c.E3_date },
+            ];
+            const examRows = exams.map(ex => {
+                const hasData = (ex.score !== null && ex.score !== undefined && ex.score !== '') || ex.date;
+                const scoreHTML = hasData ? fmtScore(ex.score) : '<span style="color:#aaa;font-style:italic">Pendiente</span>';
+                const dateHTML  = ex.date ? `<span style="color:#888;font-size:.8em">${fmtDate(ex.date)}</span>` : '';
+                return `<div class="tl-field-row">
+                    <span class="tl-field-label">${ex.label}</span>
+                    <span class="tl-field-value" style="display:flex;flex-direction:column;gap:2px">${scoreHTML}${dateHTML}</span>
+                </div>`;
+            }).join('');
+
+            // Notas de entrevista
+            const notesHTML = c.interview_notes
+                ? `<div class="tl-card-block" style="margin-top:.5rem">
+                    <div class="tl-card-title"><i class="fas fa-comment-alt"></i> Notas de Entrevista</div>
+                    <p style="margin:.5rem 0 0;font-size:.85em;line-height:1.5;color:#444">${c.interview_notes}</p>
+                   </div>` : '';
+
             const brevoLists = ['interesados','agenda','rechazados','inconclusos'];
             const brevoRows = brevoLists.map(b =>
                 `<div class="tl-brevo-row"><span>${b.charAt(0).toUpperCase()+b.slice(1)}</span><button class="tl-brevo-btn" onclick="doAddToBrevoList('${b}')"><i class="fas fa-plus"></i> Añadir</button></div>`
             ).join('');
             return `<div class="tl-perfil"><div class="tl-cards">
                 <div class="tl-card-block"><div class="tl-card-title"><i class="fas fa-user"></i> Datos del Candidato</div><div class="tl-fields">${rows}</div></div>
+                <div class="tl-card-block"><div class="tl-card-title"><i class="fas fa-chart-bar"></i> Resultados de Exámenes</div><div class="tl-fields">${examRows}</div></div>
+                ${notesHTML}
                 <div class="tl-card-block"><div class="tl-card-title"><i class="fas fa-users"></i> Listas Brevo</div><div class="tl-brevo-list">${brevoRows}</div></div>
             </div></div>`;
         }
@@ -1195,7 +1225,14 @@
                     </div>
                 </div>`;
             }).join('');
-            return `<div class="tl-timeline">${phases}</div>`;
+            const rejectedActions = isRejected
+                ? `<div class="tl-action-box" style="margin-top:1rem;background:#fff5f5;border:1px solid #f5c2c7">
+                    <div class="tl-email-row">
+                        <span><i class="fas fa-envelope"></i> Reenviar correo de rechazo</span>
+                        <button class="tl-send-btn" onclick="doSendEmailTL('rejected')"><i class="fas fa-paper-plane"></i> Enviar</button>
+                    </div>
+                   </div>` : '';
+            return `<div class="tl-timeline">${phases}${rejectedActions}</div>`;
         }
 
         function updateAvanzarBtn(c) {

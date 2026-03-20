@@ -1038,6 +1038,8 @@ function getCandidatesForAdmin() {
           nombre:           data[i][2],
           email:            data[i][3],
           telefono:         data[i][4],
+          pais:             data[i][5],
+          profesion:        data[i][7],
           status:           data[i][10],
           E1_score:         data[i][11],
           E1_date:          data[i][12],
