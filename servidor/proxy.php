@@ -84,6 +84,7 @@ $allowed_actions = [
     'getAdminUsers',
     'generateAdminToken',
     'health',
+    'gasDiagnostic',
     'registerInterviewResult',
 ];
 

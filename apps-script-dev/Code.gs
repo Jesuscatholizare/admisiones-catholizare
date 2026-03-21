@@ -414,6 +414,7 @@ function doPost(e) {
       case 'getAdminUsers':             return handleGetAdminUsers();
       case 'generateAdminToken':        return handleGenerateAdminToken(data);
       case 'health':                    return jsonResponse(true, 'OK', checkSystemHealth());
+      case 'gasDiagnostic':             return handleGasDiagnostic();
       default:
         return jsonResponse(false, 'Accion no valida: ' + action);
     }
@@ -1816,6 +1817,109 @@ function checkSystemHealth() {
 
   Logger.log('=== HEALTH CHECK ===\n' + JSON.stringify(health, null, 2));
   return health;
+}
+
+// ================================
+// MODULO: DIAGNOSTICO GAS COMPLETO
+// ================================
+function handleGasDiagnostic() {
+  const tests = [];
+
+  function run(name, fn) {
+    const t0 = Date.now();
+    try {
+      const detail = fn();
+      if (detail !== '__skip__') tests.push({ test: name, status: 'OK', detail: detail || 'OK', ms: Date.now() - t0 });
+    } catch(e) {
+      if (e.message !== '__skip__') tests.push({ test: name, status: e.message.startsWith('WARN:') ? 'WARNING' : 'ERROR', detail: e.message.replace('WARN:','').trim(), ms: Date.now() - t0 });
+    }
+  }
+
+  run('Spreadsheet principal', function() {
+    return 'ID: ' + SS.getId().substring(0, 10) + '...';
+  });
+
+  run('Hojas requeridas', function() {
+    const required = ['Config','Candidatos','Tokens','Timeline','Preguntas','Usuarios','Notificaciones'];
+    const names    = SS.getSheets().map(function(s){ return s.getName(); });
+    const missing  = required.filter(function(n){ return !names.includes(n); });
+    if (missing.length) throw new Error('WARN: Faltan: ' + missing.join(', '));
+    return names.length + ' hojas presentes';
+  });
+
+  run('Candidatos — lectura', function() {
+    const sheet = SS.getSheetByName('Candidatos');
+    if (!sheet) throw new Error('Hoja no encontrada');
+    return Math.max(0, sheet.getLastRow()-1) + ' registros';
+  });
+
+  run('Tokens — lectura', function() {
+    const sheet = SS.getSheetByName('Tokens');
+    if (!sheet) throw new Error('Hoja no encontrada');
+    return Math.max(0, sheet.getLastRow()-1) + ' tokens';
+  });
+
+  run('Timeline — eventos', function() {
+    const sheet = SS.getSheetByName('Timeline');
+    if (!sheet) throw new Error('Hoja no encontrada');
+    return Math.max(0, sheet.getLastRow()-1) + ' eventos';
+  });
+
+  run('Usuarios — admins', function() {
+    const sheet = SS.getSheetByName('Usuarios');
+    if (!sheet) throw new Error('Hoja no encontrada');
+    return Math.max(0, sheet.getLastRow()-1) + ' admins registrados';
+  });
+
+  run('Config — claves y PIN', function() {
+    const missing = [];
+    if (!CONFIG.brevo_api_key)  missing.push('BREVO_API_KEY');
+    if (!CONFIG.openai_api_key) missing.push('OPENAI_API_KEY');
+    if (!CONFIG.admin_pin)      missing.push('ADMIN_PIN');
+    if (!CONFIG.email_from)     missing.push('email_from');
+    if (!CONFIG.email_admin)    missing.push('email_admin');
+    if (missing.length) throw new Error('WARN: Faltan: ' + missing.join(', '));
+    return 'Todas las claves configuradas';
+  });
+
+  run('Banco de preguntas E1/E2/E3', function() {
+    const sheet = SS.getSheetByName('Preguntas');
+    if (!sheet) throw new Error('Hoja no encontrada');
+    var data = sheet.getDataRange().getValues();
+    var e1=0, e2=0, e3=0;
+    for (var i=1; i<data.length; i++) {
+      var ex = String(data[i][0]||'').toUpperCase();
+      if (ex==='E1') e1++; else if (ex==='E2') e2++; else if (ex==='E3') e3++;
+    }
+    return 'E1:' + e1 + '  E2:' + e2 + '  E3:' + e3;
+  });
+
+  run('Brevo API — conectividad', function() {
+    if (!CONFIG.brevo_api_key) throw new Error('WARN: API key no configurada');
+    var resp = UrlFetchApp.fetch('https://api.brevo.com/v3/account', {
+      method: 'GET', headers: { 'api-key': CONFIG.brevo_api_key }, muteHttpExceptions: true
+    });
+    if (resp.getResponseCode() !== 200) throw new Error('HTTP ' + resp.getResponseCode());
+    return 'Conectado';
+  });
+
+  run('OpenAI API — conectividad', function() {
+    if (!CONFIG.openai_api_key) throw new Error('WARN: API key no configurada');
+    var resp = UrlFetchApp.fetch('https://api.openai.com/v1/models', {
+      method: 'GET', headers: { 'Authorization': 'Bearer ' + CONFIG.openai_api_key }, muteHttpExceptions: true
+    });
+    if (resp.getResponseCode() !== 200) throw new Error('HTTP ' + resp.getResponseCode());
+    return 'Conectado';
+  });
+
+  var hasError   = tests.some(function(t){ return t.status==='ERROR'; });
+  var hasWarning = tests.some(function(t){ return t.status==='WARNING'; });
+
+  return jsonResponse(true, 'Diagnóstico completado', {
+    overall:   hasError ? 'ERROR' : hasWarning ? 'WARNING' : 'OK',
+    tests:     tests,
+    timestamp: new Date().toISOString()
+  });
 }
 
 // ================================

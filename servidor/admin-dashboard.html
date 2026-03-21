@@ -734,9 +734,14 @@
                 <h1><i class="fas fa-users" style="color:var(--primary);font-size:1.3rem;vertical-align:middle;margin-right:0.5rem;"></i>Profesionales</h1>
                 <small>Candidatos del proceso de selección</small>
             </div>
-            <button class="btn" style="background:#001A55;color:white;" onclick="refreshData()">
-                <i class="fas fa-sync-alt"></i> Actualizar
-            </button>
+            <div style="display:flex;gap:0.6rem;">
+                <button class="btn" style="background:#198754;color:white;" onclick="document.getElementById('modalAgregarProfesional').style.display='block'">
+                    <i class="fas fa-user-plus"></i> + Agregar Profesional
+                </button>
+                <button class="btn" style="background:#001A55;color:white;" onclick="refreshData()">
+                    <i class="fas fa-sync-alt"></i> Actualizar
+                </button>
+            </div>
         </div>
         <!-- Filters -->
         <div class="filters-section">
@@ -820,9 +825,14 @@
                     <h1><i class="fas fa-user-shield" style="color:var(--primary);font-size:1.4rem;vertical-align:middle;margin-right:0.5rem;"></i>Gestión de Usuarios</h1>
                     <small>Administradores con acceso al panel</small>
                 </div>
-                <button class="btn" style="background:#001A55;color:white;" onclick="loadAdminUsers()">
-                    <i class="fas fa-sync-alt"></i> Actualizar
-                </button>
+                <div style="display:flex;gap:0.6rem;">
+                    <button class="btn" style="background:#7c3aed;color:white;" onclick="document.getElementById('modalAgregarAdmin').style.display='block'">
+                        <i class="fas fa-user-plus"></i> + Agregar Admin
+                    </button>
+                    <button class="btn" style="background:#001A55;color:white;" onclick="loadAdminUsers()">
+                        <i class="fas fa-sync-alt"></i> Actualizar
+                    </button>
+                </div>
             </div>
             <div class="admin-card" style="padding:0;overflow:hidden;">
                 <div id="usersTableWrap" style="overflow-x:auto;">
@@ -906,6 +916,9 @@
                 </div>
                 <div style="display:flex;gap:0.75rem;align-items:center;">
                     <span id="healthLastCheck" style="font-size:0.8rem;color:#aaa;"></span>
+                    <button class="btn" style="background:#6c757d;color:white;" onclick="runGasDiagnostics()">
+                        <i class="fas fa-flask"></i> Diagnóstico GAS
+                    </button>
                     <button class="btn" style="background:#001A55;color:white;" onclick="loadHealth()">
                         <i class="fas fa-sync-alt"></i> Verificar
                     </button>
@@ -921,6 +934,102 @@
 
     </div><!-- /.main-content -->
 </div><!-- /.app-layout -->
+
+    <!-- Modal: Agregar Profesional -->
+    <div id="modalAgregarProfesional" class="modal">
+      <div class="modal-content" style="max-width:520px;padding:0;border-radius:12px;overflow:hidden;">
+        <div style="background:#001A55;color:white;padding:1.1rem 1.4rem;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-weight:800;font-size:1rem;"><i class="fas fa-user-plus" style="margin-right:8px;"></i>Agregar Profesional</div>
+          <button onclick="document.getElementById('modalAgregarProfesional').style.display='none'" style="background:none;border:none;color:white;font-size:1.4rem;cursor:pointer;line-height:1;">&times;</button>
+        </div>
+        <div style="padding:1.4rem;background:white;">
+          <div id="apMensaje" style="display:none;margin-bottom:1rem;padding:0.75rem 1rem;border-radius:8px;font-size:0.85rem;"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.85rem;">
+            <div style="grid-column:1/-1;">
+              <label style="font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">Nombre completo *</label>
+              <input id="apNombre" type="text" placeholder="Nombre y apellidos" style="width:100%;padding:0.5rem 0.75rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;">
+            </div>
+            <div style="grid-column:1/-1;">
+              <label style="font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">Email *</label>
+              <input id="apEmail" type="email" placeholder="correo@ejemplo.com" style="width:100%;padding:0.5rem 0.75rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;">
+            </div>
+            <div>
+              <label style="font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">Teléfono</label>
+              <input id="apTelefono" type="tel" placeholder="+52 55 0000 0000" style="width:100%;padding:0.5rem 0.75rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;">
+            </div>
+            <div>
+              <label style="font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">País</label>
+              <input id="apPais" type="text" placeholder="México" style="width:100%;padding:0.5rem 0.75rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;">
+            </div>
+            <div>
+              <label style="font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">Tipo de profesional *</label>
+              <select id="apProfesion" style="width:100%;padding:0.5rem 0.75rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;">
+                <option value="">Seleccionar...</option>
+                <option value="Psicólogo/a">Psicólogo/a</option>
+                <option value="Terapeuta">Terapeuta</option>
+                <option value="Psiquiatra">Psiquiatra</option>
+                <option value="Otro">Otro</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">Fecha agendada E1</label>
+              <input id="apFecha" type="date" style="width:100%;padding:0.5rem 0.75rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;">
+            </div>
+          </div>
+          <div style="display:flex;gap:0.75rem;margin-top:1.25rem;">
+            <button onclick="document.getElementById('modalAgregarProfesional').style.display='none'"
+                    style="flex:1;padding:0.65rem;border:1.5px solid #dee2e6;border-radius:8px;background:white;color:#555;font-weight:600;cursor:pointer;">
+                Cancelar
+            </button>
+            <button id="apBtn" onclick="submitAgregarProfesional()"
+                    style="flex:2;padding:0.65rem;border:none;border-radius:8px;background:#198754;color:white;font-weight:700;cursor:pointer;">
+                <i class="fas fa-user-plus"></i> Registrar Profesional
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Agregar Admin -->
+    <div id="modalAgregarAdmin" class="modal">
+      <div class="modal-content" style="max-width:440px;padding:0;border-radius:12px;overflow:hidden;">
+        <div style="background:#5b21b6;color:white;padding:1.1rem 1.4rem;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-weight:800;font-size:1rem;"><i class="fas fa-user-shield" style="margin-right:8px;"></i>Agregar Administrador</div>
+          <button onclick="document.getElementById('modalAgregarAdmin').style.display='none'" style="background:none;border:none;color:white;font-size:1.4rem;cursor:pointer;line-height:1;">&times;</button>
+        </div>
+        <div style="padding:1.4rem;background:white;">
+          <div id="aaMensaje" style="display:none;margin-bottom:1rem;padding:0.75rem 1rem;border-radius:8px;font-size:0.85rem;"></div>
+          <div style="display:flex;flex-direction:column;gap:0.85rem;">
+            <div>
+              <label style="font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">Email del nuevo admin *</label>
+              <input id="aaEmail" type="email" placeholder="admin@catholizare.com" style="width:100%;padding:0.5rem 0.75rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;">
+            </div>
+            <div>
+              <label style="font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">Rol *</label>
+              <select id="aaRol" style="width:100%;padding:0.5rem 0.75rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;">
+                <option value="admin">Admin — acceso estándar</option>
+                <option value="super_admin">Super Admin — acceso total</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">PIN de autorización *</label>
+              <input id="aaPIN" type="password" placeholder="PIN de administrador" style="width:100%;padding:0.5rem 0.75rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;">
+            </div>
+          </div>
+          <div id="aaTokenResult" style="display:none;margin-top:1rem;padding:0.75rem 1rem;background:#f0fff4;border:1px solid #a3cfbb;border-radius:8px;font-size:0.82rem;"></div>
+          <div style="display:flex;gap:0.75rem;margin-top:1.25rem;">
+            <button onclick="document.getElementById('modalAgregarAdmin').style.display='none'"
+                    style="flex:1;padding:0.65rem;border:1.5px solid #dee2e6;border-radius:8px;background:white;color:#555;font-weight:600;cursor:pointer;">
+                Cancelar
+            </button>
+            <button id="aaBtn" onclick="submitAgregarAdmin()"
+                    style="flex:2;padding:0.65rem;border:none;border-radius:8px;background:#5b21b6;color:white;font-weight:700;cursor:pointer;">
+                <i class="fas fa-user-shield"></i> Crear Admin
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Modal: Timeline del Candidato -->
     <div id="accionesModal" class="modal">
@@ -1047,7 +1156,8 @@
                         </tr>
                     </thead>
                     <tbody>`;
-            data.forEach(candidate => {
+            const sorted = [...data].sort((a, b) => new Date(b.registration_date || 0) - new Date(a.registration_date || 0));
+            sorted.forEach(candidate => {
                 html += `
                     <tr>
                         <td><code style="background:#f5f5f5;padding:0.2rem 0.5rem;border-radius:3px;font-size:0.85em;">${candidate.candidato_id || ''}</code></td>
@@ -1571,11 +1681,13 @@
 
         function renderRespCandidates(filter) {
             const list     = document.getElementById('respCandidateList');
-            const filtered = candidates.filter(c =>
-                !filter ||
-                (c.nombre || '').toLowerCase().includes(filter.toLowerCase()) ||
-                (c.email  || '').toLowerCase().includes(filter.toLowerCase())
-            );
+            const filtered = [...candidates]
+                .sort((a, b) => new Date(b.registration_date || 0) - new Date(a.registration_date || 0))
+                .filter(c =>
+                    !filter ||
+                    (c.nombre || '').toLowerCase().includes(filter.toLowerCase()) ||
+                    (c.email  || '').toLowerCase().includes(filter.toLowerCase())
+                );
             if (!filtered.length) {
                 list.innerHTML = '<div class="resp-empty" style="padding:2rem;"><i class="fas fa-search"></i>Sin resultados</div>';
                 return;
@@ -1876,6 +1988,142 @@
 
             content.innerHTML = html;
         }
+        // ───────────────────────────────────────────────────────────────────
+        // ── Agregar Profesional ──────────────────────────────────────────────
+        async function submitAgregarProfesional() {
+            const nombre   = (document.getElementById('apNombre').value   || '').trim();
+            const email    = (document.getElementById('apEmail').value    || '').trim();
+            const telefono = (document.getElementById('apTelefono').value || '').trim();
+            const pais     = (document.getElementById('apPais').value     || '').trim();
+            const profesion= document.getElementById('apProfesion').value;
+            const fecha    = document.getElementById('apFecha').value;
+            const msg      = document.getElementById('apMensaje');
+            const btn      = document.getElementById('apBtn');
+            if (!nombre || !email || !profesion) {
+                msg.style.display='block'; msg.style.background='#fff5f5'; msg.style.color='#b91c1c';
+                msg.textContent='Completa los campos obligatorios (Nombre, Email y Tipo de profesional).'; return;
+            }
+            btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Registrando...';
+            try {
+                const res  = await fetch(API_BASE, { method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({ action:'initial_registration', adminToken:ADMIN_TOKEN,
+                        name:nombre, email, phone:telefono, country:pais,
+                        professional_type:profesion, scheduled_date:fecha||new Date().toISOString().split('T')[0],
+                        therapeutic_approach:'', about:'Registro manual por admin', birthday:'' }) });
+                const data = await res.json();
+                msg.style.display='block';
+                if (data.success) {
+                    msg.style.background='#f0fff4'; msg.style.color='#15803d';
+                    msg.textContent='✓ Profesional registrado. Se envió el correo de bienvenida con el token E1.';
+                    btn.innerHTML='<i class="fas fa-check"></i> Registrado';
+                    loadData();
+                    setTimeout(() => { document.getElementById('modalAgregarProfesional').style.display='none';
+                        ['apNombre','apEmail','apTelefono','apPais','apFecha'].forEach(id=>{document.getElementById(id).value='';});
+                        document.getElementById('apProfesion').value='';
+                        msg.style.display='none'; btn.disabled=false;
+                        btn.innerHTML='<i class="fas fa-user-plus"></i> Registrar Profesional'; }, 2500);
+                } else {
+                    msg.style.background='#fff5f5'; msg.style.color='#b91c1c';
+                    msg.textContent='Error: ' + (data.message || 'Inténtalo de nuevo.');
+                    btn.disabled=false; btn.innerHTML='<i class="fas fa-user-plus"></i> Registrar Profesional';
+                }
+            } catch(e) {
+                msg.style.display='block'; msg.style.background='#fff5f5'; msg.style.color='#b91c1c';
+                msg.textContent='Error de conexión.';
+                btn.disabled=false; btn.innerHTML='<i class="fas fa-user-plus"></i> Registrar Profesional';
+            }
+        }
+
+        // ── Agregar Admin ─────────────────────────────────────────────────────
+        async function submitAgregarAdmin() {
+            const email = (document.getElementById('aaEmail').value || '').trim();
+            const rol   = document.getElementById('aaRol').value;
+            const pin   = (document.getElementById('aaPIN').value  || '').trim();
+            const msg   = document.getElementById('aaMensaje');
+            const res2  = document.getElementById('aaTokenResult');
+            const btn   = document.getElementById('aaBtn');
+            if (!email || !pin) {
+                msg.style.display='block'; msg.style.background='#fff5f5'; msg.style.color='#b91c1c';
+                msg.textContent='Completa email y PIN de autorización.'; return;
+            }
+            btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Creando...';
+            try {
+                const resp = await fetch(API_BASE, { method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({ action:'generateAdminToken', email, role:rol, admin_pin:pin, adminToken:ADMIN_TOKEN }) });
+                const data = await resp.json();
+                msg.style.display='block';
+                if (data.success) {
+                    msg.style.background='#f0fff4'; msg.style.color='#15803d';
+                    msg.textContent='✓ Admin creado correctamente.';
+                    if (data.data && data.data.token) {
+                        const link = window.location.origin + window.location.pathname.replace('admin-dashboard.html','') + 'admin-dashboard.html?adminToken=' + data.data.token;
+                        res2.style.display='block';
+                        res2.innerHTML=`<strong>Token de acceso:</strong><br><code style="word-break:break-all;font-size:0.78rem;">${data.data.token}</code><br><small style="color:#555;">Envía este link al nuevo admin:</small><br><a href="${link}" target="_blank" style="font-size:0.78rem;word-break:break-all;">${link}</a>`;
+                    }
+                    loadAdminUsers();
+                    btn.innerHTML='<i class="fas fa-check"></i> Creado';
+                } else {
+                    msg.style.background='#fff5f5'; msg.style.color='#b91c1c';
+                    msg.textContent='Error: ' + (data.message || 'Inténtalo de nuevo.');
+                    btn.disabled=false; btn.innerHTML='<i class="fas fa-user-shield"></i> Crear Admin';
+                }
+            } catch(e) {
+                msg.style.display='block'; msg.style.background='#fff5f5'; msg.style.color='#b91c1c';
+                msg.textContent='Error de conexión.';
+                btn.disabled=false; btn.innerHTML='<i class="fas fa-user-shield"></i> Crear Admin';
+            }
+        }
+
+        // ── Diagnóstico GAS ───────────────────────────────────────────────────
+        async function runGasDiagnostics() {
+            const content = document.getElementById('healthContent');
+            content.innerHTML = '<div class="resp-empty"><i class="fas fa-spinner fa-spin"></i>Ejecutando diagnóstico completo de Google Apps Script...</div>';
+            const now = new Date().toLocaleTimeString('es-CO', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+            document.getElementById('healthLastCheck').textContent = 'Diagnóstico: ' + now;
+            try {
+                const res  = await fetch(API_BASE, { method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({ action:'gasDiagnostic', adminToken:ADMIN_TOKEN }) });
+                const data = await res.json();
+                if (data.success && data.data) {
+                    renderDiagResults(data.data);
+                } else {
+                    content.innerHTML = `<div class="resp-empty" style="color:#dc3545;"><i class="fas fa-exclamation-triangle"></i>${data.message || 'Error al ejecutar diagnóstico'}</div>`;
+                }
+            } catch(e) {
+                content.innerHTML = '<div class="resp-empty" style="color:#dc3545;"><i class="fas fa-exclamation-triangle"></i>Error de conexión</div>';
+            }
+        }
+
+        function renderDiagResults(data) {
+            const content = document.getElementById('healthContent');
+            const overall = data.overall || 'OK';
+            const clsMap  = { OK:'ok', WARNING:'warning', ERROR:'error' };
+            const labelMap= { OK:'Todos los sistemas operativos', WARNING:'Advertencias detectadas', ERROR:'Errores detectados' };
+            let html = `<div class="admin-card" style="display:flex;align-items:center;gap:1rem;padding:1.25rem 1.5rem;margin-bottom:1.25rem;">
+                <span class="health-dot ${clsMap[overall]||'ok'}" style="width:16px;height:16px;"></span>
+                <div>
+                    <div style="font-weight:700;font-size:1rem;color:#001A55;">Diagnóstico GAS — ${labelMap[overall]||overall}</div>
+                    <div style="font-size:0.8rem;color:#aaa;">${data.timestamp ? new Date(data.timestamp).toLocaleString('es-MX') : ''}</div>
+                </div>
+            </div><div class="admin-card"><div class="admin-section-title">Resultados por módulo</div>`;
+            (data.tests || []).forEach(t => {
+                const s   = t.status || 'OK';
+                const cls = clsMap[s] || 'ok';
+                const icon= s==='OK' ? 'check-circle' : s==='WARNING' ? 'exclamation-triangle' : 'times-circle';
+                const clr = s==='OK' ? '#16a34a' : s==='WARNING' ? '#d97706' : '#dc2626';
+                html += `<div style="display:flex;align-items:flex-start;gap:0.75rem;padding:0.6rem 0;border-bottom:1px solid #f3f4f6;">
+                    <i class="fas fa-${icon}" style="color:${clr};font-size:0.95rem;margin-top:2px;flex-shrink:0;"></i>
+                    <div style="flex:1;">
+                        <div style="font-size:0.85rem;font-weight:700;color:#111;">${t.test}</div>
+                        <div style="font-size:0.77rem;color:#6b7280;">${t.detail || ''}</div>
+                    </div>
+                    ${t.ms !== undefined ? `<span style="font-size:0.72rem;color:#9ca3af;white-space:nowrap;">${t.ms}ms</span>` : ''}
+                </div>`;
+            });
+            html += '</div>';
+            content.innerHTML = html;
+        }
+
         // ───────────────────────────────────────────────────────────────────
         function refreshData() { loadData(); showToast('Datos actualizados', 'success'); }
         function startAutoRefresh() { autoRefreshInterval = setInterval(loadData, REFRESH_INTERVAL); }
