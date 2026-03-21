@@ -415,6 +415,7 @@ function doPost(e) {
       case 'generateAdminToken':        return handleGenerateAdminToken(data);
       case 'health':                    return jsonResponse(true, 'OK', checkSystemHealth());
       case 'gasDiagnostic':             return handleGasDiagnostic();
+      case 'handoff':                   return handleHandoff(data);
       default:
         return jsonResponse(false, 'Accion no valida: ' + action);
     }
@@ -2029,5 +2030,126 @@ function handleGenerateAdminToken(data) {
   } catch (e) {
     Logger.log('[handleGenerateAdminToken Error] ' + e.message);
     return jsonResponse(false, 'Error: ' + e.message);
+  }
+}
+
+// ================================
+// MODULO: HANDOFF → ONBOARDING
+// ================================
+/**
+ * Transfiere candidatos aprobados de la hoja de Admisiones
+ * a la hoja de Onboarding (spreadsheet externo).
+ *
+ * Columnas destino (Onboarding sheet):
+ *   A: ID_Token      B: Nombre        C: Email
+ *   D: Especialidad  E: CV_Url        F: Docs_Profesion
+ *   G: Foto_Url      H: Carta_Sacerdote  I: Fase_Actual
+ *   J: Estado        K: Categoria     L: Legal_Aceptacion
+ *   M: Legal_Fecha
+ */
+function handleHandoff(data) {
+  try {
+    if (!validateAdminPin(data.admin_pin)) {
+      return jsonResponse(false, 'PIN de admin incorrecto');
+    }
+
+    const ONBOARDING_SS_ID  = '1YgbnsB0_oLbSlYBUNqhe2V9QqlbEu8nGotYTWHHXW4I';
+    const ONBOARDING_SHEET  = 'Onboarding';
+    const APPROVED_STATUSES = ['approved_junior', 'approved_senior', 'approved_expert'];
+
+    // Abrir spreadsheet de onboarding
+    let onbSS;
+    try {
+      onbSS = SpreadsheetApp.openById(ONBOARDING_SS_ID);
+    } catch (err) {
+      return jsonResponse(false, 'No se pudo abrir la hoja de Onboarding: ' + err.message);
+    }
+
+    let onbSheet = onbSS.getSheetByName(ONBOARDING_SHEET);
+    if (!onbSheet) {
+      // Buscar cualquier hoja disponible y usarla, o crear nueva
+      const sheets = onbSS.getSheets();
+      if (sheets.length > 0) {
+        onbSheet = sheets[0]; // usar la primera hoja
+      } else {
+        onbSheet = onbSS.insertSheet(ONBOARDING_SHEET);
+      }
+    }
+
+    // Leer emails ya existentes en onboarding para evitar duplicados
+    const onbData = onbSheet.getDataRange().getValues();
+    const existingEmails = new Set();
+    for (let i = 1; i < onbData.length; i++) {
+      const email = String(onbData[i][2] || '').trim().toLowerCase();
+      if (email) existingEmails.add(email);
+    }
+
+    // Leer candidatos de admisiones
+    const candSheet = SS.getSheetByName('Candidatos');
+    if (!candSheet) return jsonResponse(false, 'Hoja Candidatos no encontrada');
+    const candData = candSheet.getDataRange().getValues();
+
+    let transferred = 0;
+    let skipped     = 0;
+    const transferredNames = [];
+
+    for (let i = 1; i < candData.length; i++) {
+      const row = candData[i];
+      // Candidatos sheet columns (0-indexed):
+      // 0=candidate_id, 1=registration_date, 2=name, 3=email, 4=phone
+      // 5=country, 6=birthday, 7=professional_type, 8=therapeutic_approach, 9=about
+      // 10=status, 11=E1_score, 12=E1_date, 13=E2_score, 14=E2_date
+      // 15=E3_score, 16=E3_date, 17=interview_notes, 18=final_category
+      // 19=last_interaction, 20=notes, 21=terms_accepted_at, 22=terms_ip, 23=terms_user_agent
+      const status = String(row[10] || '').trim();
+      if (!APPROVED_STATUSES.includes(status)) continue;
+
+      const email = String(row[3] || '').trim().toLowerCase();
+      if (existingEmails.has(email)) {
+        skipped++;
+        continue;
+      }
+
+      // Generar token ONB único
+      const onbToken = 'ONB-' + Utilities.getUuid().replace(/-/g, '').substring(0, 8).toUpperCase();
+
+      const name              = row[2]  || '';
+      const professionalType  = row[7]  || '';   // Especialidad
+      const finalCategory     = row[18] || '';   // Categoria
+      const termsAcceptedAt   = row[21] || '';   // Legal_Fecha
+
+      // Determinar etiqueta Legal_Aceptacion
+      const legalAceptacion   = termsAcceptedAt ? 'ACEPTADO | v1' : '';
+
+      onbSheet.appendRow([
+        onbToken,           // A: ID_Token
+        name,               // B: Nombre
+        email,              // C: Email
+        professionalType,   // D: Especialidad
+        '',                 // E: CV_Url
+        '',                 // F: Docs_Profesion
+        '',                 // G: Foto_Url
+        '',                 // H: Carta_Sacerdote
+        'Fase 1',           // I: Fase_Actual
+        'Activo',           // J: Estado
+        finalCategory,      // K: Categoria
+        legalAceptacion,    // L: Legal_Aceptacion
+        termsAcceptedAt     // M: Legal_Fecha
+      ]);
+
+      existingEmails.add(email); // prevenir duplicados dentro de la misma ejecución
+      transferred++;
+      transferredNames.push(name + ' <' + email + '>');
+    }
+
+    return jsonResponse(true, 'Handoff completado', {
+      transferred,
+      skipped,
+      details: transferredNames
+    });
+
+  } catch (e) {
+    Logger.log('[handleHandoff Error] ' + e.message);
+    return jsonResponse(false, 'Error en handoff: ' + e.message);
   }
 }

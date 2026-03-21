@@ -734,9 +734,12 @@
                 <h1><i class="fas fa-users" style="color:var(--primary);font-size:1.3rem;vertical-align:middle;margin-right:0.5rem;"></i>Profesionales</h1>
                 <small>Candidatos del proceso de selección</small>
             </div>
-            <div style="display:flex;gap:0.6rem;">
+            <div style="display:flex;gap:0.6rem;flex-wrap:wrap;">
                 <button class="btn" style="background:#198754;color:white;" onclick="document.getElementById('modalAgregarProfesional').style.display='block'">
                     <i class="fas fa-user-plus"></i> + Agregar Profesional
+                </button>
+                <button class="btn" style="background:#7c3aed;color:white;" onclick="document.getElementById('modalHandoff').style.display='block'">
+                    <i class="fas fa-share-square"></i> Handoff → Onboarding
                 </button>
                 <button class="btn" style="background:#001A55;color:white;" onclick="refreshData()">
                     <i class="fas fa-sync-alt"></i> Actualizar
@@ -934,6 +937,40 @@
 
     </div><!-- /.main-content -->
 </div><!-- /.app-layout -->
+
+    <!-- Modal: Handoff → Onboarding -->
+    <div id="modalHandoff" class="modal">
+      <div class="modal-content" style="max-width:520px;padding:0;border-radius:12px;overflow:hidden;">
+        <div style="background:#7c3aed;color:white;padding:1.1rem 1.4rem;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-weight:800;font-size:1rem;"><i class="fas fa-share-square" style="margin-right:8px;"></i>Handoff → Onboarding</div>
+          <button onclick="document.getElementById('modalHandoff').style.display='none'" style="background:none;border:none;color:white;font-size:1.4rem;cursor:pointer;line-height:1;">&times;</button>
+        </div>
+        <div style="padding:1.4rem;background:white;">
+          <div style="background:#ede9fe;border:1px solid #c4b5fd;border-radius:8px;padding:0.85rem 1rem;margin-bottom:1.25rem;font-size:0.83rem;color:#5b21b6;line-height:1.5;">
+            <strong><i class="fas fa-info-circle"></i> ¿Qué hace este botón?</strong><br>
+            Transfiere todos los candidatos con estado <strong>Aprobado</strong> (Junior / Senior / Expert)
+            al spreadsheet de Onboarding. Los candidatos ya existentes en Onboarding
+            (por email) son omitidos automáticamente.
+          </div>
+          <div id="handoffMensaje" style="display:none;margin-bottom:1rem;padding:0.75rem 1rem;border-radius:8px;font-size:0.84rem;line-height:1.5;"></div>
+          <div id="handoffPreview" style="display:none;margin-bottom:1rem;max-height:200px;overflow-y:auto;border:1px solid #e9ecef;border-radius:8px;"></div>
+          <div style="display:flex;gap:0.75rem;margin-top:0.5rem;">
+            <button onclick="document.getElementById('modalHandoff').style.display='none'"
+                    style="flex:1;padding:0.65rem;border:1.5px solid #dee2e6;border-radius:8px;background:white;color:#555;font-weight:600;cursor:pointer;">
+                Cancelar
+            </button>
+            <button id="handoffPreviewBtn" onclick="previewHandoff()"
+                    style="flex:1;padding:0.65rem;border:none;border-radius:8px;background:#6b7280;color:white;font-weight:700;cursor:pointer;">
+                <i class="fas fa-eye"></i> Vista Previa
+            </button>
+            <button id="handoffBtn" onclick="runHandoff()"
+                    style="flex:2;padding:0.65rem;border:none;border-radius:8px;background:#7c3aed;color:white;font-weight:700;cursor:pointer;">
+                <i class="fas fa-share-square"></i> Transferir al Onboarding
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Modal: Agregar Profesional -->
     <div id="modalAgregarProfesional" class="modal">
@@ -2071,6 +2108,65 @@
                 msg.style.display='block'; msg.style.background='#fff5f5'; msg.style.color='#b91c1c';
                 msg.textContent='Error de conexión.';
                 btn.disabled=false; btn.innerHTML='<i class="fas fa-user-shield"></i> Crear Admin';
+            }
+        }
+
+        // ── Handoff → Onboarding ─────────────────────────────────────────────
+        function previewHandoff() {
+            const approved = candidates.filter(c => c.status && c.status.startsWith('approved_'));
+            const preview  = document.getElementById('handoffPreview');
+            const msg      = document.getElementById('handoffMensaje');
+            if (!approved.length) {
+                msg.style.display='block'; msg.style.background='#fff5f5'; msg.style.color='#b91c1c';
+                msg.textContent='No hay candidatos aprobados para transferir.';
+                preview.style.display='none'; return;
+            }
+            msg.style.display='block'; msg.style.background='#ede9fe'; msg.style.color='#5b21b6';
+            msg.textContent=approved.length + ' candidato(s) aprobado(s) serán evaluados para transferencia (los ya existentes en Onboarding serán omitidos).';
+            let html = `<table style="width:100%;border-collapse:collapse;font-size:0.79rem;">
+                <thead><tr style="background:#f3f4f6;">
+                    <th style="padding:0.4rem 0.6rem;text-align:left;border-bottom:1px solid #e9ecef;">Nombre</th>
+                    <th style="padding:0.4rem 0.6rem;text-align:left;border-bottom:1px solid #e9ecef;">Email</th>
+                    <th style="padding:0.4rem 0.6rem;text-align:left;border-bottom:1px solid #e9ecef;">Categoría</th>
+                </tr></thead><tbody>`;
+            approved.forEach(c => {
+                html += `<tr style="border-bottom:1px solid #f3f4f6;">
+                    <td style="padding:0.38rem 0.6rem;">${c.nombre||'—'}</td>
+                    <td style="padding:0.38rem 0.6rem;color:#555;">${c.email||'—'}</td>
+                    <td style="padding:0.38rem 0.6rem;">${getStatusBadge(c.status)}</td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            preview.style.display='block'; preview.innerHTML=html;
+        }
+
+        async function runHandoff() {
+            const msg = document.getElementById('handoffMensaje');
+            const btn = document.getElementById('handoffBtn');
+            if (!confirm('¿Confirmas el traspaso de candidatos aprobados al sistema de Onboarding?')) return;
+            btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Transfiriendo...';
+            try {
+                const res  = await fetch(API_BASE, { method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({ action:'handoff', adminToken:ADMIN_TOKEN }) });
+                const data = await res.json();
+                msg.style.display='block';
+                if (data.success) {
+                    msg.style.background='#f0fff4'; msg.style.color='#15803d';
+                    msg.innerHTML='<strong>✓ ' + data.message + '</strong>';
+                    if (data.data && data.data.details && data.data.details.length) {
+                        msg.innerHTML += '<ul style="margin:.5rem 0 0 1rem;font-size:.79rem;">' +
+                            data.data.details.map(d=>`<li>${d}</li>`).join('') + '</ul>';
+                    }
+                    btn.innerHTML='<i class="fas fa-check"></i> Transferido';
+                } else {
+                    msg.style.background='#fff5f5'; msg.style.color='#b91c1c';
+                    msg.textContent='Error: ' + (data.message||'Inténtalo de nuevo.');
+                    btn.disabled=false; btn.innerHTML='<i class="fas fa-share-square"></i> Transferir al Onboarding';
+                }
+            } catch(e) {
+                msg.style.display='block'; msg.style.background='#fff5f5'; msg.style.color='#b91c1c';
+                msg.textContent='Error de conexión.';
+                btn.disabled=false; btn.innerHTML='<i class="fas fa-share-square"></i> Transferir al Onboarding';
             }
         }
 

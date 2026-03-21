@@ -86,6 +86,7 @@ $allowed_actions = [
     'health',
     'gasDiagnostic',
     'registerInterviewResult',
+    'handoff',
 ];
 
 if (!in_array($action, $allowed_actions)) {
