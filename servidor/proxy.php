@@ -111,6 +111,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 } else {
     // Para POST, enviar JSON en el body con action incluida
     $data['action'] = $action;
+    // Inyectar IP real del cliente para acciones que la necesiten
+    $data['client_ip'] = $_SERVER['HTTP_X_FORWARDED_FOR']
+        ? explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0]
+        : ($_SERVER['REMOTE_ADDR'] ?? '');
     $url = $GAS_BASE_URL;
     $options = [
         'http' => [

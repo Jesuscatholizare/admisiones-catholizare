@@ -537,46 +537,66 @@
         .tl-field div   { font-size: 0.88rem; color: #333; font-weight: 500; }
         .tl-pbar      { height: 7px; background: #e8e8e8; border-radius: 4px; overflow: hidden; margin: 0.4rem 0 0.2rem; }
         .tl-pbar-fill { height: 100%; background: #198754; border-radius: 4px; }
-        /* Timeline */
-        .tl-timeline { padding: 1.25rem; }
-        .tl-phase  { display: flex; gap: 0; }
-        .tl-dot-col { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; width: 32px; }
-        .tl-dot { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; border: 2px solid transparent; }
-        .tl-dot.done    { background: #198754; color: white; border-color: #198754; }
-        .tl-dot.active  { background: #dc3545; color: white; border-color: #dc3545; }
-        .tl-dot.pending { background: white; color: #ccc; border-color: #ddd; }
-        .tl-phase-body { flex: 1; padding-left: 0.85rem; padding-bottom: 1.5rem; }
-        .tl-phase-head { display: flex; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.65rem; }
-        .tl-ph-title.done    { color: #198754; font-size: 0.92rem; font-weight: 700; }
-        .tl-ph-title.active  { color: #001A55; font-size: 0.92rem; font-weight: 700; }
-        .tl-ph-title.pending { color: #bbb; font-size: 0.92rem; font-weight: 700; }
-        .tl-ph-desc { font-size: 0.74rem; color: #aaa; margin-top: 2px; }
-        .tl-ph-badge { padding: 2px 9px; border-radius: 20px; font-size: 0.66rem; font-weight: 800; flex-shrink: 0; margin-top: 3px; }
-        .tl-ph-badge.done    { background: #d1e7dd; color: #0a3622; }
-        .tl-ph-badge.active  { background: #f8d7da; color: #58151c; }
-        .tl-ph-badge.pending { background: #f0f0f0; color: #bbb; }
-        .tl-slbl { font-size: 0.6rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: #bbb; margin: 0.6rem 0 0.3rem; }
-        .tl-steps-box { background: white; border: 1px solid #eee; border-radius: 8px; overflow: hidden; margin-bottom: 0.55rem; }
-        .tl-step-row { display: flex; align-items: center; gap: 0.6rem; padding: 0.52rem 0.85rem; border-bottom: 1px solid #f5f5f5; font-size: 0.81rem; }
-        .tl-step-row:last-child { border-bottom: none; }
-        .tl-step-lbl { flex: 1; color: #444; }
-        .tl-sbadge-auto  { font-size: 0.66rem; padding: 1px 7px; border-radius: 4px; background: #fff3cd; color: #664d03; flex-shrink: 0; }
-        .tl-sbadge-admin { font-size: 0.66rem; padding: 1px 7px; border-radius: 4px; background: #e8eeff; color: #001A55; flex-shrink: 0; }
-        .tl-email-row { background: white; border: 1px solid #eee; border-radius: 8px; padding: 0.55rem 0.85rem; margin-bottom: 5px; display: flex; align-items: center; gap: 0.65rem; }
-        .tl-email-name { font-size: 0.82rem; font-weight: 600; color: #222; }
-        .tl-email-sub  { font-size: 0.71rem; color: #aaa; }
-        .tl-send-btn   { padding: 0.23rem 0.7rem; background: white; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-size: 0.76rem; color: #444; transition: all 0.15s; white-space: nowrap; }
+        /* ── Timeline — Tarjetas por fase ── */
+        .tl-timeline { padding: 0.75rem 1.25rem; }
+        /* Phase card */
+        .tl-phase-card { display: flex; border-radius: 10px; border: 1px solid #e9ecef; overflow: hidden; background: white; margin-bottom: 0.5rem; transition: box-shadow 0.15s; }
+        .tl-phase-card.tl-active  { box-shadow: 0 2px 14px rgba(124,58,237,0.12); border-color: #c4b5fd; }
+        .tl-phase-strip { width: 5px; flex-shrink: 0; }
+        .tl-phase-strip.done     { background: #16a34a; }
+        .tl-phase-strip.active   { background: #7c3aed; }
+        .tl-phase-strip.rejected { background: #dc2626; }
+        .tl-phase-strip.pending  { background: #e5e7eb; }
+        .tl-phase-inner { flex: 1; padding: 0.7rem 0.9rem; min-width: 0; }
+        .tl-phase-hdr   { display: flex; align-items: center; gap: 0.5rem; }
+        .tl-phase-ico   { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; flex-shrink: 0; }
+        .tl-phase-ico.done     { background: #dcfce7; color: #16a34a; }
+        .tl-phase-ico.active   { background: #ede9fe; color: #7c3aed; }
+        .tl-phase-ico.rejected { background: #fee2e2; color: #dc2626; }
+        .tl-phase-ico.pending  { background: #f3f4f6; color: #9ca3af; }
+        .tl-phase-lbl   { font-size: 0.86rem; font-weight: 700; flex: 1; line-height: 1.2; }
+        .tl-phase-lbl.done     { color: #15803d; }
+        .tl-phase-lbl.active   { color: #5b21b6; }
+        .tl-phase-lbl.rejected { color: #b91c1c; }
+        .tl-phase-lbl.pending  { color: #9ca3af; }
+        .tl-phase-bdg   { font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.3px; padding: 2px 8px; border-radius: 4px; flex-shrink: 0; }
+        .tl-phase-bdg.done     { background: #dcfce7; color: #15803d; }
+        .tl-phase-bdg.active   { background: #ede9fe; color: #6d28d9; }
+        .tl-phase-bdg.rejected { background: #fee2e2; color: #b91c1c; }
+        .tl-phase-bdg.pending  { background: #f3f4f6; color: #9ca3af; }
+        .tl-phase-dtxt  { font-size: 0.73rem; color: #6b7280; line-height: 1.45; margin: 0.38rem 0 0; }
+        /* Section labels */
+        .tl-slbl { font-size: 0.58rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px; color: #9ca3af; margin: 0.65rem 0 0.3rem; display: flex; align-items: center; gap: 6px; }
+        .tl-slbl::after { content: ''; flex: 1; height: 1px; background: #f0f0f0; }
+        /* Email rows */
+        .tl-email-row  { background: #fafafa; border: 1px solid #f0f0f0; border-radius: 7px; padding: 0.4rem 0.7rem; margin-bottom: 4px; display: flex; align-items: center; gap: 0.6rem; }
+        .tl-email-info { flex: 1; min-width: 0; }
+        .tl-email-name { font-size: 0.78rem; font-weight: 600; color: #222; }
+        .tl-email-sub  { font-size: 0.67rem; color: #9ca3af; margin-top: 1px; }
+        .tl-send-btn   { padding: 0.19rem 0.62rem; background: white; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-size: 0.72rem; color: #444; transition: all 0.15s; white-space: nowrap; flex-shrink: 0; }
         .tl-send-btn:hover { background: #001A55; color: white; border-color: #001A55; }
-        .tl-action-box { background: white; border: 1px solid #eee; border-radius: 8px; padding: 0.8rem; margin-top: 0.5rem; }
-        .tl-act-row  { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem; }
-        .tl-act-btn  { padding: 0.36rem 0.8rem; border-radius: 7px; border: none; cursor: pointer; font-size: 0.79rem; font-weight: 700; transition: all 0.15s; }
-        .tl-act-btn.green { background: #d1e7dd; color: #0a3622; border: 1px solid #a3cfbb; }
-        .tl-act-btn.green:hover { background: #198754; color: white; }
-        .tl-act-btn.red   { background: #f8d7da; color: #58151c; border: 1px solid #f5c2c7; }
-        .tl-act-btn.red:hover   { background: #dc3545; color: white; }
-        .tl-act-btn.blue  { background: #e8eeff; color: #001A55; border: 1px solid #c5d3ff; }
-        .tl-act-btn.blue:hover  { background: #001A55; color: white; }
-        .tl-notes { width: 100%; padding: 0.52rem 0.75rem; border: 1.5px solid #dee2e6; border-radius: 7px; font-size: 0.82rem; font-family: inherit; resize: vertical; min-height: 52px; margin-bottom: 0.45rem; }
+        /* Action rows */
+        .tl-action-row { background: #fafafa; border: 1px solid #f0f0f0; border-radius: 7px; padding: 0.4rem 0.7rem; margin-bottom: 4px; display: flex; align-items: center; gap: 0.6rem; }
+        .tl-action-lbl { font-size: 0.78rem; font-weight: 600; color: #222; }
+        .tl-action-sub { font-size: 0.67rem; color: #9ca3af; margin-top: 1px; }
+        /* Buttons */
+        .tl-act-btn  { padding: 0.21rem 0.68rem; border-radius: 6px; border: none; cursor: pointer; font-size: 0.73rem; font-weight: 700; transition: all 0.15s; white-space: nowrap; flex-shrink: 0; }
+        .tl-act-btn.green  { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+        .tl-act-btn.green:hover  { background: #16a34a; color: white; }
+        .tl-act-btn.red    { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+        .tl-act-btn.red:hover    { background: #dc2626; color: white; }
+        .tl-act-btn.blue   { background: #e8eeff; color: #001A55; border: 1px solid #c5d3ff; }
+        .tl-act-btn.blue:hover   { background: #001A55; color: white; }
+        .tl-act-btn.purple { background: #ede9fe; color: #5b21b6; border: 1px solid #c4b5fd; }
+        .tl-act-btn.purple:hover { background: #7c3aed; color: white; }
+        /* Reject box */
+        .tl-reject-box { background: #fff5f5; border: 1px dashed #fca5a5; border-radius: 7px; padding: 0.55rem 0.7rem; margin-top: 0.5rem; }
+        .tl-reject-box input { width: 100%; padding: 5px 9px; border: 1px solid #fca5a5; border-radius: 6px; font-size: 0.78rem; margin-bottom: 5px; box-sizing: border-box; font-family: inherit; }
+        /* Notes */
+        .tl-notes-wrap { margin-bottom: 0.4rem; }
+        .tl-notes-wrap label { font-size: 0.72rem; font-weight: 700; color: #5b21b6; display: block; margin-bottom: 3px; }
+        .tl-notes-wrap textarea { width: 100%; padding: 0.45rem 0.7rem; border: 1.5px solid #e5e7eb; border-radius: 7px; font-size: 0.79rem; font-family: inherit; resize: vertical; min-height: 48px; box-sizing: border-box; }
+        /* Profile tab shared */
         .tl-brevo-row { display: flex; align-items: center; justify-content: space-between; padding: 0.4rem 0; border-bottom: 1px solid #f5f5f5; font-size: 0.82rem; color: #444; }
         .tl-brevo-row:last-child { border-bottom: none; }
         .tl-brevo-btn { padding: 0.23rem 0.65rem; border-radius: 6px; border: 1px solid #eee; background: #fafafa; cursor: pointer; font-size: 0.74rem; transition: all 0.15s; }
@@ -589,11 +609,6 @@
         .tl-field-label { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #aaa; }
         .tl-field-value { font-size: 0.84rem; color: #222; font-weight: 500; }
         .tl-act-btns { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.5rem; }
-        .tl-notes-wrap { margin-bottom: 0.5rem; }
-        .tl-notes-wrap label { font-size: 0.75rem; font-weight: 700; color: #001A55; display: block; margin-bottom: 4px; }
-        .tl-notes-wrap textarea { width: 100%; padding: 0.52rem 0.75rem; border: 1.5px solid #dee2e6; border-radius: 7px; font-size: 0.82rem; font-family: inherit; resize: vertical; min-height: 52px; box-sizing: border-box; }
-        .tl-connector { width: 3px; flex: 1; background: #eee; margin-top: 4px; border-radius: 2px; min-height: 16px; }
-        .tl-connector.done { background: #198754; }
     </style>
 </head>
 <body>
@@ -1091,14 +1106,75 @@
 
         // ─── Timeline Modal ───────────────────────────────────────────────
         const TL_PHASES = [
-            { key:'registro',    label:'Registro',            icon:'fa-user-plus',      statuses:['registered'],                    desc:'El candidato se ha registrado.',                      emails:[{label:'Bienvenida (Token E1)', type:'welcome'}],               actions:[], hasNotes:false },
-            { key:'e1',         label:'Examen E1',            icon:'fa-file-alt',       statuses:['pending_review_E1'],             desc:'Pendiente de revisión del Examen 1.',                 emails:[{label:'Reenviar bienvenida',   type:'welcome'}],               actions:[{label:'Aprobar E1', fn:"doApproveExamTL('E1')", cls:'green'}], hasNotes:false },
-            { key:'terminos',   label:'Aceptar Términos',     icon:'fa-file-signature', statuses:['awaiting_terms_acceptance'],      desc:'Esperando que el candidato acepte los términos.',     emails:[{label:'Reenviar Términos',     type:'terms'}],                 actions:[], hasNotes:false },
-            { key:'e2',         label:'Examen E2',            icon:'fa-file-alt',       statuses:['pending_review_E2'],             desc:'Pendiente de revisión del Examen 2.',                 emails:[{label:'Invitar a E2',          type:'e2'}],                    actions:[{label:'Aprobar E2', fn:"doApproveExamTL('E2')", cls:'green'}], hasNotes:false },
-            { key:'e3',         label:'Examen E3',            icon:'fa-file-alt',       statuses:['pending_review_E3'],             desc:'Pendiente de revisión del Examen 3.',                 emails:[{label:'Invitar a E3',          type:'e3'}],                    actions:[{label:'Aprobar E3', fn:"doApproveExamTL('E3')", cls:'green'}], hasNotes:false },
-            { key:'entrevista', label:'Entrevista',           icon:'fa-microphone',     statuses:['awaiting_interview'],            desc:'Esperando la entrevista personal.',                   emails:[{label:'Agendar entrevista',    type:'awaiting_interview'}],    actions:[{label:'PASS',fn:"doInterviewResultTL('pass')",cls:'green'},{label:'FAIL',fn:"doInterviewResultTL('fail')",cls:'red'}], hasNotes:true },
-            { key:'categoria',  label:'Asignar Categoría',   icon:'fa-shield-alt',     statuses:['awaiting_category'],             desc:'Entrevista aprobada. Asignar categoría final.',       emails:[],                                                              actions:[{label:'Junior',fn:"doFinalDecisionTL('JUNIOR')",cls:'green'},{label:'Senior',fn:"doFinalDecisionTL('SENIOR')",cls:'green'},{label:'Expert',fn:"doFinalDecisionTL('EXPERT')",cls:'green'}], hasNotes:false },
-            { key:'aprobado',   label:'Aprobado',             icon:'fa-check-circle',   statuses:['approved_junior','approved_senior','approved_expert'], desc:'Proceso completado. Candidato aprobado.', emails:[{label:'Correo de bienvenida', type:'approved'}], actions:[], hasNotes:false }
+            {
+                key:'registro', label:'Registro Inicial', icon:'fa-user-plus',
+                statuses:['registered'],
+                desc:'El candidato completó su registro. Envía el correo de bienvenida con el token de acceso al Examen E1.',
+                emails:[{ label:'Bienvenida + Token E1', desc:'Envía acceso al primer examen', type:'welcome' }],
+                actions:[], hasNotes:false
+            },
+            {
+                key:'e1', label:'Revisión — Examen E1', icon:'fa-file-alt',
+                statuses:['pending_review_E1'],
+                desc:'El candidato completó el Examen E1. Revisa los resultados y aprueba para enviar los Términos y Condiciones.',
+                emails:[{ label:'Reenviar Token E1', desc:'Si el candidato no recibió el acceso al E1', type:'welcome' }],
+                actions:[
+                    { label:'Aprobar E1 → Enviar Términos', btn:'✓ Aprobar', fn:"doApproveExamTL('E1')", cls:'green', info:'Aprueba E1 y envía automáticamente el correo de Términos y Condiciones' }
+                ], hasNotes:false
+            },
+            {
+                key:'terminos', label:'Términos y Condiciones', icon:'fa-file-signature',
+                statuses:['awaiting_terms_acceptance'],
+                desc:'Esperando que el candidato acepte los Términos y Condiciones. Se registrará su IP y fecha/hora de aceptación.',
+                emails:[{ label:'Reenviar correo de Términos', desc:'Reenviar el link de aceptación al candidato', type:'terms' }],
+                actions:[], hasNotes:false
+            },
+            {
+                key:'e2', label:'Revisión — Examen E2', icon:'fa-file-alt',
+                statuses:['pending_review_E2'],
+                desc:'El candidato completó el Examen E2. Revisa los resultados y aprueba para enviar el token del Examen E3.',
+                emails:[{ label:'Reenviar Token E2', desc:'Si el candidato no recibió el acceso al E2', type:'e2' }],
+                actions:[
+                    { label:'Aprobar E2 → Enviar Token E3', btn:'✓ Aprobar', fn:"doApproveExamTL('E2')", cls:'green', info:'Aprueba E2 y envía automáticamente el token del Examen E3' }
+                ], hasNotes:false
+            },
+            {
+                key:'e3', label:'Revisión — Examen E3', icon:'fa-file-alt',
+                statuses:['pending_review_E3'],
+                desc:'El candidato completó el Examen E3. Revisa los resultados y aprueba para agendar la Entrevista Personal.',
+                emails:[{ label:'Reenviar Token E3', desc:'Si el candidato no recibió el acceso al E3', type:'e3' }],
+                actions:[
+                    { label:'Aprobar E3 → Agendar Entrevista', btn:'✓ Aprobar', fn:"doApproveExamTL('E3')", cls:'green', info:'Aprueba E3 y envía el correo de agendamiento de la entrevista personal' }
+                ], hasNotes:false
+            },
+            {
+                key:'entrevista', label:'Entrevista Personal', icon:'fa-microphone',
+                statuses:['awaiting_interview'],
+                desc:'Entrevista personal agendada. Registra el resultado una vez realizada la sesión.',
+                emails:[{ label:'Correo de Entrevista', desc:'Recordatorio o instrucciones al candidato', type:'awaiting_interview' }],
+                actions:[
+                    { label:'Entrevista PASS', btn:'✓ PASS', fn:"doInterviewResultTL('pass')", cls:'green', info:'El candidato aprobó — avanza a categorización' },
+                    { label:'Entrevista FAIL', btn:'✗ FAIL', fn:"doInterviewResultTL('fail')", cls:'red',   info:'El candidato no aprobó — notas obligatorias' }
+                ], hasNotes:true
+            },
+            {
+                key:'categoria', label:'Asignar Categoría Final', icon:'fa-shield-alt',
+                statuses:['awaiting_category'],
+                desc:'Entrevista aprobada. Asigna la categoría final del candidato para completar el proceso.',
+                emails:[],
+                actions:[
+                    { label:'JUNIOR (75-79%)', btn:'JUNIOR', fn:"doFinalDecisionTL('JUNIOR')", cls:'green',  info:'Fundamentos sólidos, requiere acompañamiento' },
+                    { label:'SENIOR (80-89%)', btn:'SENIOR', fn:"doFinalDecisionTL('SENIOR')", cls:'blue',   info:'Muy competente, listo para práctica independiente' },
+                    { label:'EXPERT (90%+)',   btn:'EXPERT', fn:"doFinalDecisionTL('EXPERT')", cls:'purple', info:'Excepcional, calificado para liderazgo y mentoreo' }
+                ], hasNotes:false
+            },
+            {
+                key:'aprobado', label:'Aprobado', icon:'fa-check-circle',
+                statuses:['approved_junior','approved_senior','approved_expert'],
+                desc:'Proceso completado. El candidato fue aprobado y categorizado exitosamente.',
+                emails:[{ label:'Correo de Bienvenida', desc:'Correo de aprobación con la categoría asignada', type:'approved' }],
+                actions:[], hasNotes:false
+            }
         ];
         let tlCurrentCandidate = null;
 
@@ -1195,44 +1271,91 @@
             if (!c) return '';
             const currentIdx = phaseIndex(c.status);
             const isRejected = c.status === 'rejected';
-            const phases = TL_PHASES.map((phase, idx) => {
-                let dot = 'pending', head = 'pending', badge = 'Pendiente';
-                if (idx < currentIdx || (isRejected && idx < currentIdx)) { dot='done';  head='done';  badge='Completado'; }
-                else if (idx === currentIdx)                               { dot='active';head='active';badge= isRejected ? 'Rechazado' : 'En Curso'; }
-                const connector = idx < TL_PHASES.length-1
-                    ? `<div class="tl-connector${dot==='done'?' done':''}"></div>` : '';
 
-                let actHTML = '';
-                if (idx === currentIdx && !isRejected) {
-                    const emails = phase.emails.map(e =>
-                        `<div class="tl-email-row"><span><i class="fas fa-envelope"></i> ${e.label}</span><button class="tl-send-btn" onclick="doSendEmailTL('${e.type}')"><i class="fas fa-paper-plane"></i> Enviar</button></div>`
-                    ).join('');
-                    const notes = phase.hasNotes
-                        ? `<div class="tl-notes-wrap"><label>Notas de la entrevista <span style="color:#888;font-weight:400">(obligatorio si FAIL)</span></label><textarea id="tlInterviewNotes" rows="3" placeholder="Retroalimentación..."></textarea></div>` : '';
-                    const btns = phase.actions.map(a =>
-                        `<button class="tl-act-btn ${a.cls}" onclick="${a.fn}">${a.label}</button>`
-                    ).join('');
-                    const reject = (idx>0 && idx<TL_PHASES.length-2)
-                        ? `<div style="margin-top:.75rem;padding-top:.75rem;border-top:1px dashed #f5c2c7"><input type="text" id="tlRejectReason" placeholder="Motivo del rechazo (requerido)..." style="width:100%;padding:6px 10px;border:1px solid #f5c2c7;border-radius:6px;font-size:.82em;margin-bottom:6px"><button class="tl-act-btn red" onclick="tlRechazarProceso()"><i class="fas fa-times-circle"></i> Rechazar Proceso</button></div>` : '';
-                    actHTML = `<div class="tl-action-box">${emails}${notes}${btns?`<div class="tl-act-btns">${btns}</div>`:''}${reject}</div>`;
+            const phases = TL_PHASES.map((phase, idx) => {
+                let state = 'pending', badge = 'Pendiente';
+                if (isRejected && idx === currentIdx) { state = 'rejected'; badge = 'Rechazado'; }
+                else if (idx < currentIdx)            { state = 'done';     badge = 'Completado'; }
+                else if (idx === currentIdx)          { state = 'active';   badge = 'En Curso'; }
+
+                let inner = '';
+                if (state !== 'pending') {
+                    inner += `<p class="tl-phase-dtxt">${phase.desc}</p>`;
                 }
-                return `<div class="tl-phase">
-                    <div class="tl-dot-col"><div class="tl-dot ${dot}"><i class="fas ${phase.icon}"></i></div>${connector}</div>
-                    <div class="tl-phase-body">
-                        <div class="tl-phase-head"><span class="tl-ph-title ${head}">${phase.label}</span><span class="tl-ph-badge ${head}">${badge}</span></div>
-                        <p class="tl-ph-desc">${phase.desc}</p>
-                        ${actHTML}
+
+                if (state === 'active') {
+                    // Correos
+                    if (phase.emails.length) {
+                        const emailRows = phase.emails.map(e => `
+                            <div class="tl-email-row">
+                                <div class="tl-email-info">
+                                    <div class="tl-email-name"><i class="fas fa-envelope" style="color:#9ca3af;font-size:.7rem;margin-right:5px"></i>${e.label}</div>
+                                    ${e.desc ? `<div class="tl-email-sub">${e.desc}</div>` : ''}
+                                </div>
+                                <button class="tl-send-btn" onclick="doSendEmailTL('${e.type}')"><i class="fas fa-paper-plane"></i> Enviar</button>
+                            </div>`).join('');
+                        inner += `<div class="tl-slbl">Correos Electrónicos</div>${emailRows}`;
+                    }
+
+                    // Notas (entrevista)
+                    const notesHTML = phase.hasNotes ? `
+                        <div class="tl-notes-wrap">
+                            <label><i class="fas fa-comment-alt" style="margin-right:4px"></i>Notas de entrevista <span style="color:#9ca3af;font-weight:400">(obligatorio si FAIL)</span></label>
+                            <textarea id="tlInterviewNotes" rows="3" placeholder="Escribe retroalimentación para el candidato..."></textarea>
+                        </div>` : '';
+
+                    // Acciones
+                    if (phase.actions.length || phase.hasNotes) {
+                        const actionRows = phase.actions.map(a => `
+                            <div class="tl-action-row">
+                                <div style="flex:1;min-width:0">
+                                    <div class="tl-action-lbl">${a.label}</div>
+                                    ${a.info ? `<div class="tl-action-sub">${a.info}</div>` : ''}
+                                </div>
+                                <button class="tl-act-btn ${a.cls}" onclick="${a.fn}">${a.btn || a.label}</button>
+                            </div>`).join('');
+                        inner += `<div class="tl-slbl">Acciones</div>${notesHTML}${actionRows}`;
+                    }
+
+                    // Rechazar proceso
+                    if (idx > 0 && idx < TL_PHASES.length - 2) {
+                        inner += `<div class="tl-reject-box">
+                            <input type="text" id="tlRejectReason" placeholder="Motivo del rechazo (requerido)...">
+                            <button class="tl-act-btn red" onclick="tlRechazarProceso()" style="width:100%;justify-content:center;padding:.35rem"><i class="fas fa-times-circle"></i> Rechazar Proceso</button>
+                        </div>`;
+                    }
+                }
+
+                return `<div class="tl-phase-card${state === 'active' ? ' tl-active' : ''}">
+                    <div class="tl-phase-strip ${state}"></div>
+                    <div class="tl-phase-inner">
+                        <div class="tl-phase-hdr">
+                            <div class="tl-phase-ico ${state}"><i class="fas ${state === 'done' ? 'fa-check' : phase.icon}"></i></div>
+                            <span class="tl-phase-lbl ${state}">${phase.label}</span>
+                            <span class="tl-phase-bdg ${state}">${badge}</span>
+                        </div>
+                        ${inner}
                     </div>
                 </div>`;
             }).join('');
-            const rejectedActions = isRejected
-                ? `<div class="tl-action-box" style="margin-top:1rem;background:#fff5f5;border:1px solid #f5c2c7">
-                    <div class="tl-email-row">
-                        <span><i class="fas fa-envelope"></i> Reenviar correo de rechazo</span>
-                        <button class="tl-send-btn" onclick="doSendEmailTL('rejected')"><i class="fas fa-paper-plane"></i> Enviar</button>
+
+            // Panel extra para candidatos rechazados: reenviar correo
+            const rejectedPanel = isRejected ? `
+                <div class="tl-phase-card" style="border-color:#fecaca;margin-top:0.1rem">
+                    <div class="tl-phase-strip rejected"></div>
+                    <div class="tl-phase-inner">
+                        <div class="tl-slbl" style="margin-top:0">Correos Electrónicos</div>
+                        <div class="tl-email-row">
+                            <div class="tl-email-info">
+                                <div class="tl-email-name"><i class="fas fa-envelope" style="color:#9ca3af;font-size:.7rem;margin-right:5px"></i>Reenviar correo de rechazo</div>
+                                <div class="tl-email-sub">Notificación al candidato sobre el resultado</div>
+                            </div>
+                            <button class="tl-send-btn" onclick="doSendEmailTL('rejected')"><i class="fas fa-paper-plane"></i> Enviar</button>
+                        </div>
                     </div>
-                   </div>` : '';
-            return `<div class="tl-timeline">${phases}${rejectedActions}</div>`;
+                </div>` : '';
+
+            return `<div class="tl-timeline">${phases}${rejectedPanel}</div>`;
         }
 
         function updateAvanzarBtn(c) {

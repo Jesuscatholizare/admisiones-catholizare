@@ -435,7 +435,8 @@
                         candidate_id: candidateId,
                         email: email,
                         token: token,
-                        accepted_at: new Date().toISOString()
+                        accepted_at: new Date().toISOString(),
+                        user_agent: navigator.userAgent
                     })
                 });
                 const result = await response.json();

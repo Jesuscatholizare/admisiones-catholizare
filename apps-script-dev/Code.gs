@@ -516,7 +516,11 @@ function handleAcceptTerms(data) {
     const candidateId = data.candidate_id;
     if (!candidateId) return jsonResponse(false, 'candidate_id requerido');
 
-    const result = acceptTerms(candidateId);
+    const acceptedAt  = data.accepted_at  || new Date().toISOString();
+    const clientIp    = data.client_ip    || '';
+    const userAgent   = data.user_agent   || '';
+
+    const result = acceptTerms(candidateId, acceptedAt, clientIp, userAgent);
     if (result.success) {
       return jsonResponse(true, 'Términos aceptados. Token E2 enviado a tu email.', {
         candidate_id: candidateId
@@ -529,7 +533,7 @@ function handleAcceptTerms(data) {
   }
 }
 
-function acceptTerms(candidateId) {
+function acceptTerms(candidateId, acceptedAt, clientIp, userAgent) {
   try {
     const sheet = SS.getSheetByName('Candidatos');
     const data  = sheet.getDataRange().getValues();
@@ -538,12 +542,17 @@ function acceptTerms(candidateId) {
         const email = data[i][3];
         const name  = data[i][2];
         sheet.getRange(i + 1, 11).setValue('pending_review_E2');
+        // Guardar firma de aceptación: columna V (22) = timestamp, W (23) = IP, X (24) = user-agent
+        sheet.getRange(i + 1, 22).setValue(acceptedAt || new Date().toISOString());
+        sheet.getRange(i + 1, 23).setValue(clientIp   || '');
+        sheet.getRange(i + 1, 24).setValue(userAgent   || '');
         const token          = generateToken(candidateId, 'E2');
         const scheduled_date = new Date().toISOString().split('T')[0];
         saveToken(token, candidateId, 'E2', email, name, scheduled_date);
         sendEmailE2(email, name, token, candidateId);
         addTimelineEvent(candidateId, 'TERMINOS_ACEPTADOS', {
-          email: email, token_e2_generado: token
+          email: email, token_e2_generado: token,
+          ip: clientIp, timestamp: acceptedAt
         });
         return { success: true, token: token };
       }
