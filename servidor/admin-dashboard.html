@@ -1965,7 +1965,7 @@
 
         function renderHealthContent(data) {
             const content = document.getElementById('healthContent');
-            const overall = data.status || 'unknown';
+            const overall = (data.status || 'unknown').toLowerCase();
             const dotCls  = overall === 'ok' || overall === 'healthy' ? 'ok' : overall === 'error' ? 'error' : 'warning';
 
             // Banner general
@@ -1984,10 +1984,25 @@
                 html += '<div class="health-grid" style="margin-bottom:1.25rem;">';
                 serviceKeys.forEach(key => {
                     const val  = services[key];
-                    const stat = typeof val === 'object' ? (val.status || val.state || 'unknown') : String(val);
+                    let stat, label;
+                    if (typeof val === 'object' && val !== null) {
+                        if (val.status || val.state) {
+                            // objeto con campo status explícito
+                            stat  = (val.status || val.state).toLowerCase();
+                            label = val.message || stat.toUpperCase();
+                        } else {
+                            // objeto plano tipo {openai:'OK', brevo:'MISSING'} — apiKeys/email
+                            const subVals = Object.values(val).map(v => String(v).toUpperCase());
+                            const hasMissing = subVals.some(v => v === 'MISSING' || v === 'ERROR');
+                            stat  = hasMissing ? 'warning' : 'ok';
+                            label = subVals.join(' / ');
+                        }
+                    } else {
+                        stat  = String(val).toLowerCase();
+                        label = String(val);
+                    }
                     const cls  = stat === 'ok' || stat === 'healthy' || stat === 'true' || stat === 'connected' ? 'ok'
                                : stat === 'error' || stat === 'false' || stat === 'down' ? 'error' : 'warning';
-                    const label = typeof val === 'object' ? (val.message || stat) : stat;
                     html += `<div class="health-item">
                         <span class="health-dot ${cls}"></span>
                         <div>
