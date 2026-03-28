@@ -1670,7 +1670,7 @@ function sendHandoffNotification(email, name, category) {
 // MODULO: CANDIDATOS
 // ================================
 function generateCandidateId() {
-  const yyyymmdd = Utilities.formatDate(new Date(), CONFIG.timezone || 'America/Bogota', 'yyyyMMdd');
+  const yyyymmdd = Utilities.formatDate(new Date(), CONFIG.timezone || 'America/Mexico_City', 'yyyyMMdd');
   const random   = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
   return 'CANDIDATO_' + yyyymmdd + '_' + random;
 }
