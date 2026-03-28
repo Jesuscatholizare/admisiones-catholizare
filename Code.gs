@@ -296,6 +296,12 @@ function doPost(e) {
         return jsonResponse(acceptTerms(data.candidate_id).success,
           acceptTerms(data.candidate_id).message,
           { candidateId: data.candidate_id });
+      case 'approveExam':
+        return approveExamAdmin(data.candidateId, data.exam, data.notes);
+      case 'rejectExam':
+        return rejectExamAdmin(data.candidateId, data.exam, data.reason);
+      case 'assignCategory':
+        return assignCategoryAndApprove(data.candidateId, data.category, data.comments);
       default:
         return jsonResponse(false, 'Accion no valida');
     }
@@ -314,8 +320,19 @@ function doGet(e) {
     const token = e.parameter.token;
     const exam = e.parameter.exam;
     const pin = e.parameter.pin || '';
+    const candidateId = e.parameter.candidateId;
 
     Logger.log('[doGet] Accion: ' + action + ', Exam: ' + exam);
+
+    // Dashboard API - Obtener datos
+    if (action === 'getDashboardData') {
+      return getDashboardData();
+    }
+
+    // Obtener respuestas de candidato
+    if (action === 'getCandidateResponses') {
+      return getCandidateResponses(candidateId);
+    }
 
     // Si es para verificar token y obtener preguntas
     if (action === 'get_exam') {
@@ -1355,7 +1372,9 @@ function sendWelcomeEmail(email, name, token, candidate_id, scheduled_date) {
 }
 
 function sendEmailTerms(email, name, candidateId) {
-  const termsUrl = 'https://profesionales.catholizare.com/catholizare_sistem/terminos-condiciones.html?candidate_id=' + candidateId;
+  // URL que apunta al archivo de términos y condiciones
+  // IMPORTANTE: El archivo debe estar en: https://profesionales.catholizare.com/catholizare_sistem/terminos-condiciones.html
+  const termsUrl = 'https://profesionales.catholizare.com/catholizare_sistem/terminos-condiciones.html?candidate_id=' + encodeURIComponent(candidateId);
   const htmlBody = '<html><head><style>' +
     'body{font-family:Arial,sans-serif;color:#333;}' +
     '.container{max-width:600px;margin:0 auto;padding:20px;}' +
@@ -1959,6 +1978,347 @@ function jsonResponse(success, message, data) {
 
   return ContentService.createTextOutput(JSON.stringify(response))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ================================
+// MODULO: ADMIN DASHBOARD
+// ================================
+
+/**
+ * Obtiene todos los candidatos con sus estados actuales
+ */
+function getDashboardData() {
+  try {
+    const sheet = SS.getSheetByName('Candidatos');
+    if (!sheet) return jsonResponse(false, 'Hoja Candidatos no encontrada');
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    // Mapear columnas
+    const idIdx = headers.indexOf('candidate_id');
+    const nameIdx = headers.indexOf('name');
+    const emailIdx = headers.indexOf('email');
+    const statusIdx = headers.indexOf('status');
+    const lastInteractionIdx = headers.indexOf('last_interaction_date');
+    const categoryIdx = headers.indexOf('final_category');
+
+    const candidates = [];
+    for (let i = 1; i < data.length; i++) {
+      if (!data[i][idIdx]) continue; // Skip empty rows
+
+      const candidate = {
+        id: data[i][idIdx],
+        name: data[i][nameIdx] || '',
+        email: data[i][emailIdx] || '',
+        status: data[i][statusIdx] || 'registered',
+        lastInteraction: data[i][lastInteractionIdx] || '',
+        category: data[i][categoryIdx] || '',
+        progress: getProgressPercentage(data[i][statusIdx])
+      };
+
+      candidates.push(candidate);
+    }
+
+    return jsonResponse(true, 'Datos obtenidos', candidates);
+  } catch (error) {
+    Logger.log('[getDashboardData Error] ' + error.message);
+    return jsonResponse(false, 'Error: ' + error.message);
+  }
+}
+
+/**
+ * Obtiene respuestas de un candidato para un examen específico
+ */
+function getCandidateResponses(candidateId) {
+  try {
+    if (!candidateId) {
+      return jsonResponse(false, 'candidateId requerido');
+    }
+
+    const result = {};
+
+    // Buscar respuestas en E1, E2, E3
+    ['E1', 'E2', 'E3'].forEach(exam => {
+      const sheet = SS.getSheetByName('Test_' + exam + '_Respuestas');
+      if (!sheet) return;
+
+      const data = sheet.getDataRange().getValues();
+      const headers = data[0];
+      const candidateIdIdx = headers.indexOf('candidate_id');
+      const responsesIdx = headers.indexOf('responses_json');
+      const scoreIdx = headers.indexOf('openai_score_json');
+      const verdictIdx = headers.indexOf('verdict');
+
+      for (let i = 1; i < data.length; i++) {
+        if (data[i][candidateIdIdx] === candidateId) {
+          result[exam] = {
+            responses: safeParseJSON(data[i][responsesIdx], {}),
+            score: safeParseJSON(data[i][scoreIdx], {}),
+            verdict: data[i][verdictIdx] || '',
+            submitted_at: data[i][0] || '' // timestamp
+          };
+          break;
+        }
+      }
+    });
+
+    if (Object.keys(result).length === 0) {
+      return jsonResponse(false, 'No se encontraron respuestas para este candidato');
+    }
+
+    return jsonResponse(true, 'Respuestas obtenidas', result);
+  } catch (error) {
+    Logger.log('[getCandidateResponses Error] ' + error.message);
+    return jsonResponse(false, 'Error: ' + error.message);
+  }
+}
+
+/**
+ * Admin aprueba un examen
+ */
+function approveExamAdmin(candidateId, exam, notes) {
+  try {
+    if (!candidateId || !exam) {
+      return jsonResponse(false, 'candidateId y exam requeridos');
+    }
+
+    const sheet = SS.getSheetByName('Candidatos');
+    if (!sheet) return jsonResponse(false, 'Hoja Candidatos no encontrada');
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const idIdx = headers.indexOf('candidate_id');
+    const statusIdx = headers.indexOf('status');
+    const notesIdx = headers.indexOf('notes');
+
+    let found = false;
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][idIdx] === candidateId) {
+        found = true;
+
+        // Determinar nuevo status
+        let newStatus = 'pending_review_' + exam;
+        if (exam === 'E1') {
+          newStatus = 'awaiting_terms_acceptance'; // E1 approved → esperar términos
+        } else if (exam === 'E2') {
+          newStatus = 'pending_review_E3';
+        } else if (exam === 'E3') {
+          newStatus = 'awaiting_interview';
+        }
+
+        // Actualizar status
+        sheet.getRange(i + 1, statusIdx + 1).setValue(newStatus);
+
+        // Agregar notas si existen
+        if (notes && notesIdx >= 0) {
+          const existingNotes = data[i][notesIdx] || '';
+          const timestamp = new Date().toISOString();
+          const newNotes = existingNotes + '\n[' + timestamp + ' - Admin] ' + notes;
+          sheet.getRange(i + 1, notesIdx + 1).setValue(newNotes);
+        }
+
+        // Timeline
+        addTimelineEvent(candidateId, 'EXAM_APROBADO', {
+          exam: exam,
+          nuevo_status: newStatus,
+          notas: notes || ''
+        });
+
+        // Si es E1 aprobado, enviar email de términos
+        if (exam === 'E1') {
+          const emailIdx = headers.indexOf('email');
+          const nameIdx = headers.indexOf('name');
+          const email = data[i][emailIdx];
+          const name = data[i][nameIdx];
+          sendEmailTerms(email, name, candidateId);
+        }
+
+        return jsonResponse(true, exam + ' aprobado. Nuevo status: ' + newStatus);
+      }
+    }
+
+    if (!found) {
+      return jsonResponse(false, 'Candidato no encontrado');
+    }
+
+  } catch (error) {
+    Logger.log('[approveExamAdmin Error] ' + error.message);
+    return jsonResponse(false, 'Error: ' + error.message);
+  }
+}
+
+/**
+ * Admin rechaza un examen
+ */
+function rejectExamAdmin(candidateId, exam, reason) {
+  try {
+    if (!candidateId || !exam) {
+      return jsonResponse(false, 'candidateId y exam requeridos');
+    }
+
+    const sheet = SS.getSheetByName('Candidatos');
+    if (!sheet) return jsonResponse(false, 'Hoja Candidatos no encontrada');
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const idIdx = headers.indexOf('candidate_id');
+    const statusIdx = headers.indexOf('status');
+    const notesIdx = headers.indexOf('notes');
+    const emailIdx = headers.indexOf('email');
+    const nameIdx = headers.indexOf('name');
+
+    let found = false;
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][idIdx] === candidateId) {
+        found = true;
+
+        // Cambiar status a rechazado
+        sheet.getRange(i + 1, statusIdx + 1).setValue('rejected');
+
+        // Agregar razón en notas
+        if (notesIdx >= 0) {
+          const timestamp = new Date().toISOString();
+          const newNote = '\n[' + timestamp + ' - Rechazo ' + exam + '] ' + (reason || 'Sin especificar');
+          const existingNotes = data[i][notesIdx] || '';
+          sheet.getRange(i + 1, notesIdx + 1).setValue(existingNotes + newNote);
+        }
+
+        // Timeline
+        addTimelineEvent(candidateId, 'EXAM_RECHAZADO', {
+          exam: exam,
+          razon: reason || 'Sin especificar'
+        });
+
+        // Enviar email de rechazo
+        const email = data[i][emailIdx];
+        const name = data[i][nameIdx];
+        sendEmailRejected(email, name, exam, reason);
+
+        // Mover a lista Brevo "rechazados"
+        moveContactBetweenLists(email, CONFIG.brevo_list_interesados, CONFIG.brevo_list_rechazados);
+
+        return jsonResponse(true, exam + ' rechazado. Email enviado al candidato.');
+      }
+    }
+
+    if (!found) {
+      return jsonResponse(false, 'Candidato no encontrado');
+    }
+
+  } catch (error) {
+    Logger.log('[rejectExamAdmin Error] ' + error.message);
+    return jsonResponse(false, 'Error: ' + error.message);
+  }
+}
+
+/**
+ * Asigna categoría y aprueba candidato
+ */
+function assignCategoryAndApprove(candidateId, category, comments) {
+  try {
+    if (!candidateId || !category) {
+      return jsonResponse(false, 'candidateId y category requeridos');
+    }
+
+    if (!['JUNIOR', 'SENIOR', 'EXPERT'].includes(category.toUpperCase())) {
+      return jsonResponse(false, 'Categoría inválida. Debe ser JUNIOR, SENIOR o EXPERT');
+    }
+
+    const sheet = SS.getSheetByName('Candidatos');
+    if (!sheet) return jsonResponse(false, 'Hoja Candidatos no encontrada');
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const idIdx = headers.indexOf('candidate_id');
+    const statusIdx = headers.indexOf('status');
+    const categoryIdx = headers.indexOf('final_category');
+    const notesIdx = headers.indexOf('notes');
+    const emailIdx = headers.indexOf('email');
+    const nameIdx = headers.indexOf('name');
+
+    let found = false;
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][idIdx] === candidateId) {
+        found = true;
+
+        // Actualizar categoría y status final
+        const statusCategory = 'approved_' + category.toLowerCase();
+        sheet.getRange(i + 1, statusIdx + 1).setValue(statusCategory);
+        sheet.getRange(i + 1, categoryIdx + 1).setValue(category.toUpperCase());
+
+        // Agregar comentarios
+        if (comments && notesIdx >= 0) {
+          const timestamp = new Date().toISOString();
+          const newNote = '\n[' + timestamp + ' - Categorización] ' + comments;
+          const existingNotes = data[i][notesIdx] || '';
+          sheet.getRange(i + 1, notesIdx + 1).setValue(existingNotes + newNote);
+        }
+
+        // Timeline
+        addTimelineEvent(candidateId, 'CANDIDATO_CATEGORIZADO', {
+          categoria: category.toUpperCase(),
+          comentarios: comments || ''
+        });
+
+        // Mover a lista Brevo correspondiente
+        const email = data[i][emailIdx];
+        const listMap = {
+          'JUNIOR': CONFIG.brevo_list_junior,
+          'SENIOR': CONFIG.brevo_list_senior,
+          'EXPERT': CONFIG.brevo_list_expert
+        };
+        if (listMap[category.toUpperCase()]) {
+          addContactToBrevoList(email, data[i][nameIdx].split(' ')[0], data[i][nameIdx].split(' ').slice(1).join(' '), listMap[category.toUpperCase()]);
+        }
+
+        // Enviar email de aprobación
+        const name = data[i][nameIdx];
+        sendEmailApproved(email, name, category);
+
+        return jsonResponse(true, 'Candidato categorizado como ' + category.toUpperCase() + ' y aprobado');
+      }
+    }
+
+    if (!found) {
+      return jsonResponse(false, 'Candidato no encontrado');
+    }
+
+  } catch (error) {
+    Logger.log('[assignCategoryAndApprove Error] ' + error.message);
+    return jsonResponse(false, 'Error: ' + error.message);
+  }
+}
+
+/**
+ * Calcula porcentaje de progreso basado en status
+ */
+function getProgressPercentage(status) {
+  const progressMap = {
+    'registered': 10,
+    'pending_review_E1': 25,
+    'awaiting_terms_acceptance': 30,
+    'pending_review_E2': 50,
+    'pending_review_E3': 75,
+    'awaiting_interview': 85,
+    'approved_junior': 100,
+    'approved_senior': 100,
+    'approved_expert': 100,
+    'rejected': 0
+  };
+
+  return progressMap[status] || 10;
+}
+
+/**
+ * Parse JSON seguro
+ */
+function safeParseJSON(str, fallback) {
+  try {
+    return typeof str === 'string' ? JSON.parse(str) : str || fallback;
+  } catch (e) {
+    return fallback;
+  }
 }
 
 // ================================

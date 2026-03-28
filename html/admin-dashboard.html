@@ -1126,9 +1126,62 @@
             }
         }
 
-        function viewDetails(candidateId) {
-            // Redirect to detailed view or open modal
-            showToast('Abriendo detalles...', 'info');
+        async function viewDetails(candidateId) {
+            try {
+                showToast('Cargando respuestas...', 'info');
+
+                const response = await fetch(API_BASE + '?action=getCandidateResponses&candidateId=' + candidateId);
+                const data = await response.json();
+
+                if (data.success && data.data) {
+                    // Crear modal con respuestas
+                    const responsesData = data.data;
+                    let html = '<div id="responsesModal" class="modal" style="display:block;">' +
+                        '<div class="modal-content" style="max-height:80vh;overflow-y:auto;">' +
+                        '<span class="close" onclick="closeResponsesModal()" style="cursor:pointer;font-size:24px;">&times;</span>' +
+                        '<h2>Respuestas de ' + candidateId + '</h2>';
+
+                    // Mostrar respuestas por examen
+                    for (const exam in responsesData) {
+                        const examData = responsesData[exam];
+                        html += '<div style="margin:20px 0;border:1px solid #ddd;padding:15px;border-radius:5px;">' +
+                            '<h3>' + exam + '</h3>' +
+                            '<p><strong>Veredicto:</strong> <span style="color:' + (examData.verdict === 'pass' ? '#4CAF50' : '#f44336') + ';">' + examData.verdict.toUpperCase() + '</span></p>';
+
+                        if (examData.submitted_at) {
+                            html += '<p><small>Enviado: ' + new Date(examData.submitted_at).toLocaleString('es-CO') + '</small></p>';
+                        }
+
+                        // Mostrar respuestas
+                        html += '<div style="background:#f9f9f9;padding:10px;margin:10px 0;border-radius:3px;font-family:monospace;white-space:pre-wrap;word-wrap:break-word;font-size:12px;max-height:300px;overflow-y:auto;">' +
+                            JSON.stringify(examData.responses, null, 2) +
+                            '</div>';
+
+                        // Mostrar puntaje
+                        if (examData.score) {
+                            html += '<p><strong>Puntuación:</strong></p><pre style="background:#f9f9f9;padding:10px;border-radius:3px;overflow-x:auto;">' +
+                                JSON.stringify(examData.score, null, 2) +
+                                '</pre>';
+                        }
+
+                        html += '</div>';
+                    }
+
+                    html += '</div></div>';
+
+                    // Inserar en el DOM
+                    document.body.insertAdjacentHTML('beforeend', html);
+                } else {
+                    showToast('Error: ' + (data.message || 'No se pudieron cargar las respuestas'), 'error');
+                }
+            } catch (error) {
+                showToast('Error al cargar respuestas: ' + error.message, 'error');
+            }
+        }
+
+        function closeResponsesModal() {
+            const modal = document.getElementById('responsesModal');
+            if (modal) modal.remove();
         }
 
         // Utility functions
