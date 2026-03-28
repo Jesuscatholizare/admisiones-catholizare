@@ -1373,8 +1373,9 @@ function sendWelcomeEmail(email, name, token, candidate_id, scheduled_date) {
 
 function sendEmailTerms(email, name, candidateId) {
   // URL que apunta al archivo de términos y condiciones
-  // IMPORTANTE: El archivo debe estar en: https://profesionales.catholizare.com/catholizare_sistem/terminos-condiciones.html
-  const termsUrl = 'https://profesionales.catholizare.com/catholizare_sistem/terminos-condiciones.html?candidate_id=' + encodeURIComponent(candidateId);
+  // IMPORTANTE: El archivo debe estar en: https://profesionales.catholizare.com/catholizare_sistem/terminos.html
+  // (También disponible como: terminos-condiciones.html)
+  const termsUrl = 'https://profesionales.catholizare.com/catholizare_sistem/terminos.html?candidate_id=' + encodeURIComponent(candidateId);
   const htmlBody = '<html><head><style>' +
     'body{font-family:Arial,sans-serif;color:#333;}' +
     '.container{max-width:600px;margin:0 auto;padding:20px;}' +
