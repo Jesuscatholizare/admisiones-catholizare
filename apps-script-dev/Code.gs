@@ -1588,7 +1588,7 @@ function sendWelcomeEmail(email, name, token, candidate_id, scheduled_date) {
 }
 
 function sendEmailTerms(email, name, candidateId) {
-  const url = 'https://profesionales.catholizare.com/catholizare_sistem/terminos/?candidate_id=' + candidateId + '&email=' + encodeURIComponent(email);
+  const url = 'https://profesionales.catholizare.com/catholizare_sistem/terminos-y-condiciones.html?candidate_id=' + candidateId + '&email=' + encodeURIComponent(email);
   const html = '<div style="font-family:Arial;"><h2>Hola ' + name + '</h2><p>Aprobaste E1. Acepta los Términos y Condiciones para continuar.</p>' +
     '<a href="' + url + '" style="background:#0966FF;color:white;padding:12px 24px;text-decoration:none;border-radius:4px;">Aceptar Términos</a></div>';
   return sendEmail(email, 'Paso siguiente: Acepta los Términos', html);

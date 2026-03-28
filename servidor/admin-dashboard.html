@@ -1761,7 +1761,7 @@
                 const res  = await fetch(API_BASE, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'getExamResponses', candidateId: respSelectedId, exam, adminToken: ADMIN_TOKEN })
+                    body: JSON.stringify({ action: 'getExamResponses', candidate_id: respSelectedId, exam, adminToken: ADMIN_TOKEN })
                 });
                 const data = await res.json();
                 if (data.success) {
