@@ -1439,6 +1439,8 @@ function getExamData(token, exam) {
   try {
     const tokenData = verifyToken(token, exam);
     if (!tokenData.valid) return jsonResponse(false, tokenData.message);
+    // Marcar token como usado al iniciar (un solo intento)
+    markTokenAsUsed(token);
     const questions = getQuestionsForExam(exam);
     const duration  = getExamDuration(exam);
     return jsonResponse(true, 'OK', {
@@ -1575,16 +1577,16 @@ function logNotificationEvent(email, subject, provider, status) {
 // ================================
 function sendWelcomeEmail(email, name, token, candidate_id, scheduled_date) {
   const exam_url = 'https://profesionales.catholizare.com/catholizare_sistem/examen/?token=' + token + '&exam=E1';
-  let formatted_date = scheduled_date;
-  try { formatted_date = new Date(scheduled_date).toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }); } catch(e) {}
   const html =
     '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">' +
     '<div style="background:linear-gradient(135deg,#001A55,#0966FF);color:white;padding:20px;text-align:center;border-radius:8px 8px 0 0;">' +
     '<h1>Bienvenido ' + name + '</h1><p>Red de Psicólogos Católicos</p></div>' +
     '<div style="background:#f9f9f9;padding:20px;">' +
-    '<p>Tu registro ha sido exitoso.</p>' +
-    '<p><strong>Examen E1 agendado para:</strong><br>' + formatted_date + '</p>' +
+    '<p>Tu registro ha sido exitoso. Ya puedes acceder al Examen E1.</p>' +
     '<p><a href="' + exam_url + '" style="display:inline-block;background:#0966FF;color:white;padding:12px 24px;text-decoration:none;border-radius:4px;">Acceder al Examen E1</a></p>' +
+    '<div style="background:#fef2f2;border-left:4px solid #dc2626;padding:12px;margin:16px 0;border-radius:4px;">' +
+    '<p style="margin:0;color:#991b1b;font-size:13px;"><strong>⚠️ Un solo intento:</strong> Solo tienes un intento para completar este examen. Una vez que presiones "Comenzar", no podrás reiniciar ni volver a acceder. Asegúrate de contar con el tiempo y condiciones necesarias antes de iniciar.</p>' +
+    '</div>' +
     '<p style="font-size:12px;color:#666;"><strong>Instrucciones:</strong> Duración 2h · No copy/paste · Max 3 cambios de ventana</p>' +
     '</div></div>';
   return sendEmail(email, 'Bienvenido a ' + (CONFIG.app_name || 'RCCC'), html);
@@ -1599,15 +1601,21 @@ function sendEmailTerms(email, name, candidateId) {
 
 function sendEmailE2(email, name, token, candidateId) {
   const url = 'https://profesionales.catholizare.com/catholizare_sistem/examen/?token=' + token + '&exam=E2';
-  const html = '<div style="font-family:Arial;"><h2>Hola ' + name + '</h2><p>Has aceptado los términos. Ya puedes tomar el Examen E2.</p>' +
-    '<a href="' + url + '" style="background:#0966FF;color:white;padding:12px 24px;text-decoration:none;border-radius:4px;">Acceder al Examen E2</a></div>';
+  const html = '<div style="font-family:Arial;max-width:600px;margin:0 auto;"><h2>Hola ' + name + '</h2><p>Has aceptado los términos. Ya puedes tomar el Examen E2.</p>' +
+    '<p><a href="' + url + '" style="display:inline-block;background:#0966FF;color:white;padding:12px 24px;text-decoration:none;border-radius:4px;">Acceder al Examen E2</a></p>' +
+    '<div style="background:#fef2f2;border-left:4px solid #dc2626;padding:12px;margin:16px 0;border-radius:4px;">' +
+    '<p style="margin:0;color:#991b1b;font-size:13px;"><strong>⚠️ Un solo intento:</strong> Solo tienes un intento para completar este examen. Una vez que presiones "Comenzar", no podrás reiniciar ni volver a acceder. Asegúrate de contar con el tiempo y condiciones necesarias antes de iniciar.</p>' +
+    '</div></div>';
   return sendEmail(email, 'Accede al Examen E2', html);
 }
 
 function sendEmailE3(email, name, token, candidateId) {
   const url = 'https://profesionales.catholizare.com/catholizare_sistem/examen/?token=' + token + '&exam=E3';
-  const html = '<div style="font-family:Arial;"><h2>Hola ' + name + '</h2><p>¡Excelente! Aprobaste E2. Ahora puedes tomar el Examen E3 (final).</p>' +
-    '<a href="' + url + '" style="background:#0966FF;color:white;padding:12px 24px;text-decoration:none;border-radius:4px;">Acceder al Examen E3</a></div>';
+  const html = '<div style="font-family:Arial;max-width:600px;margin:0 auto;"><h2>Hola ' + name + '</h2><p>¡Excelente! Aprobaste E2. Ahora puedes tomar el Examen E3 (final).</p>' +
+    '<p><a href="' + url + '" style="display:inline-block;background:#0966FF;color:white;padding:12px 24px;text-decoration:none;border-radius:4px;">Acceder al Examen E3</a></p>' +
+    '<div style="background:#fef2f2;border-left:4px solid #dc2626;padding:12px;margin:16px 0;border-radius:4px;">' +
+    '<p style="margin:0;color:#991b1b;font-size:13px;"><strong>⚠️ Un solo intento:</strong> Solo tienes un intento para completar este examen. Una vez que presiones "Comenzar", no podrás reiniciar ni volver a acceder. Asegúrate de contar con el tiempo y condiciones necesarias antes de iniciar.</p>' +
+    '</div></div>';
   return sendEmail(email, 'Accede al Examen E3 (Final)', html);
 }
 
