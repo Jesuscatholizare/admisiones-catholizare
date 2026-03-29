@@ -1405,14 +1405,15 @@
 
             const aboutHTML = `<div class="tl-card-block"><div class="tl-card-title"><i class="fas fa-id-card"></i> Reseña Profesional</div><p style="margin:.5rem 0 0;font-size:.9em;line-height:1.6;color:#555;padding:.75rem;background:#f9f9f9;border-radius:4px">${c.about && c.about.trim() ? c.about : '<span style="color:#aaa;font-style:italic">Sin información</span>'}</p></div>`;
 
-            return `<div class="tl-perfil"><div class="tl-cards">
-                <div style="display:flex;gap:1.5rem;margin-bottom:1.5rem">
-                    <div style="flex:1"><div class="tl-card-block"><div class="tl-card-title"><i class="fas fa-user"></i> Datos del Candidato</div><div class="tl-fields">${rows}</div></div></div>
-                    <div style="flex:1">${aboutHTML}</div>
-                </div>
+            return `<div class="tl-perfil"><div class="tl-cards" style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
+                <!-- Superior Izquierda: Datos del Candidato -->
+                <div class="tl-card-block"><div class="tl-card-title"><i class="fas fa-user"></i> Datos del Candidato</div><div class="tl-fields">${rows}</div></div>
+                <!-- Superior Derecha: Resultados de Exámenes -->
                 <div class="tl-card-block"><div class="tl-card-title"><i class="fas fa-chart-bar"></i> Resultados de Exámenes</div><div class="tl-fields">${examRows}</div></div>
-                ${notesHTML}
+                <!-- Inferior Izquierda: Listas Brevo -->
                 <div class="tl-card-block"><div class="tl-card-title"><i class="fas fa-users"></i> Listas Brevo</div><div class="tl-brevo-list">${brevoRows}</div></div>
+                <!-- Inferior Derecha: Reseña Profesional -->
+                <div>${aboutHTML}</div>
             </div></div>`;
         }
 
@@ -1542,7 +1543,24 @@
             if (!entry) return;
             if (!confirm(`¿Avanzar a "${c.nombre}" a la siguiente fase?`)) return;
             const { msg, ...body } = entry;
-            await callApi({ adminToken: ADMIN_TOKEN, candidateId: c.candidato_id, ...body }, msg, true);
+            try {
+                const resp = await fetch(API_BASE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: ADMIN_TOKEN, candidateId: c.candidato_id, ...body }) });
+                const data = await resp.json();
+                if (data.success) {
+                    showToast(msg, 'success');
+                    // Recargar datos y actualizar timeline
+                    await loadData();
+                    // Volver a cargar el candidato actualizado
+                    if (candidates && candidates.length > 0) {
+                        const updatedCandidate = candidates.find(cd => cd.candidato_id === c.candidato_id);
+                        if (updatedCandidate) {
+                            document.getElementById('tlBody').innerHTML = renderTLPerfil(updatedCandidate) + renderTLTimeline(updatedCandidate);
+                        }
+                    }
+                } else {
+                    showToast(data.message || 'Error al avanzar fase', 'error');
+                }
+            } catch (e) { showToast('Error de conexión', 'error'); }
         }
 
         async function doSendEmailTL(emailType) {
