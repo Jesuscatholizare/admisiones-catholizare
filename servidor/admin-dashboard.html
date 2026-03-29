@@ -1019,6 +1019,14 @@
               <label style="font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">Fecha agendada E1</label>
               <input id="apFecha" type="date" style="width:100%;padding:0.5rem 0.75rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;">
             </div>
+            <div>
+              <label style="font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">Hora del examen</label>
+              <input id="apHora" type="time" style="width:100%;padding:0.5rem 0.75rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;">
+            </div>
+            <div style="grid-column:1/-1;">
+              <label style="font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">Reseña Profesional</label>
+              <textarea id="apResena" placeholder="Experiencia, especialidades y motivación para unirse a RCCC..." style="width:100%;padding:0.5rem 0.75rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;min-height:80px;resize:vertical;"></textarea>
+            </div>
           </div>
           <div style="display:flex;gap:0.75rem;margin-top:1.25rem;">
             <button onclick="document.getElementById('modalAgregarProfesional').style.display='none'"
@@ -1826,10 +1834,13 @@
             }
 
             questions.forEach((q, i) => {
-                const tipo     = q.tipo || q.type || 'open';
-                const texto    = q.texto || q.pregunta || q.question || q.n || '';
-                const respCand = q.respuesta_candidato || q.candidate_answer || q.answer || '';
-                const correcto = q.es_correcta;
+                // Mapear campos desde el backend (que usa: text, type, options, answer, is_correct)
+                const tipo     = q.type || q.tipo || 'open';
+                const texto    = q.text || q.texto || q.pregunta || q.question || q.n || '';
+                const respCand = q.answer || q.respuesta_candidato || q.candidate_answer || '';
+                const correcto = q.is_correct !== null ? q.is_correct : q.es_correcta;
+                const opciones = q.options || q.opciones || [];
+                const correcta = q.correct || q.respuesta_correcta || q.correct_answer || '';
                 const esMulti  = tipo === 'multiple';
                 const markIcon = correcto === true  ? '<i class="fas fa-check" style="color:#198754;"></i>'
                                : correcto === false ? '<i class="fas fa-times" style="color:#dc3545;"></i>' : '';
@@ -1842,13 +1853,12 @@
                         ${markIcon ? `<span class="resp-q-mark">${markIcon}</span>` : ''}
                     </div>`;
 
-                if (esMulti && q.opciones && q.opciones.length) {
-                    const correctaKey = q.respuesta_correcta || q.correct_answer || '';
+                if (esMulti && opciones && opciones.length) {
                     html += '<div class="resp-options">';
-                    q.opciones.forEach((op, idx) => {
+                    opciones.forEach((op, idx) => {
                         const key       = `option_${idx + 1}`;
                         const selected  = respCand === key;
-                        const isCorrecto = correctaKey === key;
+                        const isCorrecto = correcta === key;
                         const cls2 = isCorrecto ? ' correct-opt' : (selected ? ' wrong-opt' : '');
                         const icon = isCorrecto
                             ? '<i class="fas fa-check-circle" style="color:#198754;margin-right:6px;"></i>'
@@ -1856,11 +1866,11 @@
                             ? '<i class="fas fa-times-circle" style="color:#dc3545;margin-right:6px;"></i>'
                             : '<i class="far fa-circle" style="opacity:0.25;margin-right:6px;"></i>';
                         const respCandDisplay = selected ? ` - <strong>${op}</strong>` : '';
-                        html += `<div class="resp-option${selected ? ' selected' : ''}${cls2}">${icon}${key}${respCandDisplay}</div>`;
+                        html += `<div class="resp-option${selected ? ' selected' : ''}${cls2}" style="padding:0.5rem;margin-bottom:0.5rem;border-radius:4px;background:#f9f9f9;">${icon}${key}${respCandDisplay}</div>`;
                     });
                     html += '</div>';
                 } else {
-                    html += `<div class="resp-open-answer"><strong>Respuesta:</strong> ${respCand || '<em style="color:#ccc;">Sin respuesta</em>'}</div>`;
+                    html += `<div class="resp-open-answer" style="padding:0.75rem;background:#f9f9f9;border-radius:4px;margin-top:0.5rem;"><strong>Respuesta:</strong> ${respCand || '<em style="color:#ccc;">Sin respuesta</em>'}</div>`;
                 }
 
                 html += '</div>';
@@ -2081,19 +2091,30 @@
             const pais     = (document.getElementById('apPais').value     || '').trim();
             const profesion= document.getElementById('apProfesion').value;
             const fecha    = document.getElementById('apFecha').value;
+            const hora     = (document.getElementById('apHora').value || '').trim();
+            const resena   = (document.getElementById('apResena').value || '').trim();
             const msg      = document.getElementById('apMensaje');
             const btn      = document.getElementById('apBtn');
-            if (!nombre || !email || !profesion) {
+
+            // Validación mejorada
+            const camposFaltantes = [];
+            if (!nombre) camposFaltantes.push('Nombre completo');
+            if (!email) camposFaltantes.push('Email');
+            if (!profesion) camposFaltantes.push('Tipo de profesional');
+
+            if (camposFaltantes.length > 0) {
                 msg.style.display='block'; msg.style.background='#fff5f5'; msg.style.color='#b91c1c';
-                msg.textContent='Completa los campos obligatorios (Nombre, Email y Tipo de profesional).'; return;
+                msg.textContent='Campos obligatorios faltantes: ' + camposFaltantes.join(', ');
+                return;
             }
+
             btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Registrando...';
             try {
                 const res  = await fetch(API_BASE, { method:'POST', headers:{'Content-Type':'application/json'},
                     body: JSON.stringify({ action:'initial_registration', adminToken:ADMIN_TOKEN,
                         name:nombre, email, phone:telefono, country:pais,
                         professional_type:profesion, scheduled_date:fecha||new Date().toISOString().split('T')[0],
-                        therapeutic_approach:'', about:'Registro manual por admin', birthday:'' }) });
+                        therapeutic_approach:hora, about:resena||'Registro manual por admin', birthday:'' }) });
                 const data = await res.json();
                 msg.style.display='block';
                 if (data.success) {
@@ -2102,7 +2123,10 @@
                     btn.innerHTML='<i class="fas fa-check"></i> Registrado';
                     loadData();
                     setTimeout(() => { document.getElementById('modalAgregarProfesional').style.display='none';
-                        ['apNombre','apEmail','apTelefono','apPais','apFecha'].forEach(id=>{document.getElementById(id).value='';});
+                        ['apNombre','apEmail','apTelefono','apPais','apFecha','apHora','apResena'].forEach(id=>{
+                            const el = document.getElementById(id);
+                            if (el.tagName === 'TEXTAREA') el.value=''; else el.value='';
+                        });
                         document.getElementById('apProfesion').value='';
                         msg.style.display='none'; btn.disabled=false;
                         btn.innerHTML='<i class="fas fa-user-plus"></i> Registrar Profesional'; }, 2500);
