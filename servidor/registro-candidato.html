@@ -463,22 +463,13 @@ body {
       <!-- ── Sección 3: Agenda tu Examen E1 ── -->
       <div class="section-label">📅 Agenda tu Examen E1</div>
 
-      <div class="exam-card">
-        <div class="exam-card-title"><span>🗓</span> ¿Cuándo deseas contestar el Examen E1?</div>
-        <div class="datetime-row">
-          <div class="field">
-            <label for="scheduled_date">Fecha <span class="req">*</span></label>
-            <input type="date" id="scheduled_date">
-            <div class="err" id="err_scheduled_date"></div>
-          </div>
-          <div class="field">
-            <label for="scheduled_time">Hora preferida <span class="req">*</span></label>
-            <input type="time" id="scheduled_time">
-            <div class="err" id="err_scheduled_time"></div>
-          </div>
-        </div>
-        <p class="field-hint" style="margin-top:10px;">
-          Recibirás un enlace de acceso al examen en tu correo. El cuestionario estará disponible ese día.
+      <div class="exam-card" style="background:#e3f2fd;border-color:#1976d2;padding:1.5rem;border-radius:8px;text-align:center;">
+        <div style="font-size:2rem;margin-bottom:0.5rem;">📧</div>
+        <div class="exam-card-title" style="text-align:center;color:#1565c0;"><strong>Importante</strong></div>
+        <p style="color:#424242;margin:0.75rem 0;line-height:1.6;">
+          Una vez completado el registro, recibirás un <strong>correo electrónico</strong> con el enlace y las instrucciones para acceder al Examen E1.
+          <br><br>
+          <strong>Revisa tu correo (incluyendo la carpeta de spam)</strong> para obtener tu enlace de acceso.
         </p>
       </div>
 
@@ -513,8 +504,7 @@ const API_URL = 'https://profesionales.catholizare.com/catholizare_sistem/proxy.
 /* ── Progress bar (based on filled required fields) ── */
 const REQUIRED_IDS = [
   'full_name','email','phone','birth_date','country',
-  'professional_type','therapeutic_focus','about_you',
-  'scheduled_date','scheduled_time'
+  'professional_type','therapeutic_focus','about_you'
 ];
 function updateProgress() {
   const filled = REQUIRED_IDS.filter(id => {
@@ -542,15 +532,6 @@ function toggleOther(fieldId) {
     other.value = '';
   }
 }
-
-/* ── Set min date for scheduled_date (today, local timezone) ── */
-(function setMinDate() {
-  const d = new Date();
-  const today = d.getFullYear() + '-' +
-    String(d.getMonth() + 1).padStart(2, '0') + '-' +
-    String(d.getDate()).padStart(2, '0');
-  document.getElementById('scheduled_date').min = today;
-})();
 
 /* ── Helpers ── */
 function getVal(id) {
@@ -605,9 +586,7 @@ function validate() {
     { id: 'country',            msg: 'Selecciona tu país de residencia' },
     { id: 'professional_type',  msg: 'Selecciona tu tipo de profesión' },
     { id: 'therapeutic_focus',  msg: 'Indica tu enfoque terapéutico' },
-    { id: 'about_you',          msg: 'Escribe una breve reseña sobre ti' },
-    { id: 'scheduled_date',     msg: 'Selecciona la fecha para tu Examen E1' },
-    { id: 'scheduled_time',     msg: 'Selecciona la hora preferida para el examen' },
+    { id: 'about_you',          msg: 'Escribe una breve reseña sobre ti' }
   ];
   required.forEach(({ id, msg }) => {
     if (!getVal(id)) { markInvalid(id, msg); ok = false; }
@@ -616,16 +595,6 @@ function validate() {
   const email = getVal('email');
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     markInvalid('email', 'Ingresa un correo válido');
-    ok = false;
-  }
-  // Scheduled date not in past (local timezone)
-  const sDate = getVal('scheduled_date');
-  const _d = new Date();
-  const todayLocal = _d.getFullYear() + '-' +
-    String(_d.getMonth() + 1).padStart(2, '0') + '-' +
-    String(_d.getDate()).padStart(2, '0');
-  if (sDate && sDate < todayLocal) {
-    markInvalid('scheduled_date', 'La fecha no puede ser en el pasado');
     ok = false;
   }
   // Terms
@@ -658,8 +627,7 @@ document.getElementById('admissionForm').addEventListener('submit', async functi
       professional_type:    getVal('professional_type'),
       therapeutic_approach: getVal('therapeutic_focus'),
       about:                getVal('about_you'),
-    },
-    scheduled_date: getVal('scheduled_date') + 'T' + getVal('scheduled_time') + ':00'
+    }
   };
   try {
     const res = await fetch(API_URL, {
