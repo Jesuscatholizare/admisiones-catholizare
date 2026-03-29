@@ -1066,6 +1066,8 @@ function getCandidatesForAdmin() {
         });
       }
     }
+    // Ordenar por fecha de registro (más nuevos primero)
+    candidates.sort((a, b) => new Date(b.registration_date || 0) - new Date(a.registration_date || 0));
     return { success: true, candidates: candidates };
   } catch (error) {
     Logger.log('[getCandidatesForAdmin Error] ' + error.message);
