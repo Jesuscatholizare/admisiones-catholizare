@@ -1540,9 +1540,9 @@
             if (!c) return;
             if (c.status === 'awaiting_category') { showToast('Selecciona una categoría en el Timeline', 'error'); return; }
             const map = {
-                'registered':               { action:'sendEmailManual',        emailType:'welcome',     msg:'Bienvenida enviada' },
-                'pending_review_E1':        { action:'approveExam',            exam:'E1', notes:'',     msg:'E1 aprobado' },
-                'awaiting_terms_acceptance':{ action:'approveExam',            exam:'TERMS', notes:'',  msg:'Términos aceptados' },
+                'registered':               { action:'autoApproveE1',          msg:'E1 aprobado con 70%' },
+                'pending_review_E1':        { action:'sendEmailManual',        emailType:'terms',       msg:'Correo de Términos enviado' },
+                'awaiting_terms_acceptance':{ action:'sendEmailManual',        emailType:'e2',          msg:'Token E2 enviado' },
                 'pending_review_E2':        { action:'approveExam',            exam:'E2', notes:'',     msg:'E2 aprobado' },
                 'pending_review_E3':        { action:'approveExam',            exam:'E3', notes:'',     msg:'E3 aprobado' },
                 'awaiting_interview':       { action:'registerInterviewResult', result:'pass', interviewNotes:'', msg:'Entrevista PASS' }

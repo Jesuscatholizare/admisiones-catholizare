@@ -399,6 +399,7 @@ function doPost(e) {
       case 'submit_exam':          return handleExamSubmit(data);
       case 'acceptTerms':          return handleAcceptTerms(data);
       case 'approveExam':          return handleApproveExam(data);
+      case 'autoApproveE1':        return handleAutoApproveE1(data);
       case 'rejectExam':           return handleRejectExam(data);
       case 'assignCategory':       return handleAssignCategory(data);
       case 'adminLogin':           return handleAdminLogin(data);
@@ -413,6 +414,7 @@ function doPost(e) {
       case 'getExamResponses':          return handleGetExamResponses(data);
       case 'getAdminUsers':             return handleGetAdminUsers();
       case 'generateAdminToken':        return handleGenerateAdminToken(data);
+      case 'resetTokenAttempt':         return handleResetTokenAttempt(data);
       case 'health':                    return jsonResponse(true, 'OK', checkSystemHealth());
       case 'gasDiagnostic':             return handleGasDiagnostic();
       case 'handoff':                   return handleHandoff(data);
@@ -684,6 +686,34 @@ function handleApproveExam(data) {
     return jsonResponse(false, result.error || 'Error al aprobar');
   } catch (error) {
     Logger.log('[ERROR handleApproveExam] ' + error.message);
+    return jsonResponse(false, 'Error: ' + error.message);
+  }
+}
+
+/**
+ * POST action=autoApproveE1
+ * Aprueba E1 automáticamente con score 70% (sin esperar que candidato lo complete)
+ * Body: { adminToken, candidateId }
+ */
+function handleAutoApproveE1(data) {
+  try {
+    const adminToken  = data.adminToken;
+    const candidateId = data.candidateId;
+
+    if (!adminToken || !candidateId) {
+      return jsonResponse(false, 'adminToken y candidateId requeridos');
+    }
+
+    // Validar admin token
+    if (adminToken !== CONFIG.admin_token) {
+      return jsonResponse(false, 'Token de admin inválido');
+    }
+
+    const result = autoApproveE1Admin(candidateId);
+    if (result.success) return jsonResponse(true, 'E1 aprobado automáticamente con 70%', result);
+    return jsonResponse(false, result.error || 'Error al aprobar E1');
+  } catch (error) {
+    Logger.log('[ERROR handleAutoApproveE1] ' + error.message);
     return jsonResponse(false, 'Error: ' + error.message);
   }
 }
@@ -1133,6 +1163,41 @@ function rejectExamAdmin(candidateId, exam, reason) {
   }
 }
 
+function autoApproveE1Admin(candidateId) {
+  try {
+    const sheet = SS.getSheetByName('Candidatos');
+    const data  = sheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === candidateId) {
+        const email = data[i][3];
+        const name  = data[i][2];
+        const score = 70;  // Score automático
+        const now   = new Date().toISOString();
+
+        // Registrar score E1
+        sheet.getRange(i + 1, 12).setValue(score);          // E1_score en columna 12
+        sheet.getRange(i + 1, 13).setValue(now);            // E1_date en columna 13
+
+        // Cambiar estado a pending_review_E1 (para que admin lo revise)
+        sheet.getRange(i + 1, 11).setValue('pending_review_E1');
+
+        // Registrar evento
+        addTimelineEvent(candidateId, 'E1_APROBADO_AUTOMATICAMENTE_REGISTRO', {
+          score: score,
+          timestamp: now,
+          reason: 'Aprobación automática desde fase de registro'
+        });
+
+        return { success: true, score: score };
+      }
+    }
+    return { success: false, error: 'Candidato no encontrado' };
+  } catch (error) {
+    Logger.log('[autoApproveE1Admin Error] ' + error.message);
+    return { success: false, error: error.message };
+  }
+}
+
 function assignCategoryAndApprove(candidateId, category) {
   try {
     const sheet = SS.getSheetByName('Candidatos');
@@ -1232,30 +1297,10 @@ function generateToken(candidate_id, exam) {
 function saveToken(token, candidate_id, exam, email, name, scheduled_date) {
   const sheet = SS.getSheetByName('Tokens');
   if (!sheet) { Logger.log('[saveToken] Hoja Tokens no encontrada'); return; }
-  let valid_from, valid_until;
-  if (scheduled_date) {
-    // scheduled_date llega como "YYYY-MM-DDTHH:mm:ss" (fecha + hora elegida por el candidato)
-    const sd      = String(scheduled_date);
-    const datePart = sd.substring(0, 10);               // "YYYY-MM-DD"
-    const timePart = sd.length >= 16 ? sd.substring(11, 16) : '00:00'; // "HH:mm"
-    const [dY, dM, dD] = datePart.split('-').map(Number);
-    const [tH, tMin]   = timePart.split(':').map(Number);
-
-    // valid_from = hora agendada menos 30 minutos (margen de entrada)
-    const scheduled = new Date(dY, dM - 1, dD, tH, tMin, 0);
-    valid_from = new Date(scheduled.getTime() - 30 * 60 * 1000);
-
-    // valid_until = final del día agendado (23:59:59)
-    valid_until = new Date(dY, dM - 1, dD, 23, 59, 59);
-  } else {
-    valid_from  = new Date();
-    valid_until = new Date(valid_from.getTime() + 48 * 60 * 60 * 1000);
-  }
   sheet.appendRow([
     token, candidate_id, exam, new Date(),
-    valid_from.getTime(),  // Guardar como timestamp (milisegundos)
-    valid_until.getTime(), // Guardar como timestamp (milisegundos)
-    false, 'active', email, name, scheduled_date || ''
+    '', '', // Columnas valid_from y valid_until (ya no se usan - mantener para compatibilidad)
+    false, 'active', email, name, scheduled_date || '', '' // Nueva columna: used_at
   ]);
   Logger.log('[saveToken] Token guardado: ' + token);
 }
@@ -1264,17 +1309,12 @@ function verifyToken(token, exam) {
   const sheet = SS.getSheetByName('Tokens');
   if (!sheet) return { valid: false, message: 'Hoja Tokens no encontrada' };
   const data = sheet.getDataRange().getValues();
-  const now  = Date.now();
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === token && data[i][2] === exam) {
-      const used        = data[i][6];
-      const status      = data[i][7];
-      const valid_from  = typeof data[i][4] === 'number' ? data[i][4] : new Date(data[i][4]).getTime();
-      const valid_until = typeof data[i][5] === 'number' ? data[i][5] : new Date(data[i][5]).getTime();
-      if (used)              return { valid: false, message: 'Token ya fue usado' };
+      const used   = data[i][6];
+      const status = data[i][7];
+      if (used)              return { valid: false, message: 'Token ya fue usado (solo se permite un intento)' };
       if (status !== 'active') return { valid: false, message: 'Token no activo' };
-      if (now < valid_from)  return { valid: false, message: 'Examen aun no disponible' };
-      if (now > valid_until) return { valid: false, message: 'Token expirado' };
       return { valid: true, candidate_id: data[i][1], email: data[i][8], name: data[i][9] };
     }
   }
@@ -1287,10 +1327,62 @@ function markTokenAsUsed(token) {
   const data = sheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === token) {
-      sheet.getRange(i + 1, 7).setValue(true);
-      sheet.getRange(i + 1, 8).setValue('used');
+      sheet.getRange(i + 1, 7).setValue(true);           // used = true
+      sheet.getRange(i + 1, 8).setValue('used');         // status = 'used'
+      sheet.getRange(i + 1, 12).setValue(new Date());    // used_at = ahora
       break;
     }
+  }
+}
+
+/**
+ * Reactivar intento de examen (SUPERADMIN ONLY)
+ * Body: { adminToken, candidateId, exam, reason }
+ */
+function handleResetTokenAttempt(data) {
+  try {
+    const adminToken  = data.adminToken;
+    const candidateId = data.candidateId;
+    const exam        = data.exam;
+    const reason      = data.reason || 'Sin especificar';
+
+    if (!adminToken || !candidateId || !exam) {
+      return jsonResponse(false, 'adminToken, candidateId y exam requeridos');
+    }
+
+    // Validar admin token
+    if (adminToken !== CONFIG.admin_token) {
+      return jsonResponse(false, 'Token de admin inválido');
+    }
+
+    // Buscar token usado y reactivarlo
+    const sheet = SS.getSheetByName('Tokens');
+    if (!sheet) return jsonResponse(false, 'Hoja Tokens no encontrada');
+
+    const data_sheet = sheet.getDataRange().getValues();
+    for (let i = 1; i < data_sheet.length; i++) {
+      if (data_sheet[i][0] && data_sheet[i][1] === candidateId && data_sheet[i][2] === exam && data_sheet[i][6]) {
+        // Encontró token usado - reactivarlo
+        sheet.getRange(i + 1, 7).setValue(false);        // used = false
+        sheet.getRange(i + 1, 8).setValue('active');     // status = 'active'
+        sheet.getRange(i + 1, 12).setValue('');          // used_at = vacío
+
+        // Registrar en timeline
+        addTimelineEvent(candidateId, 'TOKEN_ATTEMPT_RESET', {
+          exam: exam,
+          reason: reason,
+          reset_by: 'admin',
+          reset_at: new Date().toISOString()
+        });
+
+        return jsonResponse(true, 'Intento reactivado para ' + exam);
+      }
+    }
+
+    return jsonResponse(false, 'Token usado no encontrado');
+  } catch (error) {
+    Logger.log('[ERROR handleResetTokenAttempt] ' + error.message);
+    return jsonResponse(false, 'Error: ' + error.message);
   }
 }
 
