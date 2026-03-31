@@ -68,6 +68,7 @@ $allowed_actions = [
     'getDashboardData',
     // Acciones admin
     'approveExam',
+    'autoApproveE1',
     'rejectExam',
     'assignCategory',
     // Auth admin
@@ -79,6 +80,7 @@ $allowed_actions = [
     'sendEmailManual',
     'addToBrevoListManual',
     'markAsIncomplete',
+    'resetTokenAttempt',
     // Vistas admin
     'getExamResponses',
     'getAdminUsers',
