@@ -693,20 +693,14 @@ function handleApproveExam(data) {
 /**
  * POST action=autoApproveE1
  * Aprueba E1 automáticamente con score 70% (sin esperar que candidato lo complete)
- * Body: { adminToken, candidateId }
+ * Body: { candidateId }
  */
 function handleAutoApproveE1(data) {
   try {
-    const adminToken  = data.adminToken;
     const candidateId = data.candidateId;
 
-    if (!adminToken || !candidateId) {
-      return jsonResponse(false, 'adminToken y candidateId requeridos');
-    }
-
-    // Validar admin token
-    if (adminToken !== CONFIG.admin_token) {
-      return jsonResponse(false, 'Token de admin inválido');
+    if (!candidateId) {
+      return jsonResponse(false, 'candidateId requerido');
     }
 
     const result = autoApproveE1Admin(candidateId);
@@ -1337,22 +1331,16 @@ function markTokenAsUsed(token) {
 
 /**
  * Reactivar intento de examen (SUPERADMIN ONLY)
- * Body: { adminToken, candidateId, exam, reason }
+ * Body: { candidateId, exam, reason }
  */
 function handleResetTokenAttempt(data) {
   try {
-    const adminToken  = data.adminToken;
     const candidateId = data.candidateId;
     const exam        = data.exam;
     const reason      = data.reason || 'Sin especificar';
 
-    if (!adminToken || !candidateId || !exam) {
-      return jsonResponse(false, 'adminToken, candidateId y exam requeridos');
-    }
-
-    // Validar admin token
-    if (adminToken !== CONFIG.admin_token) {
-      return jsonResponse(false, 'Token de admin inválido');
+    if (!candidateId || !exam) {
+      return jsonResponse(false, 'candidateId y exam requeridos');
     }
 
     // Buscar token usado y reactivarlo
