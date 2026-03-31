@@ -1562,7 +1562,9 @@
                     if (candidates && candidates.length > 0) {
                         const updatedCandidate = candidates.find(cd => cd.candidato_id === c.candidato_id);
                         if (updatedCandidate) {
+                            tlCurrentCandidate = updatedCandidate;  // Actualizar tlCurrentCandidate
                             document.getElementById('tlBody').innerHTML = renderTLPerfil(updatedCandidate) + renderTLTimeline(updatedCandidate);
+                            updateAvanzarBtn(updatedCandidate);     // Actualizar estado del botón
                         }
                     }
                 } else {
