@@ -1253,8 +1253,8 @@ function saveToken(token, candidate_id, exam, email, name, scheduled_date) {
   }
   sheet.appendRow([
     token, candidate_id, exam, new Date(),
-    Utilities.formatDate(valid_from,  CONFIG.timezone, "yyyy-MM-dd'T'HH:mm:ss"),
-    Utilities.formatDate(valid_until, CONFIG.timezone, "yyyy-MM-dd'T'HH:mm:ss"),
+    valid_from.getTime(),  // Guardar como timestamp (milisegundos)
+    valid_until.getTime(), // Guardar como timestamp (milisegundos)
     false, 'active', email, name, scheduled_date || ''
   ]);
   Logger.log('[saveToken] Token guardado: ' + token);
@@ -1264,13 +1264,13 @@ function verifyToken(token, exam) {
   const sheet = SS.getSheetByName('Tokens');
   if (!sheet) return { valid: false, message: 'Hoja Tokens no encontrada' };
   const data = sheet.getDataRange().getValues();
-  const now  = new Date();
+  const now  = Date.now();
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === token && data[i][2] === exam) {
       const used        = data[i][6];
       const status      = data[i][7];
-      const valid_from  = new Date(data[i][4]);
-      const valid_until = new Date(data[i][5]);
+      const valid_from  = typeof data[i][4] === 'number' ? data[i][4] : new Date(data[i][4]).getTime();
+      const valid_until = typeof data[i][5] === 'number' ? data[i][5] : new Date(data[i][5]).getTime();
       if (used)              return { valid: false, message: 'Token ya fue usado' };
       if (status !== 'active') return { valid: false, message: 'Token no activo' };
       if (now < valid_from)  return { valid: false, message: 'Examen aun no disponible' };
