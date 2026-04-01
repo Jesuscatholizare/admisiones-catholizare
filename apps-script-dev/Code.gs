@@ -824,15 +824,14 @@ function handleVerifyOTP(data) {
 /**
  * POST action=verifyAdminToken
  * Body: { token }
+ * Valida PIN de admin para acciones críticas
  */
 function handleVerifyAdminToken(data) {
   try {
-    const token = (data.token || '').trim();
-    if (!token) return jsonResponse(false, 'Token requerido');
-    const adminToken = CONFIG.admin_token;
-    if (!adminToken) return jsonResponse(false, 'Token de admin no configurado en Config');
-    if (token === adminToken) return jsonResponse(true, 'Token válido');
-    return jsonResponse(false, 'Token inválido');
+    const pin = (data.token || '').trim();
+    if (!pin) return jsonResponse(false, 'PIN requerido');
+    if (validateAdminPin(pin)) return jsonResponse(true, 'PIN válido');
+    return jsonResponse(false, 'PIN inválido');
   } catch (error) {
     Logger.log('[ERROR handleVerifyAdminToken] ' + error.message);
     return jsonResponse(false, 'Error: ' + error.message);

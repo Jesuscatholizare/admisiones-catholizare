@@ -627,13 +627,6 @@
             <div class="sidebar-logo-sub">Panel de Selección</div>
         </div>
 
-        <!-- Usuario Actual -->
-        <div style="padding:1rem;background:rgba(255,255,255,0.08);border-bottom:1px solid rgba(255,255,255,0.12);margin-bottom:1rem;">
-            <div style="font-size:0.75rem;color:#9ca3b4;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.5rem;">Usuario</div>
-            <div id="userEmailDisplay" style="font-size:0.85rem;color:white;margin-bottom:0.5rem;word-break:break-word;line-height:1.3;">desconocido@catholizare.com</div>
-            <div id="userRoleDisplay" style="display:inline-block;padding:0.25rem 0.6rem;border-radius:4px;font-size:0.7rem;font-weight:700;color:white;background:#0052cc;">ADMIN</div>
-        </div>
-
         <div class="sidebar-module">Selección</div>
         <div class="sidebar-section">
             <div class="sidebar-section-label">Principal</div>
@@ -1121,20 +1114,6 @@
             <div class="tl-name" id="tlName">Candidato</div>
             <div class="tl-meta" id="tlMeta">email • Fase • Estado</div>
           </div>
-          <div class="tl-header-actions">
-            <button id="tlBtnAvanzar" class="tl-btn tl-btn-green" onclick="requireSuperAdminPin(tlAvanzarFase)">
-              <i class="fas fa-step-forward"></i> Avanzar Fase
-            </button>
-            <button class="tl-btn tl-btn-gray" onclick="requireSuperAdminPin(doMarkIncomplete)">
-              <i class="fas fa-pause"></i> Pausar
-            </button>
-            <button class="tl-btn tl-btn-orange" onclick="requireSuperAdminPin(tlMarcarAtrasado)">
-              <i class="fas fa-exclamation-triangle"></i> Atrasado
-            </button>
-            <button class="tl-btn tl-btn-red" onclick="requireSuperAdminPin(tlEliminar)">
-              <i class="fas fa-trash"></i> Eliminar
-            </button>
-          </div>
           <button class="tl-close" onclick="closeModal('accionesModal')">&times;</button>
         </div>
         <!-- TL Tabs -->
@@ -1205,8 +1184,8 @@
         }
 
         function displayUserInfo() {
-            const userEmailEl = document.getElementById('userEmailDisplay');
-            const userRoleEl = document.getElementById('userRoleDisplay');
+            const userEmailEl = document.getElementById('topNavEmail');
+            const userRoleEl = document.getElementById('topNavRole');
             if (userEmailEl) userEmailEl.textContent = USER_EMAIL;
             if (userRoleEl) {
                 userRoleEl.textContent = USER_ROLE === 'superadmin' ? 'SUPERADMIN' : 'ADMIN';
