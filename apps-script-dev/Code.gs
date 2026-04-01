@@ -397,6 +397,7 @@ function doPost(e) {
     switch(action) {
       case 'initial_registration': return handleRegistration(data);
       case 'submit_exam':          return handleExamSubmit(data);
+      case 'save_partial_exam':    return handleSavePartialExam(data);
       case 'acceptTerms':          return handleAcceptTerms(data);
       case 'approveExam':          return handleApproveExam(data);
       case 'autoApproveE1':        return handleAutoApproveE1(data);
@@ -647,6 +648,50 @@ function handleExamSubmit(data) {
     });
   } catch (error) {
     Logger.log('[ERROR handleExamSubmit] ' + error.message);
+    return jsonResponse(false, 'Error: ' + error.message);
+  }
+}
+
+/**
+ * Guardar respuestas parciales cuando candidato cambia de pestaña
+ * Permite que el admin vea hasta dónde contestó si no termina el examen
+ */
+function handleSavePartialExam(data) {
+  try {
+    const token      = data.token;
+    const exam       = data.exam;
+    const answers    = data.answers;
+    const startedAt  = data.startedAt;
+    const blur_count = data.blur_count || 0;
+    const copy_count = data.copy_count || 0;
+
+    const tokenData = verifyToken(token, exam);
+    if (!tokenData.valid) return jsonResponse(false, tokenData.message);
+
+    const candidate_id = tokenData.candidate_id;
+
+    // Guardar respuestas parciales (sin marcar token como usado)
+    const sheetName = 'Test_' + exam + '_Respuestas';
+    const sheet = SS.getSheetByName(sheetName);
+    if (sheet) {
+      const data_rows = sheet.getDataRange().getValues();
+      // Buscar fila existente del candidato
+      let found = false;
+      for (let i = 1; i < data_rows.length; i++) {
+        if (data_rows[i][0] === candidate_id) {
+          // Actualizar respuestas parciales
+          sheet.getRange(i + 1, 5).setValue(JSON.stringify(answers));  // responses_json
+          sheet.getRange(i + 1, 7).setValue(blur_count);                // blur_events
+          sheet.getRange(i + 1, 8).setValue(copy_count);                // copy_attempts
+          found = true;
+          break;
+        }
+      }
+    }
+
+    return jsonResponse(true, 'Respuestas parciales guardadas');
+  } catch (error) {
+    Logger.log('[handleSavePartialExam Error] ' + error.message);
     return jsonResponse(false, 'Error: ' + error.message);
   }
 }
@@ -1520,8 +1565,7 @@ function getExamData(token, exam) {
   try {
     const tokenData = verifyToken(token, exam);
     if (!tokenData.valid) return jsonResponse(false, tokenData.message);
-    // Marcar token como usado al iniciar (un solo intento)
-    markTokenAsUsed(token);
+    // NO marcar token como usado aquí - se marca al enviar en handleExamSubmit()
     const questions = getQuestionsForExam(exam);
     const duration  = getExamDuration(exam);
     return jsonResponse(true, 'OK', {

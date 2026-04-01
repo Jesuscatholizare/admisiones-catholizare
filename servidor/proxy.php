@@ -62,6 +62,7 @@ $allowed_actions = [
     // Candidatos
     'initial_registration',
     'submit_exam',
+    'save_partial_exam',
     'acceptTerms',
     // Datos
     'get_exam',
