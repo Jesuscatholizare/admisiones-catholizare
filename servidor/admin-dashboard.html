@@ -1192,12 +1192,20 @@
         }
 
         function configureAccessLevel() {
-            // Si es admin, ocultar secciones de superadmin
+            // Si es admin, ocultar todas las secciones de superadmin
             if (USER_ROLE !== 'superadmin') {
-                const suAdminBtn = document.getElementById('nav-superadmin');
-                const suAdminView = document.getElementById('view-superadmin');
-                if (suAdminBtn) suAdminBtn.style.display = 'none';
-                if (suAdminView) suAdminView.style.display = 'none';
+                const elementsToHide = [
+                    'nav-usuarios',      // Gestión de Usuarios
+                    'nav-superadmin',    // Super Admin
+                    'nav-health',        // System Health
+                    'view-usuarios',     // Vista Gestión de Usuarios
+                    'view-superadmin',   // Vista Super Admin
+                    'view-health'        // Vista System Health
+                ];
+                elementsToHide.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.style.display = 'none';
+                });
             }
         }
 
