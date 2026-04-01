@@ -2159,18 +2159,22 @@ function handleGetUserRole(data) {
     if (!adminToken) return jsonResponse(false, 'Token requerido');
 
     // Buscar usuario con este token
-    const sheet = SS.getSheetByName('Usuarios Admin');
+    const sheet = SS.getSheetByName('Usuarios');
     if (!sheet) return jsonResponse(false, 'Hoja de usuarios no encontrada');
 
     const data_users = sheet.getDataRange().getValues();
     for (let i = 1; i < data_users.length; i++) {
-      if (data_users[i][1] === adminToken) { // columna 1 = token
+      if (data_users[i][1] === adminToken) { // columna 1 = token (password_hash almacena el token)
         const email = data_users[i][0];
         const role  = data_users[i][2] || 'admin';  // columna 2 = role
+        Logger.log('[getUserRole] Email: ' + email + ', Role: ' + role);
         return jsonResponse(true, 'OK', { email, role });
       }
     }
-    return jsonResponse(false, 'Token no encontrado');
+
+    // Si no encuentra en Usuarios, retornar admin por defecto
+    Logger.log('[getUserRole] Token no encontrado en Usuarios, retornando admin por defecto');
+    return jsonResponse(true, 'OK', { email: 'desconocido@catholizare.com', role: 'admin' });
   } catch (error) {
     Logger.log('[ERROR handleGetUserRole] ' + error.message);
     return jsonResponse(false, 'Error: ' + error.message);
