@@ -1349,7 +1349,7 @@
                 desc:'El candidato completó el Examen E1. Revisa los resultados y aprueba para enviar los Términos y Condiciones.',
                 emails:[{ label:'Reenviar Token E1', desc:'Si el candidato no recibió el acceso al E1', type:'welcome' }],
                 actions:[
-                    { label:'Aprobar E1 → Enviar Términos', btn:'✓ Aprobar', fn:"doApproveExamTL('E1')", cls:'green', info:'Aprueba E1 y envía automáticamente el correo de Términos y Condiciones' }
+                    { label:'Aprobar E1 → Enviar Términos', btn:'✓ Aprobar', fn:"approveExamWithPin('E1')", cls:'green', info:'Aprueba E1 y envía automáticamente el correo de Términos y Condiciones' }
                 ], hasNotes:false
             },
             {
@@ -1365,7 +1365,7 @@
                 desc:'El candidato completó el Examen E2. Revisa los resultados y aprueba para enviar el token del Examen E3.',
                 emails:[{ label:'Reenviar Token E2', desc:'Si el candidato no recibió el acceso al E2', type:'e2' }],
                 actions:[
-                    { label:'Aprobar E2 → Enviar Token E3', btn:'✓ Aprobar', fn:"doApproveExamTL('E2')", cls:'green', info:'Aprueba E2 y envía automáticamente el token del Examen E3' }
+                    { label:'Aprobar E2 → Enviar Token E3', btn:'✓ Aprobar', fn:"approveExamWithPin('E2')", cls:'green', info:'Aprueba E2 y envía automáticamente el token del Examen E3' }
                 ], hasNotes:false
             },
             {
@@ -1374,7 +1374,7 @@
                 desc:'El candidato completó el Examen E3. Revisa los resultados y aprueba para agendar la Entrevista Personal.',
                 emails:[{ label:'Reenviar Token E3', desc:'Si el candidato no recibió el acceso al E3', type:'e3' }],
                 actions:[
-                    { label:'Aprobar E3 → Agendar Entrevista', btn:'✓ Aprobar', fn:"doApproveExamTL('E3')", cls:'green', info:'Aprueba E3 y envía el correo de agendamiento de la entrevista personal' }
+                    { label:'Aprobar E3 → Agendar Entrevista', btn:'✓ Aprobar', fn:"approveExamWithPin('E3')", cls:'green', info:'Aprueba E3 y envía el correo de agendamiento de la entrevista personal' }
                 ], hasNotes:false
             },
             {
@@ -1654,17 +1654,13 @@
             if (!confirm(`¿Aprobar examen ${exam}?`)) return;
             await callApi({ action:'approveExam', candidateId:currentCandidateId, exam, notes:'', adminToken:ADMIN_TOKEN }, `✅ Examen ${exam} aprobado`, true);
         }
-        async function doApproveExam(exam) {
-            await doApproveExamTL(exam);
+        // Envuelve doApproveExamTL con validación de PIN del superadmin
+        function approveExamWithPin(exam) {
+            requireSuperAdminPin(() => doApproveExamTL(exam));
         }
         async function doFinalDecisionTL(category) {
             if (!confirm(`¿Aprobar candidato como ${category}? Esta acción es definitiva.`)) return;
             await callApi({ action:'assignCategory', candidateId:currentCandidateId, category, comments:'', adminToken:ADMIN_TOKEN }, `🎉 Aprobado como ${category}`, true);
-        }
-        async function doFinalDecision(category) { await doFinalDecisionTL(category); }
-        async function doMarkIncomplete() {
-            if (!confirm('¿Marcar como incompleto?')) return;
-            await callApi({ action:'markAsIncomplete', candidateId:currentCandidateId, adminToken:ADMIN_TOKEN }, '⚠️ Marcado como incompleto', true);
         }
         async function doInterviewResultTL(result) {
             const notes = (document.getElementById('tlInterviewNotes')||{}).value||'';
@@ -1673,21 +1669,12 @@
             await callApi({ action:'registerInterviewResult', candidateId:currentCandidateId, result, interviewNotes:notes, adminToken:ADMIN_TOKEN },
                 result==='pass' ? '✅ Entrevista aprobada' : '❌ Candidato rechazado', true);
         }
-        async function doInterviewResult(result) { await doInterviewResultTL(result); }
         async function tlRechazarProceso() {
             const input = document.getElementById('tlRejectReason');
             const reason = input ? input.value.trim() : '';
             if (!reason) { showToast('Escribe el motivo de rechazo','error'); return; }
             if (!confirm('¿Rechazar candidato? Esta acción es definitiva.')) return;
             await callApi({ action:'rejectExam', candidateId:currentCandidateId, exam:'PROCESO', reason, adminToken:ADMIN_TOKEN }, '❌ Candidato rechazado', true);
-        }
-        async function doReject() { await tlRechazarProceso(); }
-        async function tlEliminar() {
-            if (!confirm('¿Eliminar este candidato? Esta acción NO se puede deshacer.')) return;
-            await callApi({ action:'rejectExam', candidateId:currentCandidateId, exam:'PROCESO', reason:'Eliminado manualmente por admin', adminToken:ADMIN_TOKEN }, '🗑 Candidato eliminado', true);
-        }
-        async function tlMarcarAtrasado() {
-            await callApi({ action:'addToBrevoListManual', candidateId:currentCandidateId, listName:'inconclusos', adminToken:ADMIN_TOKEN }, '⚠️ Marcado como atrasado', false);
         }
         async function callApi(body, successMsg, reload) {
             try {
