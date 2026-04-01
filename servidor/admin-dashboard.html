@@ -1083,6 +1083,27 @@
       </div>
     </div>
 
+    <!-- Modal: Autenticación Superadmin para acciones críticas -->
+    <div id="modalSuperAdminAuth" class="modal">
+      <div class="modal-content" style="max-width:420px;padding:0;border-radius:12px;overflow:hidden;">
+        <div style="background:#d97706;color:white;padding:1.1rem 1.4rem;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-weight:800;font-size:1rem;"><i class="fas fa-lock" style="margin-right:8px;"></i>Acción Restringida</div>
+          <button onclick="document.getElementById('modalSuperAdminAuth').style.display='none'" style="background:none;border:none;color:white;font-size:1.4rem;cursor:pointer;line-height:1;">&times;</button>
+        </div>
+        <div style="padding:1.4rem;background:white;">
+          <p style="margin-bottom:1rem;color:#555;font-size:0.9rem;">Esta acción requiere autenticación de superadministrador. Ingresa el PIN:</p>
+          <div style="margin-bottom:1rem;">
+            <input id="superAdminPin" type="password" placeholder="PIN del superadministrador" style="width:100%;padding:0.7rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;" autocomplete="off">
+          </div>
+          <div style="display:flex;gap:0.75rem;">
+            <button onclick="document.getElementById('modalSuperAdminAuth').style.display='none'" style="flex:1;padding:0.65rem;border:1.5px solid #dee2e6;border-radius:8px;background:white;color:#555;font-weight:600;cursor:pointer;">Cancelar</button>
+            <button id="superAdminAuthBtn" onclick="validateSuperAdminPin()" style="flex:1;padding:0.65rem;border:none;border-radius:8px;background:#d97706;color:white;font-weight:700;cursor:pointer;">Validar PIN</button>
+          </div>
+          <div id="superAdminAuthMsg" style="margin-top:1rem;display:none;padding:0.75rem;border-radius:8px;font-size:0.85rem;"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- Modal: Timeline del Candidato -->
     <div id="accionesModal" class="modal">
       <div class="modal-content" style="max-width:740px;height:88vh;display:flex;flex-direction:column;padding:0;overflow:hidden;">
@@ -1093,16 +1114,16 @@
             <div class="tl-meta" id="tlMeta">email • Fase • Estado</div>
           </div>
           <div class="tl-header-actions">
-            <button id="tlBtnAvanzar" class="tl-btn tl-btn-green" onclick="tlAvanzarFase()">
+            <button id="tlBtnAvanzar" class="tl-btn tl-btn-green" onclick="requireSuperAdminPin(tlAvanzarFase)">
               <i class="fas fa-step-forward"></i> Avanzar Fase
             </button>
-            <button class="tl-btn tl-btn-gray" onclick="doMarkIncomplete()">
+            <button class="tl-btn tl-btn-gray" onclick="requireSuperAdminPin(doMarkIncomplete)">
               <i class="fas fa-pause"></i> Pausar
             </button>
-            <button class="tl-btn tl-btn-orange" onclick="tlMarcarAtrasado()">
+            <button class="tl-btn tl-btn-orange" onclick="requireSuperAdminPin(tlMarcarAtrasado)">
               <i class="fas fa-exclamation-triangle"></i> Atrasado
             </button>
-            <button class="tl-btn tl-btn-red" onclick="tlEliminar()">
+            <button class="tl-btn tl-btn-red" onclick="requireSuperAdminPin(tlEliminar)">
               <i class="fas fa-trash"></i> Eliminar
             </button>
           </div>
@@ -1127,6 +1148,8 @@
         let candidates         = [];
         let autoRefreshInterval = null;
         let ADMIN_TOKEN        = '';
+        let USER_ROLE          = 'admin';  // default
+        let SUPERADMIN_PIN_VALIDATED = false;
 
         document.addEventListener('DOMContentLoaded', function() {
             // Verificar token admin
@@ -1139,9 +1162,44 @@
                 return;
             }
             sessionStorage.setItem('adminToken', ADMIN_TOKEN);
-            loadData();
-            startAutoRefresh();
+
+            // Obtener rol del usuario
+            getUserRoleAndInit();
         });
+
+        async function getUserRoleAndInit() {
+            try {
+                const resp = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'getUserRole', adminToken: ADMIN_TOKEN })
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    USER_ROLE = data.data.role || 'admin';
+                    sessionStorage.setItem('userRole', USER_ROLE);
+                } else {
+                    USER_ROLE = 'admin';
+                }
+                configureAccessLevel();
+                loadData();
+                startAutoRefresh();
+            } catch (e) {
+                console.error('Error al obtener rol:', e);
+                loadData();
+                startAutoRefresh();
+            }
+        }
+
+        function configureAccessLevel() {
+            // Si es admin, ocultar secciones de superadmin
+            if (USER_ROLE !== 'superadmin') {
+                const suAdminBtn = document.getElementById('nav-superadmin');
+                const suAdminView = document.getElementById('view-superadmin');
+                if (suAdminBtn) suAdminBtn.style.display = 'none';
+                if (suAdminView) suAdminView.style.display = 'none';
+            }
+        }
 
         async function loadData() {
             try {
@@ -2407,6 +2465,88 @@
                 <div style="font-size:0.84rem;font-weight:700;color:#001A55;">Lunes a Viernes: 9:00 AM – 6:00 PM (CST)</div>
             </div>`;
         }
+
+        // ─── CONTROL DE ACCESO: SUPERADMIN ────────────────────────────────
+        let PENDING_CRITICAL_ACTION = null;  // Almacena qué acción espera validación
+
+        async function validateSuperAdminPin() {
+            const pin = document.getElementById('superAdminPin').value;
+            const btn = document.getElementById('superAdminAuthBtn');
+            const msg = document.getElementById('superAdminAuthMsg');
+
+            if (!pin) {
+                msg.style.display = 'block';
+                msg.style.background = '#fee2e2';
+                msg.style.color = '#dc2626';
+                msg.textContent = 'Por favor ingresa el PIN';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Validando...';
+
+            try {
+                const resp = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'verifyAdminToken', token: pin })
+                });
+                const data = await resp.json();
+
+                if (data.success) {
+                    SUPERADMIN_PIN_VALIDATED = true;
+                    msg.style.display = 'block';
+                    msg.style.background = '#dcfce7';
+                    msg.style.color = '#15803d';
+                    msg.textContent = '✓ PIN válido. Ejecutando acción...';
+
+                    setTimeout(() => {
+                        document.getElementById('modalSuperAdminAuth').style.display = 'none';
+                        document.getElementById('superAdminPin').value = '';
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fas fa-lock"></i> Validar PIN';
+                        msg.style.display = 'none';
+
+                        // Ejecutar acción pendiente
+                        if (PENDING_CRITICAL_ACTION) {
+                            PENDING_CRITICAL_ACTION();
+                            PENDING_CRITICAL_ACTION = null;
+                        }
+                        // Auto-reset después de 1 acción
+                        SUPERADMIN_PIN_VALIDATED = false;
+                    }, 1500);
+                } else {
+                    msg.style.display = 'block';
+                    msg.style.background = '#fee2e2';
+                    msg.style.color = '#dc2626';
+                    msg.textContent = '✗ PIN incorrecto. Contacta al superadministrador.';
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-lock"></i> Validar PIN';
+                }
+            } catch (e) {
+                msg.style.display = 'block';
+                msg.style.background = '#fee2e2';
+                msg.style.color = '#dc2626';
+                msg.textContent = 'Error de conexión';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-lock"></i> Validar PIN';
+            }
+        }
+
+        function requireSuperAdminPin(action) {
+            if (USER_ROLE === 'superadmin' || SUPERADMIN_PIN_VALIDATED) {
+                // Es superadmin o ya validó PIN - ejecutar directamente
+                action();
+                SUPERADMIN_PIN_VALIDATED = false;  // Reset después de cada acción
+            } else {
+                // Guardar acción pendiente y mostrar modal
+                PENDING_CRITICAL_ACTION = action;
+                document.getElementById('superAdminPin').value = '';
+                document.getElementById('modalSuperAdminAuth').style.display = 'block';
+                document.getElementById('superAdminPin').focus();
+            }
+        }
+
         // ────────────────────────────────────────────────────────────────────
     </script>
 

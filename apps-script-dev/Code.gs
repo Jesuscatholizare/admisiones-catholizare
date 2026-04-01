@@ -414,6 +414,7 @@ function doPost(e) {
       case 'getExamResponses':          return handleGetExamResponses(data);
       case 'getAdminUsers':             return handleGetAdminUsers();
       case 'generateAdminToken':        return handleGenerateAdminToken(data);
+      case 'getUserRole':               return handleGetUserRole(data);
       case 'resetTokenAttempt':         return handleResetTokenAttempt(data);
       case 'health':                    return jsonResponse(true, 'OK', checkSystemHealth());
       case 'gasDiagnostic':             return handleGasDiagnostic();
@@ -2100,6 +2101,35 @@ function handleGetAdminUsers() {
   } catch (e) {
     Logger.log('[handleGetAdminUsers Error] ' + e.message);
     return jsonResponse(false, 'Error: ' + e.message);
+  }
+}
+
+/**
+ * POST action=getUserRole
+ * Body: { adminToken }
+ * Retorna el rol del usuario basado en su token
+ */
+function handleGetUserRole(data) {
+  try {
+    const adminToken = data.adminToken;
+    if (!adminToken) return jsonResponse(false, 'Token requerido');
+
+    // Buscar usuario con este token
+    const sheet = SS.getSheetByName('Usuarios Admin');
+    if (!sheet) return jsonResponse(false, 'Hoja de usuarios no encontrada');
+
+    const data_users = sheet.getDataRange().getValues();
+    for (let i = 1; i < data_users.length; i++) {
+      if (data_users[i][1] === adminToken) { // columna 1 = token
+        const email = data_users[i][0];
+        const role  = data_users[i][2] || 'admin';  // columna 2 = role
+        return jsonResponse(true, 'OK', { email, role });
+      }
+    }
+    return jsonResponse(false, 'Token no encontrado');
+  } catch (error) {
+    Logger.log('[ERROR handleGetUserRole] ' + error.message);
+    return jsonResponse(false, 'Error: ' + error.message);
   }
 }
 

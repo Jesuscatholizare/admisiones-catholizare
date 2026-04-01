@@ -75,6 +75,7 @@ $allowed_actions = [
     'adminLogin',
     'verifyOTP',
     'verifyAdminToken',
+    'getUserRole',
     // Acciones extras
     'resendWelcomeEmail',
     'sendEmailManual',
