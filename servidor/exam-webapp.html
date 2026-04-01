@@ -691,7 +691,9 @@
             const b = document.getElementById('alertBanner');
             b.textContent = msg;
             b.classList.add('show');
-            setTimeout(() => b.classList.remove('show'), 4000);
+            // Mantener visible más tiempo para alertas de cambio de ventana
+            const duration = msg.includes('cambio') ? 6000 : 4000;
+            setTimeout(() => b.classList.remove('show'), duration);
         }
 
         function showError(message) {
@@ -718,6 +720,7 @@
             submitted = true;
             closeConfirmation();
             clearInterval(timerInterval);
+            showAlert('📤 Enviando examen automáticamente con tus respuestas...');
             document.getElementById('submitButton').disabled    = true;
             document.getElementById('submitButton').textContent = 'Enviando...';
 

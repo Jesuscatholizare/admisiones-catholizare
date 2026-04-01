@@ -478,7 +478,7 @@ function handleRegistration(data) {
     const candidate_id        = generateCandidateId();
     const registration_date   = new Date();
 
-    sheet.appendRow([
+    insertNewRow(sheet, [
       candidate_id, registration_date,
       candidate.name, candidate.email,
       candidate.phone || '', candidate.country || '',
@@ -1282,7 +1282,7 @@ function performHandoff(candidateId) {
         const onboardingSpreadsheet = SpreadsheetApp.openById(handoffId);
         const handoffSheet = onboardingSpreadsheet.getSheetByName('Candidatos') ||
                              onboardingSpreadsheet.getSheets()[0];
-        handoffSheet.appendRow([
+        insertNewRow(handoffSheet, [
           candidateId, name, email, phone, category,
           'onboarding_pending', new Date().toISOString(),
           'Transferido desde Sistema de Seleccion'
@@ -1336,7 +1336,7 @@ function generateToken(candidate_id, exam) {
 function saveToken(token, candidate_id, exam, email, name, scheduled_date) {
   const sheet = SS.getSheetByName('Tokens');
   if (!sheet) { Logger.log('[saveToken] Hoja Tokens no encontrada'); return; }
-  sheet.appendRow([
+  insertNewRow(sheet, [
     token, candidate_id, exam, new Date(),
     '', '', // Columnas valid_from y valid_until (ya no se usan - mantener para compatibilidad)
     false, 'active', email, name, scheduled_date || '', '' // Nueva columna: used_at
@@ -1692,7 +1692,7 @@ function sendViaResend(to, subject, htmlBody, apiKey) {
 function logNotificationEvent(email, subject, provider, status) {
   try {
     const sheet = SS.getSheetByName('Notificaciones');
-    if (sheet) sheet.appendRow([new Date(), email, subject, provider, status, new Date().toISOString()]);
+    if (sheet) insertNewRow(sheet, [new Date(), email, subject, provider, status, new Date().toISOString()]);
   } catch (error) { Logger.log('[logNotificationEvent Error] ' + error.message); }
 }
 
@@ -1834,7 +1834,7 @@ function addTimelineEvent(candidate_id, event_type, details) {
   try {
     const sheet = SS.getSheetByName('Timeline');
     if (!sheet) return;
-    sheet.appendRow([new Date(), candidate_id, event_type, JSON.stringify(details || {}), 'SISTEMA']);
+    insertNewRow(sheet, [new Date(), candidate_id, event_type, JSON.stringify(details || {}), 'SISTEMA']);
     Logger.log('[Timeline] ' + event_type + ' para ' + candidate_id);
   } catch (error) { Logger.log('[Timeline Error] ' + error.message); }
 }
@@ -1846,7 +1846,7 @@ function saveExamResult(candidate_id, exam, resultData) {
   try {
     const sheet = SS.getSheetByName('Test_' + exam + '_Respuestas');
     if (!sheet) { Logger.log('[saveExamResult] Hoja Test_' + exam + '_Respuestas no encontrada'); return; }
-    sheet.appendRow([
+    insertNewRow(sheet, [
       candidate_id, resultData.started_at, resultData.finished_at,
       resultData.elapsed_seconds, resultData.responses_json,
       resultData.blur_events, resultData.copy_attempts,
@@ -1908,6 +1908,24 @@ function validateAdminPin(pin) {
 // ================================
 // MODULO: UTILIDADES
 // ================================
+
+/**
+ * Inserta una nueva fila de datos en posición 2 (después del header)
+ * Evita que los nuevos registros se agreguen al final
+ */
+function insertNewRow(sheet, values) {
+  if (!sheet) return;
+  try {
+    sheet.insertRows(2, 1);  // Insertar 1 fila en posición 2
+    const lastCol = values.length;
+    sheet.getRange(2, 1, 1, lastCol).setValues([values]);
+  } catch (e) {
+    Logger.log('[insertNewRow Error] ' + e.message);
+    // Fallback a appendRow si falla
+    sheet.appendRow(values);
+  }
+}
+
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
@@ -2193,7 +2211,7 @@ function handleGenerateAdminToken(data) {
     for (let i = 1; i < existing.length; i++) {
       if (String(existing[i][0]).toLowerCase() === email) return jsonResponse(false, 'El email ya esta registrado');
     }
-    sheet.appendRow([email, token, role, new Date(), '', 'active']);
+    insertNewRow(sheet, [email, token, role, new Date(), '', 'active']);
     return jsonResponse(true, 'Usuario creado', { email, token, role });
   } catch (e) {
     Logger.log('[handleGenerateAdminToken Error] ' + e.message);
@@ -2289,7 +2307,7 @@ function handleHandoff(data) {
       // Determinar etiqueta Legal_Aceptacion
       const legalAceptacion   = termsAcceptedAt ? 'ACEPTADO | v1' : '';
 
-      onbSheet.appendRow([
+      insertNewRow(onbSheet, [
         onbToken,           // A: ID_Token
         name,               // B: Nombre
         email,              // C: Email
