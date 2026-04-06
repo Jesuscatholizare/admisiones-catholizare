@@ -687,6 +687,14 @@ function handleSavePartialExam(data) {
           break;
         }
       }
+      // Si no existe fila, crear una nueva con respuestas parciales
+      if (!found) {
+        insertNewRow(sheet, [
+          candidate_id, startedAt, '', '', // candidate_id, started_at, finished_at, elapsed_seconds
+          JSON.stringify(answers), blur_count, copy_count, 0, // responses_json, blur_events, copy_attempts, ai_detection_count
+          '', '', '' // verdict, openai_score_json, flags
+        ]);
+      }
     }
 
     return jsonResponse(true, 'Respuestas parciales guardadas');
