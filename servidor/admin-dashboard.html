@@ -1384,7 +1384,7 @@
                 emails:[{ label:'Correo de Entrevista', desc:'Recordatorio o instrucciones al candidato', type:'awaiting_interview' }],
                 actions:[
                     { label:'Entrevista PASS', btn:'✓ PASS', fn:"doInterviewResultTL('pass')", cls:'green', info:'El candidato aprobó — avanza a categorización' },
-                    { label:'Entrevista FAIL', btn:'✗ FAIL', fn:"doInterviewResultTL('fail')", cls:'red',   info:'El candidato no aprobó — notas obligatorias' }
+                    { label:'Entrevista FAIL', btn:'✗ FAIL', fn:"doInterviewResultTL('fail')", cls:'red',   info:'No supera el filtro en esta convocatoria — notas obligatorias para el candidato' }
                 ], hasNotes:true
             },
             {
@@ -1706,16 +1706,16 @@
         async function doInterviewResultTL(result) {
             const notes = (document.getElementById('tlInterviewNotes')||{}).value||'';
             if (result==='fail' && !notes.trim()) { showToast('Escribe las notas antes de rechazar','error'); return; }
-            if (!confirm(result==='pass' ? '¿Confirmar PASS?' : '¿Confirmar FAIL? Se cerrará el proceso.')) return;
+            if (!confirm(result==='pass' ? '¿Confirmar PASS?' : '¿Confirmar FAIL? Se registrará la evaluación y se notificará al candidato.')) return;
             await callApi({ action:'registerInterviewResult', candidateId:currentCandidateId, result, interviewNotes:notes, adminToken:ADMIN_TOKEN },
-                result==='pass' ? '✅ Entrevista aprobada' : '❌ Candidato rechazado', true);
+                result==='pass' ? '✅ Entrevista aprobada' : '✉️ Evaluación registrada — correo enviado al candidato', true);
         }
         async function tlRechazarProceso() {
             const input = document.getElementById('tlRejectReason');
             const reason = input ? input.value.trim() : '';
             if (!reason) { showToast('Escribe el motivo de rechazo','error'); return; }
-            if (!confirm('¿Rechazar candidato? Esta acción es definitiva.')) return;
-            await callApi({ action:'rejectExam', candidateId:currentCandidateId, exam:'PROCESO', reason, adminToken:ADMIN_TOKEN }, '❌ Candidato rechazado', true);
+            if (!confirm('¿Registrar evaluación y notificar al candidato?')) return;
+            await callApi({ action:'rejectExam', candidateId:currentCandidateId, exam:'PROCESO', reason, adminToken:ADMIN_TOKEN }, '✉️ Evaluación registrada — correo enviado al candidato', true);
         }
         async function callApi(body, successMsg, reload) {
             try {
@@ -2468,7 +2468,7 @@
                 <div class="manual-row"><div class="manual-icon"><i class="fas fa-envelope"></i></div><div class="manual-text"><strong>Reenviar Correos</strong>Reenvía invitación a E1/E2/E3, términos, entrevista o bienvenida.</div></div>
                 <div class="manual-row"><div class="manual-icon"><i class="fas fa-users"></i></div><div class="manual-text"><strong>Listas Brevo</strong>Añade al candidato a grupos: interesados, agenda, rechazados, inconclusos.</div></div>
                 <div class="manual-row"><div class="manual-icon"><i class="fas fa-check-circle"></i></div><div class="manual-text"><strong>Aprobar Examen</strong>Marca E1, E2 o E3 como aprobado manualmente.</div></div>
-                <div class="manual-row"><div class="manual-icon"><i class="fas fa-handshake"></i></div><div class="manual-text"><strong>Resultado Entrevista</strong>Registra PASS (pasa a categoría) o FAIL (envía correo de rechazo).</div></div>
+                <div class="manual-row"><div class="manual-icon"><i class="fas fa-handshake"></i></div><div class="manual-text"><strong>Resultado Entrevista</strong>Registra PASS (pasa a categoría) o FAIL (envía correo de seguimiento al candidato con indicaciones para el próximo proceso).</div></div>
                 <div class="manual-row"><div class="manual-icon"><i class="fas fa-award"></i></div><div class="manual-text"><strong>Asignar Categoría</strong>Tras entrevista PASS: asigna Junior, Senior o Expert.</div></div>
                 <div class="manual-row"><div class="manual-icon"><i class="fas fa-times-circle"></i></div><div class="manual-text"><strong>Rechazar</strong>Cierra el proceso definitivamente con correo de rechazo.</div></div>
             </div>`;

@@ -777,7 +777,7 @@ function handleRejectExam(data) {
     const reason      = data.reason || '';
     if (!candidateId || !exam) return jsonResponse(false, 'candidateId y exam requeridos');
     const result = rejectExamAdmin(candidateId, exam, reason);
-    if (result.success) return jsonResponse(true, 'Candidato rechazado');
+    if (result.success) return jsonResponse(true, 'Evaluación registrada. Correo de seguimiento enviado al candidato.');
     return jsonResponse(false, 'Error al rechazar');
   } catch (error) {
     Logger.log('[ERROR handleRejectExam] ' + error.message);
@@ -1070,7 +1070,7 @@ function handleRegisterInterviewResult(data) {
     if (res.success) {
       return jsonResponse(true, result === 'pass'
         ? 'Entrevista aprobada. Asigna la categoría al candidato.'
-        : 'Candidato rechazado. Correo enviado con retroalimentación.');
+        : 'Evaluación registrada. Correo de seguimiento enviado al candidato.');
     }
     return jsonResponse(false, res.error || 'Error al registrar resultado de entrevista');
   } catch (error) {
@@ -1757,11 +1757,24 @@ function sendEmailAwaitingInterview(email, name, candidateId) {
 }
 
 function sendEmailRejected(email, name, exam, reason) {
-  const html = '<div style="font-family:Arial;"><h2>Hola ' + name + '</h2>' +
-    '<p>Gracias por participar. Después de revisar tu examen ' + exam + ', no continuaremos con tu candidatura en este momento.</p>' +
-    (reason ? '<p><strong>Retroalimentación:</strong> ' + reason + '</p>' : '') +
-    '<p>Te animamos a seguir creciendo profesionalmente.</p></div>';
-  return sendEmail(email, 'Resultado de tu proceso en RCCC', html);
+  const html =
+    '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">' +
+    '<div style="background:linear-gradient(135deg,#001A55,#0966FF);color:white;padding:20px;text-align:center;border-radius:8px 8px 0 0;">' +
+    '<h1 style="margin:0;">Gracias por tu participación</h1>' +
+    '<p style="margin:8px 0 0 0;font-size:0.95em;">Catholizare.com</p></div>' +
+    '<div style="padding:24px;background:#f9f9f9;">' +
+    '<p>Hola <strong>' + name + '</strong>,</p>' +
+    '<p>Gracias por el tiempo y la dedicación que invertiste en completar nuestro proceso de evaluación. Valoramos profundamente tu interés en unirte al equipo de profesionales de <strong>Catholizare.com</strong>.</p>' +
+    '<p>Tras revisar tu examen <strong>' + exam + '</strong>, en esta ocasión no has superado el filtro inicial del proceso. Esto no significa el cierre definitivo de tu candidatura: <strong>tu caso podrá ser evaluado por nuestro comité</strong>, que tomará en consideración el contexto y los méritos de tu perfil.</p>' +
+    (reason ? '<div style="background:white;border-left:4px solid #0966FF;padding:12px 16px;margin:16px 0;border-radius:0 6px 6px 0;">' +
+      '<p style="font-size:0.85em;font-weight:700;color:#001A55;margin:0 0 6px 0;">RETROALIMENTACIÓN</p>' +
+      '<p style="font-size:0.9em;color:#444;margin:0;">' + reason + '</p></div>' : '') +
+    '<p>Además, queremos que sepas que <strong>este intento quedará registrado</strong> y se tendrá en cuenta a la hora de valorar futuros procesos. El año que viene podrás volver a intentarlo, y tu participación de hoy sumará positivamente en la calificación de esa nueva evaluación.</p>' +
+    '<p>Mientras tanto, te invitamos a seguir profundizando en la <strong>ciencia y la fe</strong>, que son los pilares del trabajo que realizamos. Ese crecimiento personal y profesional será el mejor camino para incorporarte al equipo de Catholizare.com.</p>' +
+    '<p>Que Dios te bendiga y te acompañe en este camino.</p>' +
+    '<p style="font-size:0.85em;color:#999;margin-top:20px;">— Equipo Catholizare.com</p>' +
+    '</div></div>';
+  return sendEmail(email, 'Resultado de tu evaluación — Catholizare.com', html);
 }
 
 /**
@@ -1772,21 +1785,23 @@ function sendEmailRejectedInterview(email, name, interviewNotes) {
   const html =
     '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">' +
     '<div style="background:linear-gradient(135deg,#001A55,#0966FF);color:white;padding:20px;text-align:center;border-radius:8px 8px 0 0;">' +
-    '<h1>Resultado de tu Proceso</h1><p>Red de Psicólogos Católicos</p></div>' +
-    '<div style="padding:20px;background:#f9f9f9;">' +
+    '<h1 style="margin:0;">Gracias por tu participación</h1>' +
+    '<p style="margin:8px 0 0 0;font-size:0.95em;">Catholizare.com</p></div>' +
+    '<div style="padding:24px;background:#f9f9f9;">' +
     '<p>Hola <strong>' + name + '</strong>,</p>' +
-    '<p>Agradecemos sinceramente el tiempo y el esfuerzo que dedicaste a nuestro proceso de selección, incluyendo tu entrevista personal.</p>' +
-    '<p>Tras una cuidadosa evaluación, lamentamos informarte que en este momento no continuaremos con tu candidatura en la Red de Psicólogos Católicos.</p>' +
+    '<p>Agradecemos sinceramente el tiempo, la apertura y el esfuerzo que dedicaste a nuestro proceso de selección, incluyendo tu entrevista personal. Conocer tu perfil ha sido un placer para nuestro equipo.</p>' +
+    '<p>Tras una cuidadosa evaluación, en esta convocatoria no has superado el filtro inicial del proceso. No obstante, esto no cierra definitivamente la puerta: <strong>tu candidatura podrá ser elevada a nuestro comité</strong>, que valorará tu perfil de manera integral y considerará el contexto de tu evaluación.</p>' +
     (interviewNotes
       ? '<div style="background:white;border-left:4px solid #0966FF;padding:12px 16px;margin:16px 0;border-radius:0 6px 6px 0;">' +
         '<p style="font-size:0.85em;font-weight:700;color:#001A55;margin:0 0 6px 0;">RETROALIMENTACIÓN DE TU ENTREVISTA</p>' +
         '<p style="font-size:0.9em;color:#444;margin:0;">' + interviewNotes + '</p></div>'
       : '') +
-    '<p>Te animamos a seguir creciendo en tu vocación y no descartes postularte nuevamente en el futuro cuando las circunstancias cambien.</p>' +
-    '<p>Que Dios te bendiga.</p>' +
-    '<p style="font-size:0.85em;color:#999;margin-top:20px;">— Equipo RCCC</p>' +
+    '<p>Además, <strong>este intento quedará registrado en tu expediente</strong> y se tendrá en cuenta en futuras evaluaciones. El año que viene podrás volver a iniciar el proceso, y tu participación de hoy sumará positivamente en la calificación de esa nueva convocatoria.</p>' +
+    '<p>Te invitamos a aprovechar este tiempo para seguir profundizando en la <strong>ciencia y la fe</strong>, los dos pilares sobre los que se construye el trabajo en Catholizare.com. Ese crecimiento será el mejor punto de partida para incorporarte a nuestro equipo de profesionales.</p>' +
+    '<p>Que Dios te bendiga y te acompañe en este camino.</p>' +
+    '<p style="font-size:0.85em;color:#999;margin-top:20px;">— Equipo Catholizare.com</p>' +
     '</div></div>';
-  return sendEmail(email, 'Resultado de tu proceso en RCCC', html);
+  return sendEmail(email, 'Resultado de tu evaluación — Catholizare.com', html);
 }
 
 function sendEmailApproved(email, name, category) {
