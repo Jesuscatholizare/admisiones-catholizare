@@ -455,15 +455,13 @@ function doGet(e) {
 // ================================
 function handleRegistration(data) {
   try {
-    const candidate     = data.candidate;
-    const scheduled_date = data.scheduled_date;
+    const candidate      = data.candidate;
+    const scheduled_date = data.scheduled_date || new Date().toISOString().split('T')[0];
 
     if (!candidate || !candidate.name || !candidate.email)
       return jsonResponse(false, 'Faltan datos requeridos');
     if (!isValidEmail(candidate.email))
       return jsonResponse(false, 'Email invalido');
-    if (!scheduled_date)
-      return jsonResponse(false, 'Fecha agendada requerida');
 
     const sheet = SS.getSheetByName('Candidatos');
     if (!sheet) return jsonResponse(false, 'Hoja Candidatos no encontrada');
