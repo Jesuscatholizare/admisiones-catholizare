@@ -455,8 +455,7 @@ function doGet(e) {
 // ================================
 function handleRegistration(data) {
   try {
-    const candidate      = data.candidate;
-    const scheduled_date = data.scheduled_date || new Date().toISOString().split('T')[0];
+    const candidate = data.candidate;
 
     if (!candidate || !candidate.name || !candidate.email)
       return jsonResponse(false, 'Faltan datos requeridos');
@@ -486,10 +485,10 @@ function handleRegistration(data) {
     ]);
 
     const token = generateToken(candidate_id, 'E1');
-    saveToken(token, candidate_id, 'E1', candidate.email, candidate.name, scheduled_date);
+    saveToken(token, candidate_id, 'E1', candidate.email, candidate.name, '');
 
     addTimelineEvent(candidate_id, 'CANDIDATO_REGISTRADO', {
-      nombre: candidate.name, email: candidate.email, fecha_agendada: scheduled_date
+      nombre: candidate.name, email: candidate.email
     });
 
     addContactToBrevoList(
@@ -499,8 +498,8 @@ function handleRegistration(data) {
       CONFIG.brevo_list_interesados
     );
 
-    sendWelcomeEmail(candidate.email, candidate.name, token, candidate_id, scheduled_date);
-    notifyAdminNewCandidate(candidate.name, candidate.email, candidate_id, scheduled_date);
+    sendWelcomeEmail(candidate.email, candidate.name, token, candidate_id);
+    notifyAdminNewCandidate(candidate.name, candidate.email, candidate_id);
 
     return jsonResponse(true, 'Registro exitoso. Revisa tu email.', {
       candidate_id: candidate_id,
@@ -866,22 +865,9 @@ function handleResendWelcomeEmail(data) {
     }
     if (!candidate) return jsonResponse(false, 'Candidato no encontrado');
 
-    // Get scheduled_date from the most recent E1 token
-    const tokenSheet = SS.getSheetByName('Tokens');
-    let scheduled_date = new Date().toISOString().split('T')[0];
-    if (tokenSheet) {
-      const tokenRows = tokenSheet.getDataRange().getValues();
-      for (let i = tokenRows.length - 1; i >= 1; i--) {
-        if (tokenRows[i][1] === candidateId && tokenRows[i][2] === 'E1') {
-          scheduled_date = tokenRows[i][10] || scheduled_date;
-          break;
-        }
-      }
-    }
-
     const token = generateToken(candidateId, 'E1');
-    saveToken(token, candidateId, 'E1', candidate.email, candidate.name, scheduled_date);
-    sendWelcomeEmail(candidate.email, candidate.name, token, candidateId, scheduled_date);
+    saveToken(token, candidateId, 'E1', candidate.email, candidate.name, '');
+    sendWelcomeEmail(candidate.email, candidate.name, token, candidateId);
     return jsonResponse(true, 'Correo de bienvenida reenviado a ' + candidate.email);
   } catch (error) {
     Logger.log('[ERROR handleResendWelcomeEmail] ' + error.message);
@@ -925,20 +911,9 @@ function handleSendEmailManual(data) {
 
     switch (emailType) {
       case 'welcome': {
-        // Obtener scheduled_date del último token E1
-        const tokenSheet = SS.getSheetByName('Tokens');
-        let scheduled_date = new Date().toISOString().split('T')[0];
-        if (tokenSheet) {
-          const tokenRows = tokenSheet.getDataRange().getValues();
-          for (let i = tokenRows.length - 1; i >= 1; i--) {
-            if (tokenRows[i][1] === candidateId && tokenRows[i][2] === 'E1') {
-              scheduled_date = tokenRows[i][10] || scheduled_date; break;
-            }
-          }
-        }
         const token = generateToken(candidateId, 'E1');
-        saveToken(token, candidateId, 'E1', email, name, scheduled_date);
-        result = sendWelcomeEmail(email, name, token, candidateId, scheduled_date);
+        saveToken(token, candidateId, 'E1', email, name, '');
+        result = sendWelcomeEmail(email, name, token, candidateId);
         break;
       }
       case 'terms':
@@ -1705,21 +1680,21 @@ function logNotificationEvent(email, subject, provider, status) {
 // ================================
 // EMAILS ESPECÍFICOS
 // ================================
-function sendWelcomeEmail(email, name, token, candidate_id, scheduled_date) {
+function sendWelcomeEmail(email, name, token, candidate_id) {
   const exam_url = 'https://profesionales.catholizare.com/catholizare_sistem/examen/?token=' + token + '&exam=E1';
   const html =
     '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">' +
     '<div style="background:linear-gradient(135deg,#001A55,#0966FF);color:white;padding:20px;text-align:center;border-radius:8px 8px 0 0;">' +
-    '<h1>Bienvenido ' + name + '</h1><p>Red de Psicólogos Católicos</p></div>' +
+    '<h1>Bienvenido ' + name + '</h1><p>Catholizare.com</p></div>' +
     '<div style="background:#f9f9f9;padding:20px;">' +
-    '<p>Tu registro ha sido exitoso. Ya puedes acceder al Examen E1.</p>' +
+    '<p>Tu registro ha sido exitoso. Ya puedes acceder al <strong>Examen E1</strong> cuando lo desees — no hay fecha límite para iniciarlo.</p>' +
     '<p><a href="' + exam_url + '" style="display:inline-block;background:#0966FF;color:white;padding:12px 24px;text-decoration:none;border-radius:4px;">Acceder al Examen E1</a></p>' +
     '<div style="background:#fef2f2;border-left:4px solid #dc2626;padding:12px;margin:16px 0;border-radius:4px;">' +
-    '<p style="margin:0;color:#991b1b;font-size:13px;"><strong>⚠️ Un solo intento:</strong> Solo tienes un intento para completar este examen. Una vez que presiones "Comenzar", no podrás reiniciar ni volver a acceder. Asegúrate de contar con el tiempo y condiciones necesarias antes de iniciar.</p>' +
+    '<p style="margin:0;color:#991b1b;font-size:13px;"><strong>⚠️ Una sola oportunidad:</strong> Cuentas con un único intento para completar este examen, sin importar el momento en que decidas tomarlo. Una vez que presiones "Comenzar", no podrás reiniciar ni volver a acceder. Asegúrate de contar con el tiempo y las condiciones adecuadas antes de iniciar.</p>' +
     '</div>' +
-    '<p style="font-size:12px;color:#666;"><strong>Instrucciones:</strong> Duración 2h · No copy/paste · Max 3 cambios de ventana</p>' +
+    '<p style="font-size:12px;color:#666;"><strong>Instrucciones:</strong> Duración 2h · No copy/paste · Máx. 3 cambios de ventana</p>' +
     '</div></div>';
-  return sendEmail(email, 'Bienvenido a ' + (CONFIG.app_name || 'RCCC'), html);
+  return sendEmail(email, 'Bienvenido a ' + (CONFIG.app_name || 'Catholizare.com'), html);
 }
 
 function sendEmailTerms(email, name, candidateId) {
@@ -1880,7 +1855,7 @@ function saveExamResult(candidate_id, exam, resultData) {
 // ================================
 // MODULO: NOTIFICACIONES ADMIN
 // ================================
-function notifyAdminNewCandidate(name, email, candidate_id, scheduled_date) {
+function notifyAdminNewCandidate(name, email, candidate_id) {
   try {
     const adminEmail = CONFIG.email_admin;
     if (!adminEmail) return;
@@ -1888,7 +1863,8 @@ function notifyAdminNewCandidate(name, email, candidate_id, scheduled_date) {
       '<div style="background:#4CAF50;color:white;padding:20px;text-align:center;"><h1>Nuevo Candidato Registrado</h1></div>' +
       '<div style="padding:20px;">' +
       '<p><strong>Nombre:</strong> ' + name + '</p><p><strong>Email:</strong> ' + email + '</p>' +
-      '<p><strong>ID:</strong> ' + candidate_id + '</p><p><strong>Examen agendado:</strong> ' + scheduled_date + '</p>' +
+      '<p><strong>ID:</strong> ' + candidate_id + '</p>' +
+      '<p style="color:#666;font-size:13px;">El candidato puede iniciar el Examen E1 cuando lo desee (un solo intento).</p>' +
       '</div></div>';
     return sendEmail(adminEmail, 'Nuevo Candidato: ' + name, html);
   } catch (error) { Logger.log('[notifyAdminNewCandidate Error] ' + error.message); }
