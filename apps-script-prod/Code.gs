@@ -219,6 +219,7 @@ function setupAdmissionsSpreadsheet() {
  * ======================================================= */
 function handleInitialRegistration_(payload) {
   const cand = payload.candidate || {};
+  const scheduledDate = String(payload.scheduled_date || '').trim();
 
   const req = (k) => String(cand[k] || '').trim();
   const name = req('name');
@@ -239,6 +240,7 @@ function handleInitialRegistration_(payload) {
   if (!professional_type) missing.push('professional_type');
   if (!therapeutic_approach) missing.push('therapeutic_approach');
   if (!about) missing.push('about');
+  if (!scheduledDate) missing.push('scheduled_date');
   if (missing.length) return { success:false, message:'Missing fields: ' + missing.join(', ') };
 
   const lock = LockService.getScriptLock();
@@ -291,22 +293,20 @@ function handleInitialRegistration_(payload) {
     revokeActiveTokens_(shT, mapT, email, 'E1');
 
     const token = generateToken_('E1');
-    const now = new Date();
-    const startIso = formatIsoLocal_(now);
-    const endIso = formatIsoLocal_(new Date(now.getTime() + 2 * 60 * 60 * 1000));
+    const win = computeTokenWindowFromScheduledDate_(scheduledDate);
 
     appendToken_(shT, mapT, {
       token,
       exam_id: 'E1',
       email,
       created_date: new Date(),
-      start_iso: startIso,
-      end_iso: endIso,
+      start_iso: win.startIso,
+      end_iso: win.endIso,
       used: false,
       status: 'active',
       uid,
       name,
-      scheduled_date: ''
+      scheduled_date: win.scheduledDate
     });
 
     const examUrl = buildExamUrl_(env.URL_E1_START, { exam_id:'E1', token, uid });
@@ -318,7 +318,7 @@ function handleInitialRegistration_(payload) {
       name,
       examId: 'E1',
       examUrl,
-      extraLine: 'Este enlace es de un solo uso y es válido por <b>2 horas</b>.'
+      extraLine: `Fecha estimada seleccionada: <b>${escapeHtml_(scheduledDate)}</b>`
     });
 
     if (env.ADMIN_NOTIFY_EMAIL) {
@@ -583,7 +583,7 @@ function handleInviteExam_(payload, examId) {
     const token = generateToken_(examId);
     const now = new Date();
     const startIso = formatIsoLocal_(now);
-    const endIso = formatIsoLocal_(new Date(now.getTime() + 2 * 60 * 60 * 1000));
+    const endIso = formatIsoLocal_(new Date(now.getTime() + 24 * 60 * 60 * 1000));
 
     appendToken_(shT, mapT, {
       token,
@@ -607,7 +607,7 @@ function handleInviteExam_(payload, examId) {
       name,
       examId,
       examUrl,
-      extraLine: 'Este enlace es de un solo uso y es válido por <b>2 horas</b>.'
+      extraLine: ''
     });
 
     safeSet_(shC, mapC, row, `${examId}_status`, 'sent');
@@ -1306,6 +1306,16 @@ function randomBase32_(len) {
   let out = '';
   for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * chars.length)];
   return out;
+}
+
+function computeTokenWindowFromScheduledDate_(scheduledDate) {
+  const parts = scheduledDate.split('-').map(n => parseInt(n, 10));
+  if (parts.length !== 3 || parts.some(isNaN)) throw new Error('Invalid scheduled_date');
+
+  const start = new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0);
+  const end = new Date(parts[0], parts[1] - 1, parts[2], 23, 59, 59);
+
+  return { scheduledDate, startIso: formatIsoLocal_(start), endIso: formatIsoLocal_(end) };
 }
 
 function formatIsoLocal_(d) {
