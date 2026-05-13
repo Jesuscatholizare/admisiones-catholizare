@@ -1186,44 +1186,31 @@ function generateToken(candidate_id, exam) {
 }
 
 /**
- * Guarda un token con ventana de validez de 2 horas a partir de ahora.
- * El token es de un solo uso: se invalida al completar el examen.
+ * Guarda un token de un solo uso. Se invalida al completar el examen.
  */
 function saveToken(token, candidate_id, exam, email, name) {
   const sheet = SS.getSheetByName('Tokens');
   if (!sheet) { Logger.log('[saveToken] Hoja Tokens no encontrada'); return; }
-  const now        = new Date();
-  const validUntil = new Date(now.getTime() + 2 * 60 * 60 * 1000); // 2 horas
+  const now = new Date();
   insertNewRow(sheet, [
     token, candidate_id, exam, now,
-    now.toISOString(), validUntil.toISOString(),
+    '', '',
     false, 'active', email, name, '', ''
   ]);
-  Logger.log('[saveToken] Token guardado: ' + token + ' | Expira: ' + validUntil.toISOString());
+  Logger.log('[saveToken] Token guardado: ' + token);
 }
 
-/**
- * Verifica un token: debe estar activo, no usado, y no haber expirado (2h).
- */
 function verifyToken(token, exam) {
   const sheet = SS.getSheetByName('Tokens');
   if (!sheet) return { valid: false, message: 'Hoja Tokens no encontrada' };
   const data = sheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === token && data[i][2] === exam) {
-      const used       = data[i][6];
-      const status     = data[i][7];
-      const validUntil = data[i][5]; // columna valid_until
+      const used   = data[i][6];
+      const status = data[i][7];
 
       if (used)                return { valid: false, message: 'Token ya fue usado (solo se permite un intento)' };
       if (status !== 'active') return { valid: false, message: 'Token no activo' };
-
-      if (validUntil) {
-        const expiry = new Date(validUntil);
-        if (!isNaN(expiry.getTime()) && new Date() > expiry) {
-          return { valid: false, message: 'El enlace expiró. Los tokens son válidos por 2 horas desde su emisión. Solicita un nuevo acceso.' };
-        }
-      }
 
       return { valid: true, candidate_id: data[i][1], email: data[i][8], name: data[i][9] };
     }
@@ -1259,9 +1246,6 @@ function handleResetTokenAttempt(data) {
     const data_sheet = sheet.getDataRange().getValues();
     for (let i = 1; i < data_sheet.length; i++) {
       if (data_sheet[i][0] && data_sheet[i][1] === candidateId && data_sheet[i][2] === exam && data_sheet[i][6]) {
-        // Reactivar token y extender ventana 2h desde ahora
-        const newExpiry = new Date(new Date().getTime() + 2 * 60 * 60 * 1000);
-        sheet.getRange(i + 1, 6).setValue(newExpiry.toISOString()); // valid_until
         sheet.getRange(i + 1, 7).setValue(false);
         sheet.getRange(i + 1, 8).setValue('active');
         sheet.getRange(i + 1, 12).setValue('');
@@ -1567,7 +1551,7 @@ function sendWelcomeEmail(email, name, token, candidate_id) {
     '<p>Tu registro ha sido exitoso. Puedes acceder al <strong>Examen E1</strong> cuando lo desees — el enlace está activo ahora mismo.</p>' +
     '<p><a href="' + exam_url + '" style="display:inline-block;background:#0966FF;color:white;padding:12px 24px;text-decoration:none;border-radius:4px;">Acceder al Examen E1</a></p>' +
     '<div style="background:#fef2f2;border-left:4px solid #dc2626;padding:12px;margin:16px 0;border-radius:4px;">' +
-    '<p style="margin:0;color:#991b1b;font-size:13px;"><strong>⚠️ Importante:</strong> Este enlace es de <strong>un solo uso</strong> y expira en <strong>2 horas</strong>. Una vez que presiones "Comenzar", no podrás reiniciar ni volver a acceder. Asegúrate de contar con el tiempo y las condiciones adecuadas antes de iniciar.</p>' +
+    '<p style="margin:0;color:#991b1b;font-size:13px;"><strong>⚠️ Importante:</strong> Este enlace es de <strong>un solo uso</strong>. Una vez que presiones "Comenzar", no podrás reiniciar ni volver a acceder. Asegúrate de contar con el tiempo y las condiciones adecuadas antes de iniciar.</p>' +
     '</div>' +
     '<p style="font-size:12px;color:#666;"><strong>Instrucciones:</strong> Duración 2h · No copy/paste · Máx. 3 cambios de ventana</p>' +
     '</div></div>';
@@ -1588,7 +1572,7 @@ function sendEmailE2(email, name, token, candidateId) {
     '<p>Has aceptado los términos. Ya puedes tomar el Examen E2.</p>' +
     '<p><a href="' + url + '" style="display:inline-block;background:#0966FF;color:white;padding:12px 24px;text-decoration:none;border-radius:4px;">Acceder al Examen E2</a></p>' +
     '<div style="background:#fef2f2;border-left:4px solid #dc2626;padding:12px;margin:16px 0;border-radius:4px;">' +
-    '<p style="margin:0;color:#991b1b;font-size:13px;"><strong>⚠️ Importante:</strong> Este enlace es de <strong>un solo uso</strong> y expira en <strong>2 horas</strong>. Una vez que presiones "Comenzar", no podrás reiniciar ni volver a acceder. Asegúrate de contar con el tiempo y condiciones necesarias antes de iniciar.</p>' +
+    '<p style="margin:0;color:#991b1b;font-size:13px;"><strong>⚠️ Importante:</strong> Este enlace es de <strong>un solo uso</strong>. Una vez que presiones "Comenzar", no podrás reiniciar ni volver a acceder. Asegúrate de contar con el tiempo y las condiciones adecuadas antes de iniciar.</p>' +
     '</div></div>';
   return sendEmail(email, 'Accede al Examen E2', html);
 }
@@ -1600,7 +1584,7 @@ function sendEmailE3(email, name, token, candidateId) {
     '<p>¡Excelente! Aprobaste E2. Ahora puedes tomar el Examen E3 (final).</p>' +
     '<p><a href="' + url + '" style="display:inline-block;background:#0966FF;color:white;padding:12px 24px;text-decoration:none;border-radius:4px;">Acceder al Examen E3</a></p>' +
     '<div style="background:#fef2f2;border-left:4px solid #dc2626;padding:12px;margin:16px 0;border-radius:4px;">' +
-    '<p style="margin:0;color:#991b1b;font-size:13px;"><strong>⚠️ Importante:</strong> Este enlace es de <strong>un solo uso</strong> y expira en <strong>2 horas</strong>. Una vez que presiones "Comenzar", no podrás reiniciar ni volver a acceder. Asegúrate de contar con el tiempo y condiciones necesarias antes de iniciar.</p>' +
+    '<p style="margin:0;color:#991b1b;font-size:13px;"><strong>⚠️ Importante:</strong> Este enlace es de <strong>un solo uso</strong>. Una vez que presiones "Comenzar", no podrás reiniciar ni volver a acceder. Asegúrate de contar con el tiempo y las condiciones adecuadas antes de iniciar.</p>' +
     '</div></div>';
   return sendEmail(email, 'Accede al Examen E3 (Final)', html);
 }
@@ -1741,7 +1725,7 @@ function notifyAdminNewCandidate(name, email, candidate_id) {
       '<div style="padding:20px;">' +
       '<p><strong>Nombre:</strong> ' + name + '</p><p><strong>Email:</strong> ' + email + '</p>' +
       '<p><strong>ID:</strong> ' + candidate_id + '</p>' +
-      '<p style="color:#666;font-size:13px;">El token de acceso E1 expira en 2 horas. Si el candidato no accede a tiempo, usa "Reenviar correo de bienvenida" en el dashboard para generar uno nuevo.</p>' +
+      '<p style="color:#666;font-size:13px;">El enlace de acceso E1 es de un solo uso. Si el candidato necesita un nuevo acceso, usa "Reenviar correo de bienvenida" en el dashboard.</p>' +
       '</div></div>';
     return sendEmail(adminEmail, 'Nuevo Candidato: ' + name, html);
   } catch (error) { Logger.log('[notifyAdminNewCandidate Error] ' + error.message); }
