@@ -1,0 +1,20 @@
+# Dependencias
+node_modules/
+
+# Variables de entorno / secretos
+.env
+*.env.local
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+
+# PHP cache
+*.php~
