@@ -1,0 +1,2625 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Admin - RCCC Evaluaciones</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #001A55;
+            --primary-light: #0966FF;
+            --success: #4CAF50;
+            --warning: #FF9800;
+            --danger: #f44336;
+            --info: #2196F3;
+            --dark: #333;
+            --light: #f5f7fa;
+            --border-color: #e0e0e0;
+            --bg-hover: #f9f9f9;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--light);
+            color: var(--dark);
+            line-height: 1.6;
+        }
+        /* Navbar */
+        .navbar {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(0, 26, 85, 0.15);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .navbar-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .navbar-brand { font-size: 1.5rem; font-weight: 700; letter-spacing: 0.5px; }
+        .navbar-brand small { font-size: 0.7em; opacity: 0.9; display: block; }
+        .navbar-actions { display: flex; gap: 1rem; align-items: center; }
+        .navbar-actions button {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 0.6rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s;
+        }
+        .navbar-actions button:hover { background: rgba(255,255,255,0.3); }
+        /* Container */
+        .container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+        /* Header */
+        .header-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        .header-section h1 { font-size: 2rem; color: var(--primary); }
+        .header-section small { color: #666; font-size: 0.9em; }
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-left: 4px solid var(--primary-light);
+            transition: all 0.3s;
+        }
+        .stat-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.12); transform: translateY(-2px); }
+        .stat-value { font-size: 2.5rem; font-weight: 700; color: var(--primary); margin-bottom: 0.5rem; }
+        .stat-label { color: #666; font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-meta  { font-size: 0.8em; color: #999; margin-top: 0.5rem; }
+        /* Filters */
+        .filters-section {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .search-box { flex: 1; min-width: 250px; position: relative; }
+        .search-box input {
+            width: 100%;
+            padding: 0.8rem 1rem 0.8rem 2.5rem;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+        .search-box input:focus { outline: none; border-color: var(--primary-light); box-shadow: 0 0 0 3px rgba(9,102,255,0.1); }
+        .search-box i { position: absolute; left: 0.8rem; top: 0.9rem; color: #999; }
+        .filter-select {
+            padding: 0.8rem 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+        .filter-select:focus { outline: none; border-color: var(--primary-light); }
+        /* Table */
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        #tableContent {
+            overflow-x: auto;
+            overflow-y: auto;
+            max-height: 600px;
+        }
+        .table-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 2px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .table-header h2 { font-size: 1.2rem; color: var(--primary); }
+        .table-header-meta { font-size: 0.9em; color: #666; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.95em; }
+        thead { background: #f9f9f9; border-bottom: 2px solid var(--border-color); }
+        th {
+            padding: 1rem 1.5rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--primary);
+            text-transform: uppercase;
+            font-size: 0.85em;
+            letter-spacing: 0.5px;
+        }
+        td { padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color); }
+        tbody tr { transition: background-color 0.2s; }
+        tbody tr:hover { background-color: var(--bg-hover); }
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .badge-registered { background: #E3F2FD; color: #1565C0; }
+        .badge-pending    { background: #FFF3E0; color: #E65100; }
+        .badge-terms      { background: #F3E5F5; color: #6A1B9A; }
+        .badge-interview  { background: #E8F5E9; color: #1B5E20; }
+        .badge-rejected   { background: #FFEBEE; color: #B71C1C; }
+        .badge-junior     { background: #C8E6C9; color: #1B5E20; }
+        .badge-senior     { background: #BBE3F5; color: #0D47A1; }
+        .badge-expert     { background: #F3E5F5; color: #4A148C; }
+        .badge-awaiting-cat { background: #E8EAF6; color: #283593; }
+        /* Action Buttons */
+        .actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .btn {
+            padding: 0.5rem 0.8rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8em;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            white-space: nowrap;
+        }
+        .btn-approve { background: var(--success); color: white; }
+        .btn-approve:hover { background: #45a049; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(76,175,80,0.3); }
+        .btn-reject  { background: var(--danger);  color: white; }
+        .btn-reject:hover  { background: #da190b; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(244,67,54,0.3); }
+        .btn-category { background: var(--warning); color: white; }
+        .btn-category:hover { background: #fb8c00; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(255,152,0,0.3); }
+        .btn-view { background: var(--info); color: white; }
+        .btn-view:hover { background: #1976D2; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(33,150,243,0.3); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 2rem;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            animation: slideIn 0.3s;
+        }
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to   { transform: translateY(0);     opacity: 1; }
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+        .modal-header h2 { color: var(--primary); margin: 0; }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #999;
+            transition: color 0.3s;
+        }
+        .modal-close:hover { color: var(--dark); }
+        .modal-body { margin-bottom: 1.5rem; }
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--primary); }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 1em;
+            font-family: inherit;
+        }
+        .form-group textarea { resize: vertical; min-height: 100px; }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus { outline: none; border-color: var(--primary-light); box-shadow: 0 0 0 3px rgba(9,102,255,0.1); }
+        .modal-footer { display: flex; gap: 1rem; justify-content: flex-end; }
+        .modal-footer button {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        /* Acciones Avanzadas modal */
+        .acc-section-title { font-size: 0.78em; letter-spacing: 1px; text-transform: uppercase; font-weight: 700; margin-bottom: 0.65rem; }
+        .acc-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.45rem; }
+        .acc-card {
+            display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
+            padding: 0.65rem 0.85rem;
+            background: white; border: 1.5px solid #e0e0e0; border-radius: 8px;
+            cursor: pointer; transition: all 0.18s; text-align: left;
+        }
+        .acc-card:hover { border-color: #0d6efd; background: #f0f5ff; transform: translateY(-1px); box-shadow: 0 3px 8px rgba(0,0,0,0.08); }
+        .acc-icon { font-size: 1em; }
+        .acc-title { font-size: 0.82em; font-weight: 700; color: #001A55; }
+        .acc-sub   { font-size: 0.72em; color: #888; }
+        .acc-orange:hover { border-color: #fd7e14; background: #fff8f0; }
+        .acc-green  { border-color: #d4edda; } .acc-green:hover  { border-color: #198754; background: #e8f5e9; }
+        .acc-success { border-color: #badbcc; background: #f8fff8; } .acc-success:hover { border-color: #198754; background: #d1f0dc; }
+        .acc-warning { border-color: #ffc107; background: #fffdf0; } .acc-warning:hover { border-color: #e0a800; background: #fff3cd; }
+        .btn-primary   { background: var(--primary-light); color: white; }
+        .btn-primary:hover { background: #0954cc; box-shadow: 0 4px 12px rgba(9,102,255,0.3); }
+        .btn-secondary { background: #e0e0e0; color: var(--dark); }
+        .btn-secondary:hover { background: #d0d0d0; }
+        /* Empty State */
+        .empty-state { padding: 3rem; text-align: center; color: #999; }
+        .empty-state i { font-size: 3rem; margin-bottom: 1rem; opacity: 0.3; }
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            color: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 3000;
+            animation: slideInUp 0.3s;
+        }
+        @keyframes slideInUp {
+            from { transform: translateY(100px); opacity: 0; }
+            to   { transform: translateY(0); opacity: 1; }
+        }
+        .toast.success { background: var(--success); }
+        .toast.error   { background: var(--danger); }
+        .toast.info    { background: var(--info); }
+        /* Progress bar (en tabla) */
+        .progress-bar-mini {
+            width: 80px;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .progress-fill-mini {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            transition: width 0.3s;
+        }
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container { padding: 1rem; }
+            .header-section { flex-direction: column; gap: 1rem; }
+            .header-section h1 { font-size: 1.5rem; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .filters-section { flex-direction: column; }
+            .search-box { min-width: 100%; }
+            table { font-size: 0.85em; }
+            th, td { padding: 0.7rem 1rem; }
+            .actions { flex-direction: column; }
+            .btn { width: 100%; justify-content: center; }
+            .modal-content { width: 95%; margin: 50% auto; }
+        }
+        /* ── Sidebar layout ── */
+        .app-layout { display: flex; min-height: 100vh; }
+        .sidebar {
+            width: 220px; min-width: 220px; background: #001A55; color: white;
+            display: flex; flex-direction: column;
+            position: sticky; top: 0; height: 100vh; overflow-y: auto; z-index: 100; flex-shrink: 0;
+        }
+        .sidebar-logo { padding: 1.4rem 1.25rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .sidebar-logo-title { font-size: 1rem; font-weight: 700; }
+        .sidebar-logo-sub { font-size: 0.68rem; opacity: 0.55; text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; }
+        .sidebar-module { padding: 1rem 1.25rem 0.3rem; font-size: 0.63rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; opacity: 0.4; }
+        .sidebar-section { padding: 0 0.5rem 0.5rem; }
+        .sidebar-section-label { padding: 0.6rem 0.75rem 0.2rem; font-size: 0.62rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; opacity: 0.45; }
+        .nav-item {
+            display: flex; align-items: center; gap: 0.6rem;
+            padding: 0.6rem 0.75rem; border-radius: 8px; cursor: pointer;
+            font-size: 0.875rem; color: rgba(255,255,255,0.72); transition: all 0.18s;
+            margin-bottom: 2px; border: none; background: none; width: 100%; text-align: left;
+        }
+        .nav-item:hover  { background: rgba(255,255,255,0.1);  color: white; }
+        .nav-item.active { background: rgba(255,255,255,0.16); color: white; font-weight: 600; }
+        .nav-item i { width: 15px; text-align: center; font-size: 0.88rem; opacity: 0.85; }
+        .sidebar-footer {
+            margin-top: auto; padding: 1rem; border-top: 1px solid rgba(255,255,255,0.1);
+            display: flex; flex-direction: column; gap: 0.5rem;
+        }
+        .sidebar-footer button {
+            width: 100%; padding: 0.55rem 0.75rem; background: rgba(255,255,255,0.08);
+            color: rgba(255,255,255,0.8); border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 7px; cursor: pointer; font-size: 0.82rem; transition: all 0.18s;
+            display: flex; align-items: center; gap: 0.5rem; justify-content: center;
+        }
+        .sidebar-footer button:hover { background: rgba(255,255,255,0.18); color: white; }
+        .main-content { flex: 1; min-width: 0; background: var(--light); overflow-y: auto; }
+        /* Vistas */
+        .view { display: none; }
+        .view.active { display: block; }
+        /* ── Ver Respuestas ── */
+        .resp-layout { display: grid; grid-template-columns: 260px 1fr; gap: 1.25rem; margin-top: 1.5rem; }
+        .resp-left { display: flex; flex-direction: column; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow: hidden; max-height: calc(100vh - 200px); }
+        .resp-search-box { display: flex; align-items: center; gap: 8px; padding: 0.75rem; border-bottom: 1px solid #eee; flex-shrink: 0; }
+        .resp-search-box input { flex: 1; border: none; outline: none; font-size: 0.875rem; background: none; }
+        .resp-candidate-list { overflow-y: auto; flex: 1; }
+        .resp-candidate-item { display: block; width: 100%; text-align: left; padding: 0.7rem 1rem; border: none; border-bottom: 1px solid #f0f0f0; background: white; cursor: pointer; transition: background 0.15s; }
+        .resp-candidate-item:hover  { background: #f5f7ff; }
+        .resp-candidate-item.active { background: #eff3ff; border-left: 3px solid #001A55; padding-left: calc(1rem - 3px); }
+        .resp-cand-name  { font-weight: 600; font-size: 0.875rem; color: #001A55; margin-bottom: 2px; }
+        .resp-cand-email { font-size: 0.77rem; color: #999; margin-bottom: 4px; }
+        .resp-right { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); display: flex; flex-direction: column; overflow: hidden; max-height: calc(100vh - 200px); }
+        .resp-panel-header { padding: 1rem 1.25rem; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; gap: 1rem; }
+        .resp-tabs { display: flex; gap: 3px; background: #f0f0f0; border-radius: 8px; padding: 3px; flex-shrink: 0; }
+        .resp-tab { padding: 0.35rem 1.1rem; border-radius: 6px; border: none; background: none; cursor: pointer; font-size: 0.82rem; font-weight: 700; color: #888; transition: all 0.15s; letter-spacing: 0.5px; }
+        .resp-tab.active { background: white; color: #001A55; box-shadow: 0 1px 4px rgba(0,0,0,0.12); }
+        .resp-questions-panel { overflow-y: auto; flex: 1; padding: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; }
+        .resp-score-bar { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1.25rem; border-radius: 8px; margin-bottom: 0.25rem; font-size: 0.95rem; }
+        .resp-score-bar.pass { background: #d1e7dd; color: #0a3622; }
+        .resp-score-bar.fail { background: #f8d7da; color: #58151c; }
+        .resp-score-badge { font-size: 0.72rem; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; opacity: 0.8; }
+        .resp-question { border: 1px solid #e8e8e8; border-radius: 10px; padding: 1rem; }
+        .resp-question.correct   { border-color: #a3cfbb; background: #f6fdf9; }
+        .resp-question.incorrect { border-color: #f5c2c7; background: #fff8f8; }
+        .resp-q-header { display: flex; gap: 0.65rem; align-items: flex-start; margin-bottom: 0.75rem; }
+        .resp-q-num  { background: #001A55; color: white; border-radius: 5px; padding: 2px 7px; font-size: 0.72rem; font-weight: 800; flex-shrink: 0; margin-top: 2px; letter-spacing: 0.5px; }
+        .resp-q-texto { flex: 1; font-size: 0.9rem; color: #333; line-height: 1.5; }
+        .resp-q-mark { flex-shrink: 0; font-size: 1rem; margin-top: 2px; }
+        .resp-options { display: flex; flex-direction: column; gap: 5px; padding-left: 1.5rem; }
+        .resp-option { padding: 0.45rem 0.75rem; border-radius: 6px; font-size: 0.86rem; color: #666; background: #f5f5f5; display: flex; align-items: center; }
+        .resp-option.selected { background: #e8eeff; color: #001A55; font-weight: 500; }
+        .resp-option.correct-opt { background: #d1e7dd; color: #0a3622; }
+        .resp-option.wrong-opt   { background: #f8d7da; color: #58151c; }
+        .resp-open-answer { background: #f8f8f8; border-radius: 7px; padding: 0.75rem 1rem; margin-left: 1.5rem; font-size: 0.88rem; line-height: 1.6; color: #444; white-space: pre-wrap; }
+        .resp-empty { text-align: center; padding: 4rem 2rem; color: #ccc; }
+        .resp-empty i { font-size: 2.5rem; display: block; margin-bottom: 0.75rem; }
+        /* ── Vistas Admin (Paso C) ── */
+        .admin-card { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 1.5rem; margin-bottom: 1.25rem; }
+        .admin-card h3 { font-size: 0.95rem; font-weight: 700; color: #001A55; margin-bottom: 0.4rem; }
+        .admin-card p  { font-size: 0.85rem; color: #888; margin-bottom: 0; }
+        .admin-section-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; color: #999; margin-bottom: 0.75rem; }
+        /* Users table */
+        .users-table { width: 100%; border-collapse: collapse; }
+        .users-table th { background: #f8f9fc; padding: 0.65rem 1rem; text-align: left; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: #888; border-bottom: 2px solid #eee; white-space: nowrap; }
+        .users-table td { padding: 0.8rem 1rem; border-bottom: 1px solid #f5f5f5; font-size: 0.875rem; vertical-align: middle; }
+        .users-table tr:last-child td { border-bottom: none; }
+        .users-table tr:hover td { background: #fafbff; }
+        .role-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; }
+        .role-badge.superadmin { background: #fff0cc; color: #6b4d00; }
+        .role-badge.admin { background: #e8eeff; color: #001A55; }
+        /* Token box */
+        .token-box { background: #f0f4ff; border: 1.5px dashed #c5d3ff; border-radius: 8px; padding: 0.65rem 1rem; font-family: monospace; font-size: 0.8rem; word-break: break-all; color: #001A55; cursor: pointer; transition: background 0.15s; margin-top: 0.75rem; }
+        .token-box:hover::after { content: ' (click para copiar)'; font-size: 0.72rem; color: #888; font-family: inherit; }
+        .token-box:hover { background: #e8eeff; }
+        /* Health grid */
+        .health-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-top: 0; }
+        .health-item { background: white; border-radius: 10px; padding: 1.1rem 1.25rem; box-shadow: 0 2px 8px rgba(0,0,0,0.07); display: flex; align-items: center; gap: 0.9rem; }
+        .health-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
+        .health-dot.ok      { background: #198754; box-shadow: 0 0 6px rgba(25,135,84,0.4); }
+        .health-dot.error   { background: #dc3545; box-shadow: 0 0 6px rgba(220,53,69,0.4); }
+        .health-dot.warning { background: #ffc107; box-shadow: 0 0 6px rgba(255,193,7,0.4); }
+        .health-dot.unknown { background: #adb5bd; }
+        .health-item-label  { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: #aaa; }
+        .health-item-value  { font-size: 0.95rem; font-weight: 600; color: #222; margin-top: 1px; }
+        .health-raw { background: #f8f9fc; border-radius: 8px; padding: 1rem; font-family: monospace; font-size: 0.8rem; color: #555; margin-top: 1rem; white-space: pre-wrap; max-height: 300px; overflow-y: auto; }
+        /* quick-actions grid reutilizado */
+        .quick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); gap: 0.75rem; margin-top: 1rem; }
+        .quick-btn { background: #f8f9fc; border: 1.5px solid #e8e8e8; border-radius: 10px; padding: 0.9rem 1rem; cursor: pointer; text-align: center; transition: all 0.15s; font-size: 0.85rem; color: #333; font-weight: 500; }
+        .quick-btn i { display: block; font-size: 1.4rem; margin-bottom: 0.4rem; color: #001A55; opacity: 0.7; }
+        .quick-btn:hover { background: #eff3ff; border-color: #c5d3ff; color: #001A55; }
+        /* ── Top Navbar ── */
+        .top-navbar {
+            background: white; border-bottom: 1px solid #eaeaea;
+            height: 54px; display: flex; align-items: center; gap: 1rem;
+            padding: 0 1.5rem; position: sticky; top: 0; z-index: 50;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.05); flex-shrink: 0;
+        }
+        .top-nav-brand { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 1rem; color: #001A55; padding-right: 1.25rem; border-right: 1px solid #eee; white-space: nowrap; }
+        .top-nav-brand i { color: #0d6efd; font-size: 1.05rem; }
+        .top-nav-tabs { display: flex; gap: 2px; align-items: center; }
+        .top-tab { padding: 0.38rem 0.9rem; border: none; background: none; border-radius: 6px; cursor: pointer; font-size: 0.84rem; color: #777; display: flex; align-items: center; gap: 0.35rem; transition: all 0.15s; font-weight: 500; white-space: nowrap; }
+        .top-tab:hover  { background: #f5f7ff; color: #001A55; }
+        .top-tab.active { background: #001A55; color: white; }
+        .top-tab.icon-only { padding: 0.38rem 0.55rem; }
+        .top-nav-user { display: flex; align-items: center; gap: 0.75rem; margin-left: auto; padding-left: 1.25rem; border-left: 1px solid #eee; }
+        .top-nav-email { font-size: 0.82rem; font-weight: 600; color: #222; }
+        .top-nav-role  { font-size: 0.7rem; color: #aaa; }
+        .top-nav-logout { background: none; border: none; cursor: pointer; color: #dc3545; font-size: 0.84rem; padding: 0.3rem 0.6rem; border-radius: 6px; transition: all 0.15s; display:flex; align-items:center; gap:5px; font-weight:600; }
+        .top-nav-logout:hover { background: #fff0f0; }
+        .top-nav-role-badge { display:inline-block; background:#f0a500; color:white; font-size:0.63rem; font-weight:800; padding:1px 7px; border-radius:4px; letter-spacing:0.5px; text-transform:uppercase; }
+        .top-nav-avatar { font-size:1.6rem; color:#ddd; line-height:1; }
+        /* ── Dashboard layout ── */
+        .dash-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.25rem; }
+        .dash-grid   { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+        .dash-pending-item { padding: 0.75rem 0.9rem; border: 1px solid #f0f0f0; border-radius: 8px; display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; transition: border-color 0.15s; }
+        .dash-pending-item:hover { border-color: #c5d3ff; }
+        .dash-pending-item:last-child { margin-bottom: 0; }
+        .dash-avatar { width: 34px; height: 34px; border-radius: 50%; background: #e8eeff; display: flex; align-items: center; justify-content: center; color: #001A55; font-size: 0.75rem; font-weight: 700; flex-shrink: 0; }
+        .dash-activity-item { display: flex; gap: 0.7rem; align-items: flex-start; padding: 0.6rem 0; border-bottom: 1px solid #f5f5f5; }
+        .dash-activity-item:last-child { border-bottom: none; }
+        .dash-activity-icon { width: 30px; height: 30px; border-radius: 50%; background: #e8eeff; display: flex; align-items: center; justify-content: center; color: #0d6efd; font-size: 0.75rem; flex-shrink: 0; margin-top: 1px; }
+        /* ── Centro de Ayuda (panel derecho) ── */
+        .help-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.35); z-index:200; opacity:0; pointer-events:none; transition:opacity 0.25s; }
+        .help-overlay.open { opacity:1; pointer-events:all; }
+        .help-drawer { position:fixed; top:0; right:0; bottom:0; width:360px; background:white; box-shadow:-4px 0 24px rgba(0,0,0,0.15); z-index:201; transform:translateX(100%); transition:transform 0.25s ease; display:flex; flex-direction:column; }
+        .help-drawer.open { transform:translateX(0); }
+        .help-header-top { display:flex; justify-content:space-between; align-items:flex-start; padding:1.25rem 1.25rem 0; }
+        .help-title { font-size:1rem; font-weight:800; color:#001A55; display:flex; align-items:center; gap:8px; }
+        .help-subtitle { font-size:0.78rem; color:#999; margin-top:4px; line-height:1.45; padding:0 1.25rem; }
+        .help-close { background:none; border:none; font-size:1.5rem; cursor:pointer; color:#bbb; padding:0; line-height:1; transition:color 0.15s; }
+        .help-close:hover { color:#555; }
+        .help-tabs { display:flex; border-bottom:2px solid #f0f0f0; margin:0.9rem 0 0; padding:0 1.25rem; }
+        .help-tab { flex:1; padding:0.55rem 0; border:none; background:none; font-size:0.82rem; font-weight:600; color:#aaa; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-2px; transition:all 0.15s; }
+        .help-tab.active { color:#001A55; border-bottom-color:#001A55; }
+        .help-body { flex:1; overflow-y:auto; padding:1.1rem 1.25rem; }
+        .help-footer { text-align:center; font-size:0.7rem; color:#ccc; padding:0.6rem; border-top:1px solid #f0f0f0; }
+        /* Manual */
+        .help-section { margin-bottom:1.1rem; }
+        .help-section-title { font-size:0.72rem; font-weight:800; color:#001A55; text-transform:uppercase; letter-spacing:1px; margin-bottom:0.6rem; padding-bottom:0.35rem; border-bottom:1px solid #f0f0f0; }
+        .manual-row { display:flex; gap:0.7rem; padding:0.55rem 0; border-bottom:1px solid #f8f8f8; }
+        .manual-row:last-child { border-bottom:none; }
+        .manual-icon { width:28px; height:28px; border-radius:6px; background:#e8eeff; display:flex; align-items:center; justify-content:center; color:#001A55; font-size:0.72rem; flex-shrink:0; }
+        .manual-text { font-size:0.81rem; color:#555; line-height:1.5; }
+        .manual-text strong { color:#001A55; display:block; font-size:0.83rem; }
+        /* FAQ */
+        .faq-item { border:1px solid #eee; border-radius:8px; margin-bottom:6px; overflow:hidden; }
+        .faq-q { width:100%; text-align:left; padding:0.75rem 1rem; background:none; border:none; cursor:pointer; font-size:0.83rem; font-weight:600; color:#222; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+        .faq-q:hover { background:#fafafa; }
+        .faq-a { padding:0 1rem 0.75rem; font-size:0.8rem; color:#666; line-height:1.6; display:none; }
+        .faq-a.open { display:block; }
+        /* Contacto */
+        .contact-card { border:1px solid #eee; border-radius:8px; padding:0.9rem 1rem; margin-bottom:8px; }
+        .contact-card h4 { font-size:0.85rem; font-weight:700; color:#001A55; margin-bottom:2px; }
+        .contact-card p { font-size:0.78rem; color:#999; margin-bottom:8px; line-height:1.4; }
+        .contact-link { display:inline-flex; align-items:center; gap:6px; font-size:0.81rem; color:#0d6efd; padding:0.28rem 0.7rem; border:1px solid #c5d3ff; border-radius:6px; text-decoration:none; transition:all 0.15s; }
+        .contact-link:hover { background:#e8eeff; }
+        /* ── Timeline Modal ── */
+        .tl-header { padding: 1.1rem 1.25rem; display: flex; align-items: center; gap: 0.75rem; border-bottom: 1px solid #eee; flex-shrink: 0; flex-wrap: wrap; }
+        .tl-name   { font-size: 1.15rem; font-weight: 800; color: #111; }
+        .tl-meta   { font-size: 0.8rem; color: #888; margin-top: 2px; }
+        .tl-header-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-left: auto; }
+        .tl-btn    { padding: 0.4rem 0.8rem; border-radius: 7px; border: none; cursor: pointer; font-size: 0.8rem; font-weight: 700; display: flex; align-items: center; gap: 5px; transition: all 0.15s; white-space: nowrap; }
+        .tl-btn:disabled { opacity: 0.4; cursor: default; }
+        .tl-btn-green  { background: #d1e7dd; color: #0a3622; border: 1.5px solid #a3cfbb; }
+        .tl-btn-green:hover:not(:disabled) { background: #198754; color: white; border-color: #198754; }
+        .tl-btn-gray   { background: #f0f0f0; color: #555; border: 1.5px solid #ddd; }
+        .tl-btn-gray:hover   { background: #555; color: white; border-color: #555; }
+        .tl-btn-orange { background: #fff3cd; color: #664d03; border: 1.5px solid #ffc107; }
+        .tl-btn-orange:hover { background: #ffc107; color: #212529; }
+        .tl-btn-red    { background: #f8d7da; color: #58151c; border: 1.5px solid #f5c2c7; }
+        .tl-btn-red:hover    { background: #dc3545; color: white; border-color: #dc3545; }
+        .tl-close  { background: none; border: none; font-size: 1.6rem; cursor: pointer; color: #aaa; padding: 0; line-height: 1; flex-shrink: 0; }
+        .tl-close:hover { color: #333; }
+        .tl-tabs   { display: flex; border-bottom: 2px solid #eee; padding: 0 1.25rem; flex-shrink: 0; background: white; }
+        .tl-tab    { padding: 0.6rem 1.1rem; border: none; background: none; cursor: pointer; font-size: 0.88rem; font-weight: 500; color: #999; border-bottom: 2.5px solid transparent; margin-bottom: -2px; transition: all 0.15s; }
+        .tl-tab.active { color: #001A55; border-bottom-color: #001A55; font-weight: 700; }
+        .tl-body   { flex: 1; overflow-y: auto; background: #f8f9fc; }
+        /* Perfil */
+        .tl-perfil { padding: 1.25rem; }
+        .tl-cards  { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-bottom: 1.1rem; }
+        .tl-card   { border-radius: 10px; padding: 0.85rem 1rem; text-align: center; }
+        .tl-card-blue   { background: #e8f4ff; border: 1px solid #b8d9ff; }
+        .tl-card-green  { background: #e8fff0; border: 1px solid #a3cfbb; }
+        .tl-card-yellow { background: #fff8e1; border: 1px solid #ffc107; }
+        .tl-card-label  { font-size: 0.63rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; color: #888; margin-bottom: 4px; }
+        .tl-card-value  { font-size: 1rem; font-weight: 800; color: #001A55; }
+        .tl-card-sub    { font-size: 0.68rem; color: #aaa; margin-top: 2px; }
+        .tl-fields { background: white; border-radius: 10px; padding: 1rem 1.25rem; box-shadow: 0 1px 4px rgba(0,0,0,0.06); display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; margin-bottom: 1rem; }
+        .tl-field label { font-size: 0.64rem; text-transform: uppercase; letter-spacing: 1px; color: #aaa; font-weight: 700; display: block; margin-bottom: 3px; }
+        .tl-field div   { font-size: 0.88rem; color: #333; font-weight: 500; }
+        .tl-pbar      { height: 7px; background: #e8e8e8; border-radius: 4px; overflow: hidden; margin: 0.4rem 0 0.2rem; }
+        .tl-pbar-fill { height: 100%; background: #198754; border-radius: 4px; }
+        /* ── Timeline — Tarjetas por fase ── */
+        .tl-timeline { padding: 0.75rem 1.25rem; }
+        /* Phase card */
+        .tl-phase-card { display: flex; border-radius: 10px; border: 1px solid #e9ecef; overflow: hidden; background: white; margin-bottom: 0.5rem; transition: box-shadow 0.15s; }
+        .tl-phase-card.tl-active  { box-shadow: 0 2px 14px rgba(124,58,237,0.12); border-color: #c4b5fd; }
+        .tl-phase-strip { width: 5px; flex-shrink: 0; }
+        .tl-phase-strip.done     { background: #16a34a; }
+        .tl-phase-strip.active   { background: #7c3aed; }
+        .tl-phase-strip.rejected { background: #dc2626; }
+        .tl-phase-strip.pending  { background: #e5e7eb; }
+        .tl-phase-inner { flex: 1; padding: 0.7rem 0.9rem; min-width: 0; }
+        .tl-phase-hdr   { display: flex; align-items: center; gap: 0.5rem; }
+        .tl-phase-ico   { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; flex-shrink: 0; }
+        .tl-phase-ico.done     { background: #dcfce7; color: #16a34a; }
+        .tl-phase-ico.active   { background: #ede9fe; color: #7c3aed; }
+        .tl-phase-ico.rejected { background: #fee2e2; color: #dc2626; }
+        .tl-phase-ico.pending  { background: #f3f4f6; color: #9ca3af; }
+        .tl-phase-lbl   { font-size: 0.86rem; font-weight: 700; flex: 1; line-height: 1.2; }
+        .tl-phase-lbl.done     { color: #15803d; }
+        .tl-phase-lbl.active   { color: #5b21b6; }
+        .tl-phase-lbl.rejected { color: #b91c1c; }
+        .tl-phase-lbl.pending  { color: #9ca3af; }
+        .tl-phase-bdg   { font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.3px; padding: 2px 8px; border-radius: 4px; flex-shrink: 0; }
+        .tl-phase-bdg.done     { background: #dcfce7; color: #15803d; }
+        .tl-phase-bdg.active   { background: #ede9fe; color: #6d28d9; }
+        .tl-phase-bdg.rejected { background: #fee2e2; color: #b91c1c; }
+        .tl-phase-bdg.pending  { background: #f3f4f6; color: #9ca3af; }
+        .tl-phase-dtxt  { font-size: 0.73rem; color: #6b7280; line-height: 1.45; margin: 0.38rem 0 0; }
+        /* Section labels */
+        .tl-slbl { font-size: 0.58rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px; color: #9ca3af; margin: 0.65rem 0 0.3rem; display: flex; align-items: center; gap: 6px; }
+        .tl-slbl::after { content: ''; flex: 1; height: 1px; background: #f0f0f0; }
+        /* Email rows */
+        .tl-email-row  { background: #fafafa; border: 1px solid #f0f0f0; border-radius: 7px; padding: 0.4rem 0.7rem; margin-bottom: 4px; display: flex; align-items: center; gap: 0.6rem; }
+        .tl-email-info { flex: 1; min-width: 0; }
+        .tl-email-name { font-size: 0.78rem; font-weight: 600; color: #222; }
+        .tl-email-sub  { font-size: 0.67rem; color: #9ca3af; margin-top: 1px; }
+        .tl-send-btn   { padding: 0.19rem 0.62rem; background: white; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-size: 0.72rem; color: #444; transition: all 0.15s; white-space: nowrap; flex-shrink: 0; }
+        .tl-send-btn:hover { background: #001A55; color: white; border-color: #001A55; }
+        /* Action rows */
+        .tl-action-row { background: #fafafa; border: 1px solid #f0f0f0; border-radius: 7px; padding: 0.4rem 0.7rem; margin-bottom: 4px; display: flex; align-items: center; gap: 0.6rem; }
+        .tl-action-lbl { font-size: 0.78rem; font-weight: 600; color: #222; }
+        .tl-action-sub { font-size: 0.67rem; color: #9ca3af; margin-top: 1px; }
+        /* Buttons */
+        .tl-act-btn  { padding: 0.21rem 0.68rem; border-radius: 6px; border: none; cursor: pointer; font-size: 0.73rem; font-weight: 700; transition: all 0.15s; white-space: nowrap; flex-shrink: 0; }
+        .tl-act-btn.green  { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+        .tl-act-btn.green:hover  { background: #16a34a; color: white; }
+        .tl-act-btn.red    { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+        .tl-act-btn.red:hover    { background: #dc2626; color: white; }
+        .tl-act-btn.blue   { background: #e8eeff; color: #001A55; border: 1px solid #c5d3ff; }
+        .tl-act-btn.blue:hover   { background: #001A55; color: white; }
+        .tl-act-btn.purple { background: #ede9fe; color: #5b21b6; border: 1px solid #c4b5fd; }
+        .tl-act-btn.purple:hover { background: #7c3aed; color: white; }
+        /* Reject box */
+        .tl-reject-box { background: #fff5f5; border: 1px dashed #fca5a5; border-radius: 7px; padding: 0.55rem 0.7rem; margin-top: 0.5rem; }
+        .tl-reject-box input { width: 100%; padding: 5px 9px; border: 1px solid #fca5a5; border-radius: 6px; font-size: 0.78rem; margin-bottom: 5px; box-sizing: border-box; font-family: inherit; }
+        /* Notes */
+        .tl-notes-wrap { margin-bottom: 0.4rem; }
+        .tl-notes-wrap label { font-size: 0.72rem; font-weight: 700; color: #5b21b6; display: block; margin-bottom: 3px; }
+        .tl-notes-wrap textarea { width: 100%; padding: 0.45rem 0.7rem; border: 1.5px solid #e5e7eb; border-radius: 7px; font-size: 0.79rem; font-family: inherit; resize: vertical; min-height: 48px; box-sizing: border-box; }
+        /* Profile tab shared */
+        .tl-brevo-row { display: flex; align-items: center; justify-content: space-between; padding: 0.4rem 0; border-bottom: 1px solid #f5f5f5; font-size: 0.82rem; color: #444; }
+        .tl-brevo-row:last-child { border-bottom: none; }
+        .tl-brevo-btn { padding: 0.23rem 0.65rem; border-radius: 6px; border: 1px solid #eee; background: #fafafa; cursor: pointer; font-size: 0.74rem; transition: all 0.15s; }
+        .tl-brevo-btn:hover { background: #fd7e14; color: white; border-color: #fd7e14; }
+        .tl-brevo-list { background: white; border-radius: 10px; padding: 0.75rem 1rem; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+        .tl-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; }
+        .tl-card-block { background: white; border-radius: 10px; padding: 1rem 1.25rem; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+        .tl-card-title { font-size: 0.74rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #001A55; margin-bottom: 0.65rem; display: flex; align-items: center; gap: 6px; }
+        .tl-field-row { display: flex; flex-direction: column; gap: 1px; }
+        .tl-field-label { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #aaa; }
+        .tl-field-value { font-size: 0.84rem; color: #222; font-weight: 500; }
+        .tl-act-btns { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.5rem; }
+    </style>
+</head>
+<body>
+<div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <div class="sidebar-logo-title">Catholizare</div>
+            <div class="sidebar-logo-sub">Panel de Selección</div>
+        </div>
+
+        <div class="sidebar-module">Selección</div>
+        <div class="sidebar-section">
+            <div class="sidebar-section-label">Principal</div>
+            <button class="nav-item active" onclick="showView('dashboard')" id="nav-dashboard">
+                <i class="fas fa-chart-bar"></i> Dashboard
+            </button>
+            <button class="nav-item" onclick="showView('profesionales')" id="nav-profesionales">
+                <i class="fas fa-users"></i> Profesionales
+            </button>
+            <button class="nav-item" onclick="showView('respuestas')" id="nav-respuestas">
+                <i class="fas fa-clipboard-list"></i> Ver Respuestas
+            </button>
+        </div>
+        <div class="sidebar-section">
+            <div class="sidebar-section-label">Admin</div>
+            <button class="nav-item" onclick="showView('usuarios')" id="nav-usuarios">
+                <i class="fas fa-user-shield"></i> Gestión de Usuarios
+            </button>
+            <button class="nav-item" onclick="showView('superadmin')" id="nav-superadmin">
+                <i class="fas fa-crown"></i> Super Admin
+            </button>
+            <button class="nav-item" onclick="showView('health')" id="nav-health">
+                <i class="fas fa-heartbeat"></i> System Health
+            </button>
+        </div>
+        <div class="sidebar-footer">
+            <button onclick="refreshData()"><i class="fas fa-sync-alt"></i> Actualizar</button>
+            <button onclick="logout()"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</button>
+        </div>
+    </aside>
+    <!-- Main Content -->
+    <div class="main-content">
+
+    <!-- Top Navbar -->
+    <div class="top-navbar">
+        <div class="top-nav-brand">
+            <i class="fas fa-shield-alt"></i> Catholizare
+        </div>
+        <nav class="top-nav-tabs">
+            <button class="top-tab active"><i class="fas fa-border-all"></i> Selección</button>
+            <button class="top-tab" onclick="toggleHelp()"><i class="fas fa-headset"></i> Soporte</button>
+            <button class="top-tab icon-only" onclick="showView('superadmin')" title="Configuración">
+                <i class="fas fa-cog"></i>
+            </button>
+        </nav>
+        <div class="top-nav-user">
+            <div style="text-align:right;">
+                <div class="top-nav-email" id="topNavEmail">Admin</div>
+                <div><span id="topNavRole" class="top-nav-role-badge">Admin</span></div>
+            </div>
+            <i class="fas fa-user-circle top-nav-avatar"></i>
+            <button class="top-nav-logout" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> Salir
+            </button>
+        </div>
+    </div>
+
+    <!-- Vista: Dashboard -->
+    <div id="view-dashboard" class="view active">
+    <div class="container">
+        <div class="header-section">
+            <div>
+                <h1>Dashboard</h1>
+                <small id="lastUpdate">Última actualización: --:--</small>
+            </div>
+        </div>
+        <!-- Stats (4 cards, IDs intactos para updateStats) -->
+        <div class="dash-stats">
+            <div class="stat-card">
+                <div class="stat-value" id="statTotal">0</div>
+                <div class="stat-label">Total Candidatos</div>
+                <div class="stat-meta">Registrados en el sistema</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statPending">0</div>
+                <div class="stat-label">En Proceso</div>
+                <div class="stat-meta">Aguardando revisión</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statApproved">0</div>
+                <div class="stat-label">Aprobados</div>
+                <div class="stat-meta">Completaron el proceso</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statRejected">0</div>
+                <div class="stat-label">Rechazados</div>
+                <div class="stat-meta">No continuaron</div>
+            </div>
+        </div>
+        <!-- Panels: Acciones Pendientes + Actividad Reciente -->
+        <div class="dash-grid">
+            <div class="admin-card" style="overflow-y:auto;max-height:420px;">
+                <h3 style="margin-bottom:0.9rem;"><i class="fas fa-bolt" style="color:#f0a500;margin-right:6px;font-size:0.9rem;"></i>Acciones Pendientes</h3>
+                <div id="dashPendingList">
+                    <div class="resp-empty" style="padding:2rem;"><i class="fas fa-spinner fa-spin"></i></div>
+                </div>
+            </div>
+            <div class="admin-card" style="overflow-y:auto;max-height:420px;">
+                <h3 style="margin-bottom:0.9rem;"><i class="fas fa-history" style="color:#0d6efd;margin-right:6px;font-size:0.9rem;"></i>Actividad Reciente</h3>
+                <div id="dashActivity">
+                    <div class="resp-empty" style="padding:2rem;"><i class="fas fa-spinner fa-spin"></i></div>
+                </div>
+            </div>
+        </div>
+    </div><!-- /.container -->
+    </div><!-- /#view-dashboard -->
+
+    <!-- Vista: Profesionales (tabla completa) -->
+    <div id="view-profesionales" class="view">
+    <div class="container">
+        <div class="header-section">
+            <div>
+                <h1><i class="fas fa-users" style="color:var(--primary);font-size:1.3rem;vertical-align:middle;margin-right:0.5rem;"></i>Profesionales</h1>
+                <small>Candidatos del proceso de selección</small>
+            </div>
+            <div style="display:flex;gap:0.6rem;flex-wrap:wrap;">
+                <button class="btn" style="background:#198754;color:white;" onclick="document.getElementById('modalAgregarProfesional').style.display='block'">
+                    <i class="fas fa-user-plus"></i> + Agregar Profesional
+                </button>
+                <button class="btn" style="background:#7c3aed;color:white;" onclick="document.getElementById('modalHandoff').style.display='block'">
+                    <i class="fas fa-share-square"></i> Handoff → Onboarding
+                </button>
+                <button class="btn" style="background:#001A55;color:white;" onclick="refreshData()">
+                    <i class="fas fa-sync-alt"></i> Actualizar
+                </button>
+            </div>
+        </div>
+        <!-- Filters -->
+        <div class="filters-section">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="Buscar por nombre, email o ID..." onkeyup="filterTable()">
+            </div>
+            <select class="filter-select" id="statusFilter" onchange="filterTable()">
+                <option value="">Todos los estados</option>
+                <option value="registered">Registrado</option>
+                <option value="pending_review">En Revisión</option>
+                <option value="awaiting_terms">Términos</option>
+                <option value="approved">Aprobado</option>
+                <option value="rejected">Rechazado</option>
+            </select>
+        </div>
+        <!-- Table -->
+        <div class="table-container">
+            <div class="table-header">
+                <h2>Candidatos</h2>
+                <span class="table-header-meta" id="recordCount">0 registros</span>
+            </div>
+            <div id="tableContent">
+                <div class="empty-state">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Cargando datos...</p>
+                </div>
+            </div>
+        </div>
+    </div><!-- /.container -->
+    </div><!-- /#view-profesionales -->
+
+    <!-- Vista: Ver Respuestas -->
+    <div id="view-respuestas" class="view">
+        <div class="container">
+            <div class="header-section">
+                <div>
+                    <h1><i class="fas fa-clipboard-list" style="color:var(--primary);font-size:1.4rem;vertical-align:middle;margin-right:0.5rem;"></i>Ver Respuestas</h1>
+                    <small>Revisa las respuestas por examen de cada candidato</small>
+                </div>
+            </div>
+            <div class="resp-layout">
+                <!-- Panel izquierdo: lista de candidatos -->
+                <div class="resp-left">
+                    <div class="resp-search-box">
+                        <i class="fas fa-search" style="color:#ccc;font-size:0.85rem;"></i>
+                        <input type="text" id="respSearch" placeholder="Buscar candidato..." oninput="renderRespCandidates(this.value)">
+                    </div>
+                    <div id="respCandidateList" class="resp-candidate-list">
+                        <div class="resp-empty"><i class="fas fa-user-friends"></i>Cargando candidatos...</div>
+                    </div>
+                </div>
+                <!-- Panel derecho: respuestas -->
+                <div class="resp-right">
+                    <div class="resp-panel-header">
+                        <div id="respCandidateName" style="font-size:1rem;font-weight:700;color:#001A55;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                            Selecciona un candidato
+                        </div>
+                        <div class="resp-tabs">
+                            <button class="resp-tab active" data-exam="E1" onclick="switchRespTab('E1')">E1</button>
+                            <button class="resp-tab"        data-exam="E2" onclick="switchRespTab('E2')">E2</button>
+                            <button class="resp-tab"        data-exam="E3" onclick="switchRespTab('E3')">E3</button>
+                        </div>
+                    </div>
+                    <div id="respQuestions" class="resp-questions-panel">
+                        <div class="resp-empty">
+                            <i class="fas fa-hand-pointer"></i>
+                            Selecciona un candidato para ver sus respuestas
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vista: Gestión de Usuarios -->
+    <div id="view-usuarios" class="view">
+        <div class="container">
+            <div class="header-section">
+                <div>
+                    <h1><i class="fas fa-user-shield" style="color:var(--primary);font-size:1.4rem;vertical-align:middle;margin-right:0.5rem;"></i>Gestión de Usuarios</h1>
+                    <small>Administradores con acceso al panel</small>
+                </div>
+                <div style="display:flex;gap:0.6rem;">
+                    <button class="btn" style="background:#7c3aed;color:white;" onclick="document.getElementById('modalAgregarAdmin').style.display='block'">
+                        <i class="fas fa-user-plus"></i> + Agregar Admin
+                    </button>
+                    <button class="btn" style="background:#001A55;color:white;" onclick="loadAdminUsers()">
+                        <i class="fas fa-sync-alt"></i> Actualizar
+                    </button>
+                </div>
+            </div>
+            <div class="admin-card" style="padding:0;overflow:hidden;">
+                <div id="usersTableWrap" style="overflow-x:auto;">
+                    <div class="resp-empty"><i class="fas fa-spinner fa-spin"></i>Cargando usuarios...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vista: Super Admin -->
+    <div id="view-superadmin" class="view">
+        <div class="container">
+            <div class="header-section">
+                <div>
+                    <h1><i class="fas fa-crown" style="color:#f0a500;font-size:1.4rem;vertical-align:middle;margin-right:0.5rem;"></i>Super Admin</h1>
+                    <small>Herramientas avanzadas de administración</small>
+                </div>
+            </div>
+
+            <!-- Token de acceso -->
+            <div class="admin-card">
+                <div class="admin-section-title">Token de acceso</div>
+                <h3>Generar enlace de administrador</h3>
+                <p>Crea un token seguro para acceder al panel sin contraseña. Válido por tiempo limitado.</p>
+                <div style="display:flex;gap:0.75rem;align-items:flex-start;margin-top:1rem;flex-wrap:wrap;">
+                    <div style="flex:1;min-width:200px;">
+                        <label style="font-size:0.78rem;color:#888;display:block;margin-bottom:4px;">Para usuario (email)</label>
+                        <input id="superTokenEmail" type="email" placeholder="admin@catholizare.com"
+                               style="width:100%;padding:0.5rem 0.75rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;outline:none;">
+                    </div>
+                    <button class="btn" style="background:#001A55;color:white;margin-top:auto;white-space:nowrap;"
+                            onclick="generateAdminTokenAction()">
+                        <i class="fas fa-key"></i> Generar Token
+                    </button>
+                </div>
+                <div id="superTokenResult"></div>
+            </div>
+
+            <!-- Accesos rápidos -->
+            <div class="admin-card">
+                <div class="admin-section-title">Accesos rápidos</div>
+                <div class="quick-grid">
+                    <button class="quick-btn" onclick="showView('health')">
+                        <i class="fas fa-heartbeat"></i>System Health
+                    </button>
+                    <button class="quick-btn" onclick="showView('usuarios')">
+                        <i class="fas fa-users-cog"></i>Gestión Usuarios
+                    </button>
+                    <button class="quick-btn" onclick="showView('respuestas')">
+                        <i class="fas fa-clipboard-list"></i>Ver Respuestas
+                    </button>
+                    <button class="quick-btn" onclick="showView('dashboard')">
+                        <i class="fas fa-chart-bar"></i>Dashboard
+                    </button>
+                </div>
+            </div>
+
+            <!-- Info de sesión -->
+            <div class="admin-card">
+                <div class="admin-section-title">Sesión actual</div>
+                <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:center;">
+                    <div>
+                        <div style="font-size:0.75rem;color:#aaa;margin-bottom:2px;">Token activo</div>
+                        <code id="superCurrentToken" style="font-size:0.78rem;background:#f0f4ff;padding:3px 8px;border-radius:4px;color:#001A55;word-break:break-all;"></code>
+                    </div>
+                    <button class="btn" style="background:#dc3545;color:white;margin-left:auto;" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i> Cerrar sesión
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vista: System Health -->
+    <div id="view-health" class="view">
+        <div class="container">
+            <div class="header-section">
+                <div>
+                    <h1><i class="fas fa-heartbeat" style="color:#dc3545;font-size:1.4rem;vertical-align:middle;margin-right:0.5rem;"></i>System Health</h1>
+                    <small>Estado de los servicios en tiempo real</small>
+                </div>
+                <div style="display:flex;gap:0.75rem;align-items:center;">
+                    <span id="healthLastCheck" style="font-size:0.8rem;color:#aaa;"></span>
+                    <button class="btn" style="background:#6c757d;color:white;" onclick="runGasDiagnostics()">
+                        <i class="fas fa-flask"></i> Diagnóstico GAS
+                    </button>
+                    <button class="btn" style="background:#001A55;color:white;" onclick="loadHealth()">
+                        <i class="fas fa-sync-alt"></i> Verificar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Status cards -->
+            <div id="healthContent">
+                <div class="resp-empty"><i class="fas fa-spinner fa-spin"></i>Verificando servicios...</div>
+            </div>
+        </div>
+    </div>
+
+    </div><!-- /.main-content -->
+</div><!-- /.app-layout -->
+
+    <!-- Modal: Handoff → Onboarding -->
+    <div id="modalHandoff" class="modal">
+      <div class="modal-content" style="max-width:520px;padding:0;border-radius:12px;overflow:hidden;">
+        <div style="background:#7c3aed;color:white;padding:1.1rem 1.4rem;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-weight:800;font-size:1rem;"><i class="fas fa-share-square" style="margin-right:8px;"></i>Handoff → Onboarding</div>
+          <button onclick="document.getElementById('modalHandoff').style.display='none'" style="background:none;border:none;color:white;font-size:1.4rem;cursor:pointer;line-height:1;">&times;</button>
+        </div>
+        <div style="padding:1.4rem;background:white;">
+          <div style="background:#ede9fe;border:1px solid #c4b5fd;border-radius:8px;padding:0.85rem 1rem;margin-bottom:1.25rem;font-size:0.83rem;color:#5b21b6;line-height:1.5;">
+            <strong><i class="fas fa-info-circle"></i> ¿Qué hace este botón?</strong><br>
+            Transfiere todos los candidatos con estado <strong>Aprobado</strong> (Junior / Senior / Expert)
+            al spreadsheet de Onboarding. Los candidatos ya existentes en Onboarding
+            (por email) son omitidos automáticamente.
+          </div>
+          <div id="handoffMensaje" style="display:none;margin-bottom:1rem;padding:0.75rem 1rem;border-radius:8px;font-size:0.84rem;line-height:1.5;"></div>
+          <div id="handoffPreview" style="display:none;margin-bottom:1rem;max-height:200px;overflow-y:auto;border:1px solid #e9ecef;border-radius:8px;"></div>
+          <div style="display:flex;gap:0.75rem;margin-top:0.5rem;">
+            <button onclick="document.getElementById('modalHandoff').style.display='none'"
+                    style="flex:1;padding:0.65rem;border:1.5px solid #dee2e6;border-radius:8px;background:white;color:#555;font-weight:600;cursor:pointer;">
+                Cancelar
+            </button>
+            <button id="handoffPreviewBtn" onclick="previewHandoff()"
+                    style="flex:1;padding:0.65rem;border:none;border-radius:8px;background:#6b7280;color:white;font-weight:700;cursor:pointer;">
+                <i class="fas fa-eye"></i> Vista Previa
+            </button>
+            <button id="handoffBtn" onclick="runHandoff()"
+                    style="flex:2;padding:0.65rem;border:none;border-radius:8px;background:#7c3aed;color:white;font-weight:700;cursor:pointer;">
+                <i class="fas fa-share-square"></i> Transferir al Onboarding
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Agregar Profesional -->
+    <div id="modalAgregarProfesional" class="modal">
+      <div class="modal-content" style="max-width:520px;padding:0;border-radius:12px;overflow:hidden;">
+        <div style="background:#001A55;color:white;padding:1.1rem 1.4rem;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-weight:800;font-size:1rem;"><i class="fas fa-user-plus" style="margin-right:8px;"></i>Agregar Profesional</div>
+          <button onclick="document.getElementById('modalAgregarProfesional').style.display='none'" style="background:none;border:none;color:white;font-size:1.4rem;cursor:pointer;line-height:1;">&times;</button>
+        </div>
+        <div style="padding:1.4rem;background:white;max-height:70vh;overflow-y:auto;">
+          <div id="apMensaje" style="display:none;margin-bottom:1rem;padding:0.75rem 1rem;border-radius:8px;font-size:0.85rem;"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.85rem;">
+            <div style="grid-column:1/-1;">
+              <label style="font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">Nombre completo *</label>
+              <input id="apNombre" type="text" placeholder="Nombre y apellidos" style="width:100%;padding:0.5rem 0.75rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;">
+            </div>
+            <div style="grid-column:1/-1;">
+              <label style="font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">Email *</label>
+              <input id="apEmail" type="email" placeholder="correo@ejemplo.com" style="width:100%;padding:0.5rem 0.75rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;">
+            </div>
+            <div>
+              <label style="font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">Teléfono</label>
+              <input id="apTelefono" type="tel" placeholder="+52 55 0000 0000" style="width:100%;padding:0.5rem 0.75rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;">
+            </div>
+            <div>
+              <label style="font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">País</label>
+              <input id="apPais" type="text" placeholder="México" style="width:100%;padding:0.5rem 0.75rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;">
+            </div>
+            <div>
+              <label style="font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">Tipo de profesional *</label>
+              <select id="apProfesion" style="width:100%;padding:0.5rem 0.75rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;">
+                <option value="">Seleccionar...</option>
+                <option value="Psicólogo/a">Psicólogo/a</option>
+                <option value="Terapeuta">Terapeuta</option>
+                <option value="Psiquiatra">Psiquiatra</option>
+                <option value="Otro">Otro</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">Fecha agendada E1</label>
+              <input id="apFecha" type="date" style="width:100%;padding:0.5rem 0.75rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;">
+            </div>
+            <div>
+              <label style="font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">Hora del examen</label>
+              <input id="apHora" type="time" style="width:100%;padding:0.5rem 0.75rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;">
+            </div>
+            <div style="grid-column:1/-1;">
+              <label style="font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">Reseña Profesional</label>
+              <textarea id="apResena" placeholder="Experiencia, especialidades y motivación para unirse a RCCC..." style="width:100%;padding:0.5rem 0.75rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;min-height:80px;resize:vertical;"></textarea>
+            </div>
+          </div>
+          <div style="display:flex;gap:0.75rem;margin-top:1.25rem;">
+            <button onclick="document.getElementById('modalAgregarProfesional').style.display='none'"
+                    style="flex:1;padding:0.65rem;border:1.5px solid #dee2e6;border-radius:8px;background:white;color:#555;font-weight:600;cursor:pointer;">
+                Cancelar
+            </button>
+            <button id="apBtn" onclick="submitAgregarProfesional()"
+                    style="flex:2;padding:0.65rem;border:none;border-radius:8px;background:#198754;color:white;font-weight:700;cursor:pointer;">
+                <i class="fas fa-user-plus"></i> Registrar Profesional
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Agregar Admin -->
+    <div id="modalAgregarAdmin" class="modal">
+      <div class="modal-content" style="max-width:440px;padding:0;border-radius:12px;overflow:hidden;">
+        <div style="background:#5b21b6;color:white;padding:1.1rem 1.4rem;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-weight:800;font-size:1rem;"><i class="fas fa-user-shield" style="margin-right:8px;"></i>Agregar Administrador</div>
+          <button onclick="document.getElementById('modalAgregarAdmin').style.display='none'" style="background:none;border:none;color:white;font-size:1.4rem;cursor:pointer;line-height:1;">&times;</button>
+        </div>
+        <div style="padding:1.4rem;background:white;">
+          <div id="aaMensaje" style="display:none;margin-bottom:1rem;padding:0.75rem 1rem;border-radius:8px;font-size:0.85rem;"></div>
+          <div style="display:flex;flex-direction:column;gap:0.85rem;">
+            <div>
+              <label style="font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">Email del nuevo admin *</label>
+              <input id="aaEmail" type="email" placeholder="admin@catholizare.com" style="width:100%;padding:0.5rem 0.75rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;">
+            </div>
+            <div>
+              <label style="font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">Rol *</label>
+              <select id="aaRol" style="width:100%;padding:0.5rem 0.75rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;">
+                <option value="admin">Admin — acceso estándar</option>
+                <option value="super_admin">Super Admin — acceso total</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">PIN de autorización *</label>
+              <input id="aaPIN" type="password" placeholder="PIN de administrador" style="width:100%;padding:0.5rem 0.75rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;">
+            </div>
+          </div>
+          <div id="aaTokenResult" style="display:none;margin-top:1rem;padding:0.75rem 1rem;background:#f0fff4;border:1px solid #a3cfbb;border-radius:8px;font-size:0.82rem;"></div>
+          <div style="display:flex;gap:0.75rem;margin-top:1.25rem;">
+            <button onclick="document.getElementById('modalAgregarAdmin').style.display='none'"
+                    style="flex:1;padding:0.65rem;border:1.5px solid #dee2e6;border-radius:8px;background:white;color:#555;font-weight:600;cursor:pointer;">
+                Cancelar
+            </button>
+            <button id="aaBtn" onclick="submitAgregarAdmin()"
+                    style="flex:2;padding:0.65rem;border:none;border-radius:8px;background:#5b21b6;color:white;font-weight:700;cursor:pointer;">
+                <i class="fas fa-user-shield"></i> Crear Admin
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Autenticación Superadmin para acciones críticas -->
+    <div id="modalSuperAdminAuth" class="modal" style="z-index:10000;">
+      <div class="modal-content" style="max-width:420px;padding:0;border-radius:12px;overflow:hidden;">
+        <div style="background:#d97706;color:white;padding:1.1rem 1.4rem;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-weight:800;font-size:1rem;"><i class="fas fa-lock" style="margin-right:8px;"></i>Acción Restringida</div>
+          <button onclick="document.getElementById('modalSuperAdminAuth').style.display='none'" style="background:none;border:none;color:white;font-size:1.4rem;cursor:pointer;line-height:1;">&times;</button>
+        </div>
+        <div style="padding:1.4rem;background:white;">
+          <p style="margin-bottom:1rem;color:#555;font-size:0.9rem;">Esta acción requiere autenticación de superadministrador. Ingresa el PIN:</p>
+          <div style="margin-bottom:1rem;">
+            <input id="superAdminPin" type="password" placeholder="PIN del superadministrador" style="width:100%;padding:0.7rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;" autocomplete="off">
+          </div>
+          <div style="display:flex;gap:0.75rem;">
+            <button onclick="document.getElementById('modalSuperAdminAuth').style.display='none'" style="flex:1;padding:0.65rem;border:1.5px solid #dee2e6;border-radius:8px;background:white;color:#555;font-weight:600;cursor:pointer;">Cancelar</button>
+            <button id="superAdminAuthBtn" onclick="validateSuperAdminPin()" style="flex:1;padding:0.65rem;border:none;border-radius:8px;background:#d97706;color:white;font-weight:700;cursor:pointer;">Validar PIN</button>
+          </div>
+          <div id="superAdminAuthMsg" style="margin-top:1rem;display:none;padding:0.75rem;border-radius:8px;font-size:0.85rem;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Timeline del Candidato -->
+    <div id="accionesModal" class="modal">
+      <div class="modal-content" style="max-width:740px;height:88vh;display:flex;flex-direction:column;padding:0;overflow:hidden;">
+        <!-- TL Header -->
+        <div class="tl-header">
+          <div>
+            <div class="tl-name" id="tlName">Candidato</div>
+            <div class="tl-meta" id="tlMeta">email • Fase • Estado</div>
+          </div>
+          <button class="tl-close" onclick="closeModal('accionesModal')">&times;</button>
+        </div>
+        <!-- TL Tabs -->
+        <div class="tl-tabs">
+          <button class="tl-tab active" onclick="switchTLTab('perfil', this)">Perfil</button>
+          <button class="tl-tab" onclick="switchTLTab('timeline', this)">Timeline</button>
+        </div>
+        <!-- TL Body -->
+        <div id="tlBody" class="tl-body"></div>
+      </div>
+    </div>
+    <!-- Toast Container -->
+    <div id="toastContainer"></div>
+    <script>
+        const API_BASE = 'https://profesionales.catholizare.com/catholizare_sistem/proxy.php';
+        const REFRESH_INTERVAL = 30000; // 30 segundos
+
+        let currentCandidateId = null;
+        let candidates         = [];
+        let autoRefreshInterval = null;
+        let ADMIN_TOKEN        = '';
+        let USER_ROLE          = 'admin';  // default
+        let USER_EMAIL         = '';
+        let SUPERADMIN_PIN_VALIDATED = false;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Verificar token admin
+            const params = new URLSearchParams(window.location.search);
+            const urlToken = params.get('adminToken');
+            const ssToken  = sessionStorage.getItem('adminToken');
+            ADMIN_TOKEN = urlToken || ssToken || '';
+            if (!ADMIN_TOKEN) {
+                window.location.href = 'acceso.html';
+                return;
+            }
+            sessionStorage.setItem('adminToken', ADMIN_TOKEN);
+
+            // Obtener rol del usuario
+            getUserRoleAndInit();
+        });
+
+        async function getUserRoleAndInit() {
+            try {
+                const resp = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'getUserRole', adminToken: ADMIN_TOKEN })
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    USER_ROLE = data.data.role || 'admin';
+                    USER_EMAIL = data.data.email || 'desconocido@catholizare.com';
+                    sessionStorage.setItem('userRole', USER_ROLE);
+                    sessionStorage.setItem('userEmail', USER_EMAIL);
+                } else {
+                    USER_ROLE = 'admin';
+                    USER_EMAIL = 'desconocido@catholizare.com';
+                }
+                displayUserInfo();
+                configureAccessLevel();
+                loadData();
+                startAutoRefresh();
+            } catch (e) {
+                console.error('Error al obtener rol:', e);
+                loadData();
+                startAutoRefresh();
+            }
+        }
+
+        function displayUserInfo() {
+            const userEmailEl = document.getElementById('topNavEmail');
+            const userRoleEl = document.getElementById('topNavRole');
+            if (userEmailEl) userEmailEl.textContent = USER_EMAIL;
+            if (userRoleEl) {
+                userRoleEl.textContent = USER_ROLE === 'superadmin' ? 'SUPERADMIN' : 'ADMIN';
+                userRoleEl.style.background = USER_ROLE === 'superadmin' ? '#f0a500' : '#0052cc';
+            }
+        }
+
+        function configureAccessLevel() {
+            // Si es admin, ocultar todas las secciones de superadmin
+            if (USER_ROLE !== 'superadmin') {
+                const elementsToHide = [
+                    'nav-usuarios',      // Gestión de Usuarios
+                    'nav-superadmin',    // Super Admin
+                    'nav-health',        // System Health
+                    'view-usuarios',     // Vista Gestión de Usuarios
+                    'view-superadmin',   // Vista Super Admin
+                    'view-health'        // Vista System Health
+                ];
+                elementsToHide.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.style.display = 'none';
+                });
+            }
+        }
+
+        async function loadData() {
+            try {
+                const response = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'getDashboardData', adminToken: ADMIN_TOKEN })
+                });
+                // Leer texto primero para poder ver el error si no es JSON válido
+                const text = await response.text();
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (parseErr) {
+                    console.error('Respuesta no-JSON del servidor:', text.substring(0, 500));
+                    showToast('Error: respuesta inesperada del servidor. Ver consola.', 'error');
+                    return;
+                }
+                if (data.success) {
+                    const payload = data.data || {};
+                    candidates = payload.candidates || [];
+                    updateStats(payload.stats || { total: 0, pending: 0, approved: 0, rejected: 0 });
+                    renderTable(candidates);
+                    buildDashboard();
+                    updateLastUpdate();
+                } else {
+                    showToast('Error al cargar datos: ' + data.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error de conexión:', error);
+                showToast('Error de conexión: ' + error.message, 'error');
+            }
+        }
+
+        function updateStats(stats) {
+            document.getElementById('statTotal').textContent    = stats.total    || 0;
+            document.getElementById('statPending').textContent  = stats.pending  || 0;
+            document.getElementById('statApproved').textContent = stats.approved || 0;
+            document.getElementById('statRejected').textContent = stats.rejected || 0;
+        }
+
+        function renderTable(data) {
+            const tableContent = document.getElementById('tableContent');
+            if (!data || data.length === 0) {
+                tableContent.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <p>No hay candidatos registrados</p>
+                    </div>`;
+                document.getElementById('recordCount').textContent = '0 registros';
+                return;
+            }
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Email</th>
+                            <th>Estado</th>
+                            <th>Progreso</th>
+                            <th>Última Interacción</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+            const sorted = [...data].sort((a, b) => new Date(b.registration_date || 0) - new Date(a.registration_date || 0));
+            sorted.forEach(candidate => {
+                html += `
+                    <tr>
+                        <td><code style="background:#f5f5f5;padding:0.2rem 0.5rem;border-radius:3px;font-size:0.85em;">${candidate.candidato_id || ''}</code></td>
+                        <td><strong>${candidate.nombre || ''}</strong></td>
+                        <td>${candidate.email || ''}</td>
+                        <td>${getStatusBadge(candidate.status)}</td>
+                        <td>
+                            <div class="progress-bar-mini">
+                                <div class="progress-fill-mini" style="width:${getProgress(candidate.status)}%;"></div>
+                            </div>
+                        </td>
+                        <td><small>${formatDate(candidate.last_interaction)}</small></td>
+                        <td>
+                            <div class="actions">
+                                ${getActionButtons(candidate)}
+                            </div>
+                        </td>
+                    </tr>`;
+            });
+            html += `</tbody></table>`;
+            tableContent.innerHTML = html;
+            document.getElementById('recordCount').textContent = data.length + ' registros';
+        }
+
+        function getProgress(status) {
+            const map = {
+                'registered': 10, 'pending_review_E1': 20, 'awaiting_terms_acceptance': 35,
+                'pending_review_E2': 50, 'pending_review_E3': 70,
+                'awaiting_interview': 85, 'awaiting_category': 92, 'approved_junior': 100,
+                'approved_senior': 100, 'approved_expert': 100, 'rejected': 0
+            };
+            return map[status] || 5;
+        }
+
+        function getStatusBadge(status) {
+            const map = {
+                'registered':               ['badge-registered', 'Registrado'],
+                'pending_review_E1':         ['badge-pending',   'Revisión E1'],
+                'pending_review_E2':         ['badge-pending',   'Revisión E2'],
+                'pending_review_E3':         ['badge-pending',   'Revisión E3'],
+                'awaiting_terms_acceptance': ['badge-terms',     'Términos'],
+                'awaiting_interview':        ['badge-interview',    'Entrevista'],
+                'awaiting_category':         ['badge-awaiting-cat','Asignar Categoría'],
+                'rejected':                  ['badge-rejected',    'Rechazado'],
+                'approved_junior':           ['badge-junior',    '🥉 Junior'],
+                'approved_senior':           ['badge-senior',    '🥈 Senior'],
+                'approved_expert':           ['badge-expert',    '🥇 Expert'],
+            };
+            const [cls, label] = map[status] || ['badge-registered', status || 'N/A'];
+            return `<span class="badge ${cls}">${label}</span>`;
+        }
+
+        function getActionButtons(candidate) {
+            return `<button class="btn" style="background:#001A55;color:white;" onclick="openAcciones('${candidate.candidato_id}')"><i class="fas fa-cog"></i> Acciones</button>`;
+        }
+
+        // ─── Timeline Modal ───────────────────────────────────────────────
+        const TL_PHASES = [
+            {
+                key:'registro', label:'Registro Inicial', icon:'fa-user-plus',
+                statuses:['registered'],
+                desc:'El candidato completó su registro. Envía el correo de bienvenida con el token de acceso al Examen E1.',
+                emails:[{ label:'Bienvenida + Token E1', desc:'Envía acceso al primer examen', type:'welcome' }],
+                actions:[], hasNotes:false
+            },
+            {
+                key:'e1', label:'Revisión — Examen E1', icon:'fa-file-alt',
+                statuses:['pending_review_E1'],
+                desc:'El candidato completó el Examen E1. Revisa los resultados y aprueba para enviar los Términos y Condiciones.',
+                emails:[{ label:'Reenviar Token E1', desc:'Si el candidato no recibió el acceso al E1', type:'welcome' }],
+                actions:[
+                    { label:'Aprobar E1 → Enviar Términos', btn:'✓ Aprobar', fn:"approveExamWithPin('E1')", cls:'green', info:'Aprueba E1 y envía automáticamente el correo de Términos y Condiciones' }
+                ], hasNotes:false
+            },
+            {
+                key:'terminos', label:'Términos y Condiciones', icon:'fa-file-signature',
+                statuses:['awaiting_terms_acceptance'],
+                desc:'Esperando que el candidato acepte los Términos y Condiciones. Se registrará su IP y fecha/hora de aceptación.',
+                emails:[{ label:'Reenviar correo de Términos', desc:'Reenviar el link de aceptación al candidato', type:'terms' }],
+                actions:[], hasNotes:false
+            },
+            {
+                key:'e2', label:'Revisión — Examen E2', icon:'fa-file-alt',
+                statuses:['pending_review_E2'],
+                desc:'El candidato completó el Examen E2. Revisa los resultados y aprueba para enviar el token del Examen E3.',
+                emails:[{ label:'Reenviar Token E2', desc:'Si el candidato no recibió el acceso al E2', type:'e2' }],
+                actions:[
+                    { label:'Aprobar E2 → Enviar Token E3', btn:'✓ Aprobar', fn:"approveExamWithPin('E2')", cls:'green', info:'Aprueba E2 y envía automáticamente el token del Examen E3' }
+                ], hasNotes:false
+            },
+            {
+                key:'e3', label:'Revisión — Examen E3', icon:'fa-file-alt',
+                statuses:['pending_review_E3'],
+                desc:'El candidato completó el Examen E3. Revisa los resultados y aprueba para agendar la Entrevista Personal.',
+                emails:[{ label:'Reenviar Token E3', desc:'Si el candidato no recibió el acceso al E3', type:'e3' }],
+                actions:[
+                    { label:'Aprobar E3 → Agendar Entrevista', btn:'✓ Aprobar', fn:"approveExamWithPin('E3')", cls:'green', info:'Aprueba E3 y envía el correo de agendamiento de la entrevista personal' }
+                ], hasNotes:false
+            },
+            {
+                key:'entrevista', label:'Entrevista Personal', icon:'fa-microphone',
+                statuses:['awaiting_interview'],
+                desc:'Entrevista personal agendada. Registra el resultado una vez realizada la sesión.',
+                emails:[{ label:'Correo de Entrevista', desc:'Recordatorio o instrucciones al candidato', type:'awaiting_interview' }],
+                actions:[
+                    { label:'Entrevista PASS', btn:'✓ PASS', fn:"doInterviewResultTL('pass')", cls:'green', info:'El candidato aprobó — avanza a categorización' },
+                    { label:'Entrevista FAIL', btn:'✗ FAIL', fn:"doInterviewResultTL('fail')", cls:'red',   info:'No supera el filtro en esta convocatoria — notas obligatorias para el candidato' }
+                ], hasNotes:true
+            },
+            {
+                key:'categoria', label:'Asignar Categoría Final', icon:'fa-shield-alt',
+                statuses:['awaiting_category'],
+                desc:'Entrevista aprobada. Asigna la categoría final del candidato para completar el proceso.',
+                emails:[],
+                actions:[
+                    { label:'JUNIOR (75-79%)', btn:'JUNIOR', fn:"doFinalDecisionTL('JUNIOR')", cls:'green',  info:'Fundamentos sólidos, requiere acompañamiento' },
+                    { label:'SENIOR (80-89%)', btn:'SENIOR', fn:"doFinalDecisionTL('SENIOR')", cls:'blue',   info:'Muy competente, listo para práctica independiente' },
+                    { label:'EXPERT (90%+)',   btn:'EXPERT', fn:"doFinalDecisionTL('EXPERT')", cls:'purple', info:'Excepcional, calificado para liderazgo y mentoreo' }
+                ], hasNotes:false
+            },
+            {
+                key:'aprobado', label:'Aprobado', icon:'fa-check-circle',
+                statuses:['approved_junior','approved_senior','approved_expert'],
+                desc:'Proceso completado. El candidato fue aprobado y categorizado exitosamente.',
+                emails:[{ label:'Correo de Bienvenida', desc:'Correo de aprobación con la categoría asignada', type:'approved' }],
+                actions:[], hasNotes:false
+            }
+        ];
+        let tlCurrentCandidate = null;
+
+        function openAcciones(candidateId) {
+            const c = candidates.find(x => x.candidato_id === candidateId);
+            if (!c) return;
+            currentCandidateId = candidateId;
+            tlCurrentCandidate = c;
+            document.getElementById('tlName').textContent = c.nombre || candidateId;
+            document.getElementById('tlMeta').innerHTML =
+                `<span>${c.email||''}</span> <span>•</span> <span>${getCurrentPhaseLabel(c.status)}</span> <span>•</span> ${getStatusBadge(c.status)}`;
+            updateAvanzarBtn(c);
+            const tabs = document.querySelectorAll('.tl-tab');
+            tabs.forEach(t => t.classList.remove('active'));
+            if (tabs[0]) { tabs[0].classList.add('active'); }
+            document.getElementById('tlBody').innerHTML = renderTLPerfil(c);
+            document.getElementById('accionesModal').style.display = 'block';
+        }
+
+        function switchTLTab(tab, el) {
+            document.querySelectorAll('.tl-tab').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+            const body = document.getElementById('tlBody');
+            body.innerHTML = tab === 'perfil' ? renderTLPerfil(tlCurrentCandidate) : renderTLTimeline(tlCurrentCandidate);
+        }
+
+        function renderTLPerfil(c) {
+            if (!c) return '';
+            const fmtDate = d => d ? new Date(d).toLocaleDateString('es-MX') : '—';
+            const fmtScore = s => (s !== null && s !== undefined && s !== '') ? `<strong>${s}</strong>` : '—';
+            const fields = [
+                ['ID',          c.candidato_id || '—'],
+                ['Nombre',      c.nombre       || '—'],
+                ['Email',       c.email        || '—'],
+                ['Estado',      getStatusBadge(c.status)],
+                ['Registrado',  fmtDate(c.registration_date)],
+                ['Teléfono',    c.telefono     || '—'],
+                ['País',        c.pais         || '—'],
+                ['Profesión',   c.profesion    || '—'],
+            ];
+            if (c.final_category) fields.push(['Categoría final', `<span style="font-weight:700;color:#2e7d32">${c.final_category}</span>`]);
+            if (c.last_interaction) fields.push(['Última interacción', fmtDate(c.last_interaction)]);
+            const rows = fields.map(([k,v]) =>
+                `<div class="tl-field-row"><span class="tl-field-label">${k}</span><span class="tl-field-value">${v}</span></div>`
+            ).join('');
+
+            // Card: Resultados de Exámenes
+            const exams = [
+                { label:'Examen E1', score: c.E1_score, date: c.E1_date },
+                { label:'Examen E2', score: c.E2_score, date: c.E2_date },
+                { label:'Examen E3', score: c.E3_score, date: c.E3_date },
+            ];
+            const examRows = exams.map(ex => {
+                const hasData = (ex.score !== null && ex.score !== undefined && ex.score !== '') || ex.date;
+                const scoreHTML = hasData ? fmtScore(ex.score) : '<span style="color:#aaa;font-style:italic">Pendiente</span>';
+                const dateHTML  = ex.date ? `<span style="color:#888;font-size:.8em">${fmtDate(ex.date)}</span>` : '';
+                return `<div class="tl-field-row">
+                    <span class="tl-field-label">${ex.label}</span>
+                    <span class="tl-field-value" style="display:flex;flex-direction:column;gap:2px">${scoreHTML}${dateHTML}</span>
+                </div>`;
+            }).join('');
+
+            // Notas de entrevista
+            const notesHTML = c.interview_notes
+                ? `<div class="tl-card-block" style="margin-top:.5rem">
+                    <div class="tl-card-title"><i class="fas fa-comment-alt"></i> Notas de Entrevista</div>
+                    <p style="margin:.5rem 0 0;font-size:.85em;line-height:1.5;color:#444">${c.interview_notes}</p>
+                   </div>` : '';
+
+            const brevoLists = ['interesados','agenda','rechazados','inconclusos'];
+            const brevoRows = brevoLists.map(b =>
+                `<div class="tl-brevo-row"><span>${b.charAt(0).toUpperCase()+b.slice(1)}</span><button class="tl-brevo-btn" onclick="doAddToBrevoList('${b}')"><i class="fas fa-plus"></i> Añadir</button></div>`
+            ).join('');
+
+            const aboutHTML = `<div class="tl-card-block"><div class="tl-card-title"><i class="fas fa-id-card"></i> Reseña Profesional</div><p style="margin:.5rem 0 0;font-size:.9em;line-height:1.6;color:#555;padding:.75rem;background:#f9f9f9;border-radius:4px">${c.about && c.about.trim() ? c.about : '<span style="color:#aaa;font-style:italic">Sin información</span>'}</p></div>`;
+
+            // Red Flags
+            const redFlagsHTML = renderRedFlags(c);
+
+            return `<div class="tl-perfil"><div class="tl-cards" style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
+                <!-- Superior Izquierda: Datos del Candidato -->
+                <div class="tl-card-block"><div class="tl-card-title"><i class="fas fa-user"></i> Datos del Candidato</div><div class="tl-fields">${rows}</div></div>
+                <!-- Superior Derecha: Resultados de Exámenes -->
+                <div class="tl-card-block"><div class="tl-card-title"><i class="fas fa-chart-bar"></i> Resultados de Exámenes</div><div class="tl-fields">${examRows}</div></div>
+                <!-- Inferior Izquierda: Listas Brevo -->
+                <div class="tl-card-block"><div class="tl-card-title"><i class="fas fa-users"></i> Listas Brevo</div><div class="tl-brevo-list">${brevoRows}</div></div>
+                <!-- Inferior Derecha: Reseña Profesional -->
+                <div>${aboutHTML}</div>
+            </div>
+            <!-- Red Flags / Alertas -->
+            ${redFlagsHTML}
+            </div>`;
+        }
+
+        function renderRedFlags(c) {
+            if (!c) return '';
+            const flags = [];
+
+            // Comprobar cada examen por alertas
+            ['E1', 'E2', 'E3'].forEach(exam => {
+                const statusKey = exam === 'E1' ? 'pending_review_E1' : exam === 'E2' ? 'pending_review_E2' : 'pending_review_E3';
+                // Obtener datos de respuestas si están disponibles (esto es básico, idealmente viene del backend)
+                // Por ahora mostrar solo flags generales
+            });
+
+            // Si el candidato fue rechazado
+            if (c.status === 'rejected') {
+                flags.push({icon: 'fa-times-circle', color: '#dc3545', text: 'Proceso Rechazado', desc: ''});
+            }
+
+            // Si tiene muchas interacciones (posible retraso)
+            if (c.notes && c.notes.toLowerCase().includes('atrasado')) {
+                flags.push({icon: 'fa-clock', color: '#ff9800', text: 'Candidato Atrasado', desc: ''});
+            }
+
+            if (flags.length === 0) {
+                return `<div style="margin-top:1.5rem;padding:1.5rem;background:#e8f5e9;border-radius:10px;border-left:4px solid #198754;">
+                    <div style="font-size:0.9rem;color:#2e7d32;"><i class="fas fa-check-circle"></i> Sin alertas detectadas</div>
+                </div>`;
+            }
+
+            return `<div style="margin-top:1.5rem;padding:1.5rem;background:#fff3e0;border-radius:10px;border-left:4px solid #ff9800;">
+                <div style="font-weight:700;color:#ff6f00;margin-bottom:0.75rem;"><i class="fas fa-exclamation-triangle"></i> Alertas Detectadas</div>
+                ${flags.map(f => `<div style="padding:0.5rem 0;color:#d84315;font-size:0.9rem;">
+                    <i class="fas ${f.icon}" style="color:${f.color};margin-right:6px;"></i> ${f.text}${f.desc ? ': ' + f.desc : ''}
+                </div>`).join('')}
+            </div>`;
+        }
+
+        function phaseIndex(status) {
+            return TL_PHASES.findIndex(p => p.statuses.includes(status));
+        }
+        function getCurrentPhaseLabel(status) {
+            if (!status) return 'Sin estado';
+            if (status.startsWith('approved_')) return 'Aprobado';
+            if (status === 'rejected') return 'Rechazado';
+            const p = TL_PHASES.find(ph => ph.statuses.includes(status));
+            return p ? p.label : status;
+        }
+
+        function renderTLTimeline(c) {
+            if (!c) return '';
+            const currentIdx = phaseIndex(c.status);
+            const isRejected = c.status === 'rejected';
+
+            const phases = TL_PHASES.map((phase, idx) => {
+                let state = 'pending', badge = 'Pendiente';
+                if (isRejected && idx === currentIdx) { state = 'rejected'; badge = 'Rechazado'; }
+                else if (idx < currentIdx)            { state = 'done';     badge = 'Completado'; }
+                else if (idx === currentIdx)          { state = 'active';   badge = 'En Curso'; }
+
+                let inner = '';
+                if (state !== 'pending') {
+                    inner += `<p class="tl-phase-dtxt">${phase.desc}</p>`;
+                }
+
+                if (state === 'active') {
+                    // Correos
+                    if (phase.emails.length) {
+                        const emailRows = phase.emails.map(e => `
+                            <div class="tl-email-row">
+                                <div class="tl-email-info">
+                                    <div class="tl-email-name"><i class="fas fa-envelope" style="color:#9ca3af;font-size:.7rem;margin-right:5px"></i>${e.label}</div>
+                                    ${e.desc ? `<div class="tl-email-sub">${e.desc}</div>` : ''}
+                                </div>
+                                <button class="tl-send-btn" onclick="doSendEmailTL('${e.type}')"><i class="fas fa-paper-plane"></i> Enviar</button>
+                            </div>`).join('');
+                        inner += `<div class="tl-slbl">Correos Electrónicos</div>${emailRows}`;
+                    }
+
+                    // Notas (entrevista)
+                    const notesHTML = phase.hasNotes ? `
+                        <div class="tl-notes-wrap">
+                            <label><i class="fas fa-comment-alt" style="margin-right:4px"></i>Notas de entrevista <span style="color:#9ca3af;font-weight:400">(obligatorio si FAIL)</span></label>
+                            <textarea id="tlInterviewNotes" rows="3" placeholder="Escribe retroalimentación para el candidato..."></textarea>
+                        </div>` : '';
+
+                    // Acciones
+                    if (phase.actions.length || phase.hasNotes) {
+                        const actionRows = phase.actions.map(a => `
+                            <div class="tl-action-row">
+                                <div style="flex:1;min-width:0">
+                                    <div class="tl-action-lbl">${a.label}</div>
+                                    ${a.info ? `<div class="tl-action-sub">${a.info}</div>` : ''}
+                                </div>
+                                <button class="tl-act-btn ${a.cls}" onclick="${a.fn}">${a.btn || a.label}</button>
+                            </div>`).join('');
+                        inner += `<div class="tl-slbl">Acciones</div>${notesHTML}${actionRows}`;
+                    }
+
+                    // Rechazar proceso
+                    if (idx > 0 && idx < TL_PHASES.length - 2) {
+                        inner += `<div class="tl-reject-box">
+                            <input type="text" id="tlRejectReason" placeholder="Motivo del rechazo (requerido)...">
+                            <button class="tl-act-btn red" onclick="tlRechazarProceso()" style="width:100%;justify-content:center;padding:.35rem"><i class="fas fa-times-circle"></i> Rechazar Proceso</button>
+                        </div>`;
+                    }
+                }
+
+                return `<div class="tl-phase-card${state === 'active' ? ' tl-active' : ''}">
+                    <div class="tl-phase-strip ${state}"></div>
+                    <div class="tl-phase-inner">
+                        <div class="tl-phase-hdr">
+                            <div class="tl-phase-ico ${state}"><i class="fas ${state === 'done' ? 'fa-check' : phase.icon}"></i></div>
+                            <span class="tl-phase-lbl ${state}">${phase.label}</span>
+                            <span class="tl-phase-bdg ${state}">${badge}</span>
+                        </div>
+                        ${inner}
+                    </div>
+                </div>`;
+            }).join('');
+
+            // Panel extra para candidatos rechazados: reenviar correo
+            const rejectedPanel = isRejected ? `
+                <div class="tl-phase-card" style="border-color:#fecaca;margin-top:0.1rem">
+                    <div class="tl-phase-strip rejected"></div>
+                    <div class="tl-phase-inner">
+                        <div class="tl-slbl" style="margin-top:0">Correos Electrónicos</div>
+                        <div class="tl-email-row">
+                            <div class="tl-email-info">
+                                <div class="tl-email-name"><i class="fas fa-envelope" style="color:#9ca3af;font-size:.7rem;margin-right:5px"></i>Reenviar correo de rechazo</div>
+                                <div class="tl-email-sub">Notificación al candidato sobre el resultado</div>
+                            </div>
+                            <button class="tl-send-btn" onclick="doSendEmailTL('rejected')"><i class="fas fa-paper-plane"></i> Enviar</button>
+                        </div>
+                    </div>
+                </div>` : '';
+
+            return `<div class="tl-timeline">${phases}${rejectedPanel}</div>`;
+        }
+
+        function updateAvanzarBtn(c) {
+            const btn = document.getElementById('tlBtnAvanzar');
+            if (!btn) return;
+            const disabled = !c || c.status==='rejected' || c.status.startsWith('approved_') || phaseIndex(c.status)===TL_PHASES.length-1;
+            btn.disabled = disabled;
+            btn.style.opacity = disabled ? '0.5' : '1';
+        }
+
+        async function tlAvanzarFase() {
+            const c = tlCurrentCandidate;
+            if (!c) return;
+            if (c.status === 'awaiting_category') { showToast('Selecciona una categoría en el Timeline', 'error'); return; }
+            const map = {
+                'registered':               { action:'autoApproveE1',          msg:'E1 aprobado con 70%' },
+                'pending_review_E1':        { action:'sendEmailManual',        emailType:'terms',       msg:'Correo de Términos enviado' },
+                'awaiting_terms_acceptance':{ action:'sendEmailManual',        emailType:'e2',          msg:'Token E2 enviado' },
+                'pending_review_E2':        { action:'approveExam',            exam:'E2', notes:'',     msg:'E2 aprobado' },
+                'pending_review_E3':        { action:'approveExam',            exam:'E3', notes:'',     msg:'E3 aprobado' },
+                'awaiting_interview':       { action:'registerInterviewResult', result:'pass', interviewNotes:'', msg:'Entrevista PASS' }
+            };
+            const entry = map[c.status];
+            if (!entry) return;
+            if (!confirm(`¿Avanzar a "${c.nombre}" a la siguiente fase?`)) return;
+            const { msg, ...body } = entry;
+            try {
+                const resp = await fetch(API_BASE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: ADMIN_TOKEN, candidateId: c.candidato_id, ...body }) });
+                const data = await resp.json();
+                if (data.success) {
+                    showToast(msg, 'success');
+                    // Recargar datos y actualizar timeline
+                    await loadData();
+                    // Volver a cargar el candidato actualizado
+                    if (candidates && candidates.length > 0) {
+                        const updatedCandidate = candidates.find(cd => cd.candidato_id === c.candidato_id);
+                        if (updatedCandidate) {
+                            tlCurrentCandidate = updatedCandidate;  // Actualizar tlCurrentCandidate
+                            document.getElementById('tlBody').innerHTML = renderTLPerfil(updatedCandidate) + renderTLTimeline(updatedCandidate);
+                            updateAvanzarBtn(updatedCandidate);     // Actualizar estado del botón
+                        }
+                    }
+                } else {
+                    showToast(data.message || 'Error al avanzar fase', 'error');
+                }
+            } catch (e) { showToast('Error de conexión', 'error'); }
+        }
+
+        async function doSendEmailTL(emailType) {
+            await callApi({ action:'sendEmailManual', candidateId:currentCandidateId, emailType, adminToken:ADMIN_TOKEN }, '✉ Correo enviado', false);
+        }
+        async function doSendEmail(emailType) {
+            await callApi({ action:'sendEmailManual', candidateId:currentCandidateId, emailType, adminToken:ADMIN_TOKEN }, '✉ Correo enviado', false);
+        }
+        async function doAddToBrevoList(listName) {
+            await callApi({ action:'addToBrevoListManual', candidateId:currentCandidateId, listName, adminToken:ADMIN_TOKEN }, '📋 Añadido a lista '+listName, false);
+        }
+        async function doApproveExamTL(exam) {
+            if (!confirm(`¿Aprobar examen ${exam}?`)) return;
+            await callApi({ action:'approveExam', candidateId:currentCandidateId, exam, notes:'', adminToken:ADMIN_TOKEN }, `✅ Examen ${exam} aprobado`, true);
+        }
+        // Envuelve doApproveExamTL con validación de PIN del superadmin
+        function approveExamWithPin(exam) {
+            requireSuperAdminPin(() => doApproveExamTL(exam));
+        }
+        async function doFinalDecisionTL(category) {
+            if (!confirm(`¿Aprobar candidato como ${category}? Esta acción es definitiva.`)) return;
+            await callApi({ action:'assignCategory', candidateId:currentCandidateId, category, comments:'', adminToken:ADMIN_TOKEN }, `🎉 Aprobado como ${category}`, true);
+        }
+        async function doInterviewResultTL(result) {
+            const notes = (document.getElementById('tlInterviewNotes')||{}).value||'';
+            if (result==='fail' && !notes.trim()) { showToast('Escribe las notas antes de rechazar','error'); return; }
+            if (!confirm(result==='pass' ? '¿Confirmar PASS?' : '¿Confirmar FAIL? Se registrará la evaluación y se notificará al candidato.')) return;
+            await callApi({ action:'registerInterviewResult', candidateId:currentCandidateId, result, interviewNotes:notes, adminToken:ADMIN_TOKEN },
+                result==='pass' ? '✅ Entrevista aprobada' : '✉️ Evaluación registrada — correo enviado al candidato', true);
+        }
+        async function tlRechazarProceso() {
+            const input = document.getElementById('tlRejectReason');
+            const reason = input ? input.value.trim() : '';
+            if (!reason) { showToast('Escribe el motivo de rechazo','error'); return; }
+            if (!confirm('¿Registrar evaluación y notificar al candidato?')) return;
+            await callApi({ action:'rejectExam', candidateId:currentCandidateId, exam:'PROCESO', reason, adminToken:ADMIN_TOKEN }, '✉️ Evaluación registrada — correo enviado al candidato', true);
+        }
+        async function callApi(body, successMsg, reload) {
+            try {
+                const resp = await fetch(API_BASE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                const data = await resp.json();
+                showToast(data.message || (data.success ? successMsg : 'Error'), data.success ? 'success' : 'error');
+                if (data.success && reload) { closeModal('accionesModal'); loadData(); }
+            } catch (e) { showToast('Error de conexión', 'error'); }
+        }
+
+        function filterTable() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const status = document.getElementById('statusFilter').value;
+            const filtered = candidates.filter(c => {
+                const matchSearch = !search ||
+                    (c.nombre    || '').toLowerCase().includes(search) ||
+                    (c.email     || '').toLowerCase().includes(search) ||
+                    (c.candidato_id || '').toLowerCase().includes(search);
+                const matchStatus = !status || (c.status || '').includes(status);
+                return matchSearch && matchStatus;
+            });
+            renderTable(filtered);
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+            currentCandidateId = null;
+        }
+
+        function updateLastUpdate() {
+            const time = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+            document.getElementById('lastUpdate').textContent = `Última actualización: ${time}`;
+        }
+        function formatDate(dateStr) {
+            if (!dateStr) return '--';
+            return new Date(dateStr).toLocaleDateString('es-CO');
+        }
+        function showView(view) {
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            const navEl = document.getElementById('nav-' + view);
+            if (navEl) navEl.classList.add('active');
+            document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+            const viewEl = document.getElementById('view-' + view);
+            if (viewEl) viewEl.classList.add('active');
+            // hooks por vista
+            if (view === 'dashboard')  buildDashboard();
+            if (view === 'respuestas') renderRespCandidates('');
+            if (view === 'usuarios')   loadAdminUsers();
+            if (view === 'superadmin') initSuperAdmin();
+            if (view === 'health')     loadHealth();
+        }
+
+        // ── Dashboard ───────────────────────────────────────────────────────
+        const PENDING_STATUSES = ['registered','pending_review_E1','awaiting_terms_acceptance','pending_review_E2','pending_review_E3','awaiting_interview','awaiting_category'];
+        const STATUS_LABEL = {
+            'registered':               'Revisión E1 pendiente',
+            'pending_review_E1':        'Revisión E1 pendiente',
+            'awaiting_terms_acceptance':'Firma de términos pendiente',
+            'pending_review_E2':        'Revisión E2 pendiente',
+            'pending_review_E3':        'Revisión E3 pendiente',
+            'awaiting_interview':       'Entrevista por agendar',
+            'awaiting_category':        'Asignación de categoría',
+            'approved_junior':          'Aprobado Junior',
+            'approved_senior':          'Aprobado Senior',
+            'approved_expert':          'Aprobado Expert',
+            'rejected':                 'Rechazado',
+        };
+        const STATUS_ICON = {
+            'registered':'fa-user-plus', 'pending_review_E1':'fa-file-alt',
+            'awaiting_terms_acceptance':'fa-file-signature', 'pending_review_E2':'fa-file-alt',
+            'pending_review_E3':'fa-file-alt', 'awaiting_interview':'fa-handshake',
+            'awaiting_category':'fa-award', 'approved_junior':'fa-check-circle',
+            'approved_senior':'fa-check-circle', 'approved_expert':'fa-check-circle',
+            'rejected':'fa-times-circle',
+        };
+
+        function buildDashboard() {
+            buildPendingList();
+            buildActivityFeed();
+        }
+
+        function buildPendingList() {
+            const el = document.getElementById('dashPendingList');
+            if (!el) return;
+            const pending = candidates.filter(c => PENDING_STATUSES.includes(c.status));
+            if (!pending.length) {
+                el.innerHTML = '<div class="resp-empty" style="padding:2rem;"><i class="fas fa-check-circle" style="color:#198754;font-size:1.8rem;"></i><p style="margin-top:0.5rem;color:#aaa;">Sin acciones pendientes</p></div>';
+                return;
+            }
+            el.innerHTML = pending.map(c => {
+                const initials = (c.nombre || '?').split(' ').slice(0,2).map(w => w[0] || '').join('').toUpperCase() || '?';
+                return `<div class="dash-pending-item">
+                    <div class="dash-avatar">${initials}</div>
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-weight:600;font-size:0.875rem;color:#001A55;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.nombre || c.candidato_id}</div>
+                        <div style="font-size:0.77rem;color:#888;margin-top:1px;">${STATUS_LABEL[c.status] || c.status}</div>
+                    </div>
+                    <button class="btn" style="font-size:0.75rem;padding:0.28rem 0.65rem;background:#001A55;color:white;flex-shrink:0;"
+                            onclick="openAcciones('${c.candidato_id}')">
+                        <i class="fas fa-bolt"></i>
+                    </button>
+                </div>`;
+            }).join('');
+        }
+
+        function buildActivityFeed() {
+            const el = document.getElementById('dashActivity');
+            if (!el) return;
+            const sorted = [...candidates]
+                .filter(c => c.last_interaction)
+                .sort((a, b) => new Date(b.last_interaction) - new Date(a.last_interaction))
+                .slice(0, 10);
+            if (!sorted.length) {
+                el.innerHTML = '<div class="resp-empty" style="padding:2rem;"><i class="fas fa-history" style="font-size:1.8rem;"></i><p style="margin-top:0.5rem;">Sin actividad reciente</p></div>';
+                return;
+            }
+            el.innerHTML = sorted.map(c => {
+                const icon   = STATUS_ICON[c.status] || 'fa-circle';
+                const diff   = Date.now() - new Date(c.last_interaction);
+                const days   = Math.floor(diff / 86400000);
+                const timeAgo = days === 0 ? 'Hoy' : days === 1 ? 'Ayer' : `Hace ${days}d`;
+                return `<div class="dash-activity-item">
+                    <div class="dash-activity-icon"><i class="fas ${icon}"></i></div>
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-size:0.875rem;font-weight:600;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.nombre || c.candidato_id}</div>
+                        <div style="font-size:0.77rem;color:#888;">${STATUS_LABEL[c.status] || c.status}</div>
+                    </div>
+                    <div style="font-size:0.72rem;color:#ccc;flex-shrink:0;margin-left:0.5rem;">${timeAgo}</div>
+                </div>`;
+            }).join('');
+        }
+        // ───────────────────────────────────────────────────────────────────
+
+        // ── Ver Respuestas ──────────────────────────────────────────────────
+        let respSelectedId   = null;
+        let respSelectedExam = 'E1';
+
+        function renderRespCandidates(filter) {
+            const list     = document.getElementById('respCandidateList');
+            const filtered = [...candidates]
+                .sort((a, b) => new Date(b.registration_date || 0) - new Date(a.registration_date || 0))
+                .filter(c =>
+                    !filter ||
+                    (c.nombre || '').toLowerCase().includes(filter.toLowerCase()) ||
+                    (c.email  || '').toLowerCase().includes(filter.toLowerCase())
+                );
+            if (!filtered.length) {
+                list.innerHTML = '<div class="resp-empty" style="padding:2rem;"><i class="fas fa-search"></i>Sin resultados</div>';
+                return;
+            }
+            list.innerHTML = filtered.map(c => `
+                <button class="resp-candidate-item${c.candidato_id === respSelectedId ? ' active' : ''}"
+                        onclick="selectRespCandidate('${c.candidato_id}')">
+                    <div class="resp-cand-name">${c.nombre || 'Sin nombre'}</div>
+                    <div class="resp-cand-email">${c.email || ''}</div>
+                    ${getStatusBadge(c.status)}
+                </button>`).join('');
+        }
+
+        function selectRespCandidate(id) {
+            respSelectedId = id;
+            const c = candidates.find(x => x.candidato_id === id);
+            document.getElementById('respCandidateName').textContent = c ? c.nombre : id;
+            renderRespCandidates(document.getElementById('respSearch').value);
+            loadRespTab(respSelectedExam);
+        }
+
+        function switchRespTab(exam) {
+            respSelectedExam = exam;
+            document.querySelectorAll('.resp-tab').forEach(t =>
+                t.classList.toggle('active', t.dataset.exam === exam)
+            );
+            if (respSelectedId) loadRespTab(exam);
+        }
+
+        async function loadRespTab(exam) {
+            const panel = document.getElementById('respQuestions');
+            panel.innerHTML = '<div class="resp-empty"><i class="fas fa-spinner fa-spin"></i>Cargando...</div>';
+            try {
+                const res  = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'getExamResponses', candidate_id: respSelectedId, exam, adminToken: ADMIN_TOKEN })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    renderRespQuestions(data.data || {}, exam);
+                } else {
+                    panel.innerHTML = `<div class="resp-empty"><i class="fas fa-inbox"></i>${data.message || 'Sin datos para este examen'}</div>`;
+                }
+            } catch (e) {
+                panel.innerHTML = '<div class="resp-empty" style="color:#dc3545;"><i class="fas fa-exclamation-triangle"></i>Error al cargar respuestas</div>';
+            }
+        }
+
+        function renderRespQuestions(data, exam) {
+            const panel     = document.getElementById('respQuestions');
+            const questions = data.questions || data.responses || data.preguntas || [];
+
+            if (!questions.length) {
+                panel.innerHTML = '<div class="resp-empty"><i class="fas fa-inbox"></i>No hay respuestas registradas para ' + exam + '</div>';
+                return;
+            }
+
+            let html = '';
+            const score = data.score != null ? data.score : null;
+            const pass  = data.pass;
+
+            if (score !== null) {
+                html += `<div class="resp-score-bar ${pass ? 'pass' : 'fail'}">
+                    <span><i class="fas fa-${pass ? 'check-circle' : 'times-circle'}"></i> Puntaje: <strong>${score}%</strong></span>
+                    <span class="resp-score-badge">${pass ? 'APROBADO' : 'REPROBADO'}</span>
+                </div>`;
+            }
+
+            questions.forEach((q, i) => {
+                // Mapear campos desde el backend (que usa: text, type, options, answer, is_correct)
+                const tipo     = q.type || q.tipo || 'open';
+                const texto    = q.text || q.texto || q.pregunta || q.question || q.n || '';
+                const respCand = q.answer || q.respuesta_candidato || q.candidate_answer || '';
+                const correcto = q.is_correct !== null ? q.is_correct : q.es_correcta;
+                const opciones = q.options || q.opciones || [];
+                const correcta = q.correct || q.respuesta_correcta || q.correct_answer || '';
+                const esMulti  = tipo === 'multiple';
+                const markIcon = correcto === true  ? '<i class="fas fa-check" style="color:#198754;"></i>'
+                               : correcto === false ? '<i class="fas fa-times" style="color:#dc3545;"></i>' : '';
+                const cls      = correcto === true ? ' correct' : correcto === false ? ' incorrect' : '';
+
+                html += `<div class="resp-question${cls}">
+                    <div class="resp-q-header">
+                        <span class="resp-q-num">P${i + 1}</span>
+                        <div class="resp-q-texto">${texto || '<em style="color:#ccc;">Sin pregunta</em>'}</div>
+                        ${markIcon ? `<span class="resp-q-mark">${markIcon}</span>` : ''}
+                    </div>`;
+
+                if (esMulti && opciones && opciones.length) {
+                    html += '<div class="resp-options">';
+                    // Si no hay respuesta, mostrar todas las opciones sin seleccionar
+                    if (!respCand) {
+                        opciones.forEach((op, idx) => {
+                            const key       = `option_${idx + 1}`;
+                            const isCorrecto = correcta === key;
+                            const cls2 = isCorrecto ? ' correct-opt' : '';
+                            const icon = isCorrecto
+                                ? '<i class="fas fa-check-circle" style="color:#198754;margin-right:6px;"></i>'
+                                : '<i class="far fa-circle" style="opacity:0.25;margin-right:6px;"></i>';
+                            html += `<div class="resp-option${cls2}" style="padding:0.5rem;margin-bottom:0.5rem;border-radius:4px;background:#f9f9f9;">${icon}${key}: ${op}</div>`;
+                        });
+                        html += '<div style="padding:0.5rem;color:#999;font-size:0.85em;font-style:italic;">Sin respuesta</div>';
+                    } else {
+                        // Mostrar con la respuesta del candidato destacada
+                        opciones.forEach((op, idx) => {
+                            const key       = `option_${idx + 1}`;
+                            const selected  = respCand === key;
+                            const isCorrecto = correcta === key;
+                            const cls2 = isCorrecto ? ' correct-opt' : (selected ? ' wrong-opt' : '');
+                            const icon = isCorrecto
+                                ? '<i class="fas fa-check-circle" style="color:#198754;margin-right:6px;"></i>'
+                                : selected
+                                ? '<i class="fas fa-times-circle" style="color:#dc3545;margin-right:6px;"></i>'
+                                : '<i class="far fa-circle" style="opacity:0.25;margin-right:6px;"></i>';
+                            const respCandDisplay = selected ? ` - <strong>${op}</strong>` : '';
+                            html += `<div class="resp-option${selected ? ' selected' : ''}${cls2}" style="padding:0.5rem;margin-bottom:0.5rem;border-radius:4px;background:#f9f9f9;">${icon}${key}${respCandDisplay}</div>`;
+                        });
+                    }
+                    html += '</div>';
+                } else {
+                    html += `<div class="resp-open-answer" style="padding:0.75rem;background:#f9f9f9;border-radius:4px;margin-top:0.5rem;"><strong>Respuesta:</strong> ${respCand || '<em style="color:#ccc;">Sin respuesta</em>'}</div>`;
+                }
+
+                html += '</div>';
+            });
+
+            panel.innerHTML = html;
+        }
+        // ───────────────────────────────────────────────────────────────────
+
+        // ── Gestión de Usuarios ─────────────────────────────────────────────
+        async function loadAdminUsers() {
+            const wrap = document.getElementById('usersTableWrap');
+            wrap.innerHTML = '<div class="resp-empty"><i class="fas fa-spinner fa-spin"></i>Cargando usuarios...</div>';
+            try {
+                const res  = await fetch(API_BASE, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'getAdminUsers', adminToken: ADMIN_TOKEN })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    renderUsersTable(data.data || {});
+                } else {
+                    wrap.innerHTML = `<div class="resp-empty" style="color:#dc3545;"><i class="fas fa-exclamation-triangle"></i>${data.message || 'Error al cargar usuarios'}</div>`;
+                }
+            } catch (e) {
+                wrap.innerHTML = '<div class="resp-empty" style="color:#dc3545;"><i class="fas fa-exclamation-triangle"></i>Error de conexión</div>';
+            }
+        }
+
+        function renderUsersTable(data) {
+            const wrap = document.getElementById('usersTableWrap');
+            const users = data.users || data.admins || (Array.isArray(data) ? data : []);
+            if (!users.length) {
+                wrap.innerHTML = '<div class="resp-empty"><i class="fas fa-user-slash"></i>No hay usuarios registrados</div>';
+                return;
+            }
+            let html = `<table class="users-table">
+                <thead><tr>
+                    <th>Nombre</th><th>Email</th><th>Rol</th>
+                    <th>Último acceso</th><th>Estado</th><th>Acción</th>
+                </tr></thead><tbody>`;
+            users.forEach(u => {
+                const role   = u.role || u.rol || 'admin';
+                const active = u.active !== false && u.status !== 'inactive';
+                html += `<tr>
+                    <td><strong>${u.nombre || u.name || '—'}</strong></td>
+                    <td style="color:#555;">${u.email || '—'}</td>
+                    <td><span class="role-badge ${role}">${role}</span></td>
+                    <td style="color:#aaa;font-size:0.82rem;">${u.last_login ? formatDate(u.last_login) : '—'}</td>
+                    <td><span class="badge ${active ? 'badge-junior' : 'badge-rejected'}" style="font-size:0.72rem;">${active ? 'Activo' : 'Inactivo'}</span></td>
+                    <td>
+                        <button class="btn" style="font-size:0.78rem;padding:0.3rem 0.7rem;background:#001A55;color:white;"
+                                onclick="generateTokenForUser('${u.email || ''}')">
+                            <i class="fas fa-key"></i> Token
+                        </button>
+                    </td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            wrap.innerHTML = html;
+        }
+
+        async function generateTokenForUser(email) {
+            if (!email) return;
+            document.getElementById('superTokenEmail').value = email;
+            showView('superadmin');
+            await generateAdminTokenAction();
+        }
+
+        // ── Super Admin ─────────────────────────────────────────────────────
+        function initSuperAdmin() {
+            const el = document.getElementById('superCurrentToken');
+            if (el) el.textContent = ADMIN_TOKEN || '(no token en sesión)';
+        }
+
+        async function generateAdminTokenAction() {
+            const email  = (document.getElementById('superTokenEmail').value || '').trim();
+            const result = document.getElementById('superTokenResult');
+            result.innerHTML = '<div style="font-size:0.83rem;color:#888;padding:0.5rem 0;"><i class="fas fa-spinner fa-spin"></i> Generando...</div>';
+            try {
+                const res  = await fetch(API_BASE, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'generateAdminToken', email: email || undefined, adminToken: ADMIN_TOKEN })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    const token = data.data?.token || data.token || data.data || '';
+                    const url   = token ? `${window.location.origin}${window.location.pathname}?adminToken=${token}` : '';
+                    result.innerHTML = `
+                        <div style="margin-top:0.75rem;">
+                            ${token ? `<div class="token-box" onclick="copyText('${token}', this)">${token}</div>` : ''}
+                            ${url   ? `<div style="margin-top:0.5rem;font-size:0.78rem;color:#888;">URL completa:</div>
+                                       <div class="token-box" onclick="copyText('${url}', this)" style="margin-top:3px;">${url}</div>` : ''}
+                            <div style="font-size:0.78rem;color:#198754;margin-top:0.5rem;"><i class="fas fa-check-circle"></i> ${data.message || 'Token generado exitosamente'}</div>
+                        </div>`;
+                } else {
+                    result.innerHTML = `<div style="font-size:0.83rem;color:#dc3545;padding:0.5rem 0;"><i class="fas fa-exclamation-triangle"></i> ${data.message || 'Error al generar token'}</div>`;
+                }
+            } catch (e) {
+                result.innerHTML = '<div style="font-size:0.83rem;color:#dc3545;padding:0.5rem 0;"><i class="fas fa-exclamation-triangle"></i> Error de conexión</div>';
+            }
+        }
+
+        function copyText(text, el) {
+            navigator.clipboard.writeText(text).then(() => {
+                const orig = el.style.background;
+                el.style.background = '#d1e7dd';
+                setTimeout(() => el.style.background = orig, 800);
+                showToast('Copiado al portapapeles', 'success');
+            });
+        }
+
+        // ── System Health ───────────────────────────────────────────────────
+        async function loadHealth() {
+            const content = document.getElementById('healthContent');
+            content.innerHTML = '<div class="resp-empty"><i class="fas fa-spinner fa-spin"></i>Verificando servicios...</div>';
+            try {
+                const res  = await fetch(API_BASE, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'health', adminToken: ADMIN_TOKEN })
+                });
+                const data = await res.json();
+                const now  = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                document.getElementById('healthLastCheck').textContent = 'Última verificación: ' + now;
+                if (data.success || data.status) {
+                    renderHealthContent(data.data || data);
+                } else {
+                    content.innerHTML = `<div class="resp-empty" style="color:#dc3545;"><i class="fas fa-exclamation-triangle"></i>${data.message || 'Error al verificar salud del sistema'}</div>`;
+                }
+            } catch (e) {
+                content.innerHTML = '<div class="resp-empty" style="color:#dc3545;"><i class="fas fa-exclamation-triangle"></i>Error de conexión con el servidor</div>';
+            }
+        }
+
+        function renderHealthContent(data) {
+            const content = document.getElementById('healthContent');
+            const overall = (data.status || 'unknown').toLowerCase();
+            const dotCls  = overall === 'ok' || overall === 'healthy' ? 'ok' : overall === 'error' ? 'error' : 'warning';
+
+            // Banner general
+            let html = `<div class="admin-card" style="display:flex;align-items:center;gap:1rem;padding:1.25rem 1.5rem;">
+                <span class="health-dot ${dotCls}" style="width:16px;height:16px;"></span>
+                <div>
+                    <div style="font-weight:700;font-size:1rem;color:#001A55;">Sistema ${dotCls === 'ok' ? 'Operativo' : dotCls === 'error' ? 'Con Errores' : 'Degradado'}</div>
+                    <div style="font-size:0.8rem;color:#aaa;">${data.message || data.description || ''}</div>
+                </div>
+            </div>`;
+
+            // Services grid
+            const services = data.services || data.checks || {};
+            const serviceKeys = Object.keys(services);
+            if (serviceKeys.length) {
+                html += '<div class="health-grid" style="margin-bottom:1.25rem;">';
+                serviceKeys.forEach(key => {
+                    const val  = services[key];
+                    let stat, label;
+                    if (typeof val === 'object' && val !== null) {
+                        if (val.status || val.state) {
+                            // objeto con campo status explícito
+                            stat  = (val.status || val.state).toLowerCase();
+                            label = val.message || stat.toUpperCase();
+                        } else {
+                            // objeto plano tipo {openai:'OK', brevo:'MISSING'} — apiKeys/email
+                            const subVals = Object.values(val).map(v => String(v).toUpperCase());
+                            const hasMissing = subVals.some(v => v === 'MISSING' || v === 'ERROR');
+                            stat  = hasMissing ? 'warning' : 'ok';
+                            label = subVals.join(' / ');
+                        }
+                    } else {
+                        stat  = String(val).toLowerCase();
+                        label = String(val);
+                    }
+                    const cls  = stat === 'ok' || stat === 'healthy' || stat === 'true' || stat === 'connected' ? 'ok'
+                               : stat === 'error' || stat === 'false' || stat === 'down' ? 'error' : 'warning';
+                    html += `<div class="health-item">
+                        <span class="health-dot ${cls}"></span>
+                        <div>
+                            <div class="health-item-label">${key}</div>
+                            <div class="health-item-value">${label}</div>
+                        </div>
+                    </div>`;
+                });
+                html += '</div>';
+            }
+
+            // Extra info (uptime, version, etc.)
+            const extras = {};
+            ['uptime','version','timestamp','environment','region'].forEach(k => { if (data[k]) extras[k] = data[k]; });
+            if (Object.keys(extras).length) {
+                html += '<div class="admin-card">';
+                html += '<div class="admin-section-title">Información del sistema</div>';
+                html += '<div class="health-grid">';
+                Object.entries(extras).forEach(([k, v]) => {
+                    html += `<div class="health-item">
+                        <i class="fas fa-info-circle" style="color:#adb5bd;font-size:1rem;flex-shrink:0;"></i>
+                        <div><div class="health-item-label">${k}</div><div class="health-item-value">${v}</div></div>
+                    </div>`;
+                });
+                html += '</div></div>';
+            }
+
+            // Raw JSON por si acaso
+            html += `<div class="admin-card">
+                <div class="admin-section-title" style="cursor:pointer;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+                    Respuesta completa <i class="fas fa-chevron-down" style="float:right;"></i>
+                </div>
+                <div class="health-raw" style="display:none;">${JSON.stringify(data, null, 2)}</div>
+            </div>`;
+
+            content.innerHTML = html;
+        }
+        // ───────────────────────────────────────────────────────────────────
+        // ── Agregar Profesional ──────────────────────────────────────────────
+        async function submitAgregarProfesional() {
+            const nombre   = (document.getElementById('apNombre').value   || '').trim();
+            const email    = (document.getElementById('apEmail').value    || '').trim();
+            const telefono = (document.getElementById('apTelefono').value || '').trim();
+            const pais     = (document.getElementById('apPais').value     || '').trim();
+            const profesion= document.getElementById('apProfesion').value;
+            const fecha    = document.getElementById('apFecha').value;
+            const hora     = (document.getElementById('apHora').value || '').trim();
+            const resena   = (document.getElementById('apResena').value || '').trim();
+            const msg      = document.getElementById('apMensaje');
+            const btn      = document.getElementById('apBtn');
+
+            // Validación mejorada
+            const camposFaltantes = [];
+            if (!nombre) camposFaltantes.push('Nombre completo');
+            if (!email) camposFaltantes.push('Email');
+            if (!profesion) camposFaltantes.push('Tipo de profesional');
+
+            if (camposFaltantes.length > 0) {
+                msg.style.display='block'; msg.style.background='#fff5f5'; msg.style.color='#b91c1c';
+                msg.textContent='Campos obligatorios faltantes: ' + camposFaltantes.join(', ');
+                return;
+            }
+
+            btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Registrando...';
+            try {
+                const res  = await fetch(API_BASE, { method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({ action:'initial_registration', adminToken:ADMIN_TOKEN,
+                        name:nombre, email, phone:telefono, country:pais,
+                        professional_type:profesion, scheduled_date:fecha||new Date().toISOString().split('T')[0],
+                        therapeutic_approach:hora, about:resena||'Registro manual por admin', birthday:'' }) });
+                const data = await res.json();
+                msg.style.display='block';
+                if (data.success) {
+                    msg.style.background='#f0fff4'; msg.style.color='#15803d';
+                    msg.textContent='✓ Profesional registrado. Se envió el correo de bienvenida con el token E1.';
+                    btn.innerHTML='<i class="fas fa-check"></i> Registrado';
+                    loadData();
+                    setTimeout(() => { document.getElementById('modalAgregarProfesional').style.display='none';
+                        ['apNombre','apEmail','apTelefono','apPais','apFecha','apHora','apResena'].forEach(id=>{
+                            const el = document.getElementById(id);
+                            if (el.tagName === 'TEXTAREA') el.value=''; else el.value='';
+                        });
+                        document.getElementById('apProfesion').value='';
+                        msg.style.display='none'; btn.disabled=false;
+                        btn.innerHTML='<i class="fas fa-user-plus"></i> Registrar Profesional'; }, 2500);
+                } else {
+                    msg.style.background='#fff5f5'; msg.style.color='#b91c1c';
+                    msg.textContent='Error: ' + (data.message || 'Inténtalo de nuevo.');
+                    btn.disabled=false; btn.innerHTML='<i class="fas fa-user-plus"></i> Registrar Profesional';
+                }
+            } catch(e) {
+                msg.style.display='block'; msg.style.background='#fff5f5'; msg.style.color='#b91c1c';
+                msg.textContent='Error de conexión.';
+                btn.disabled=false; btn.innerHTML='<i class="fas fa-user-plus"></i> Registrar Profesional';
+            }
+        }
+
+        // ── Agregar Admin ─────────────────────────────────────────────────────
+        async function submitAgregarAdmin() {
+            const email = (document.getElementById('aaEmail').value || '').trim();
+            const rol   = document.getElementById('aaRol').value;
+            const pin   = (document.getElementById('aaPIN').value  || '').trim();
+            const msg   = document.getElementById('aaMensaje');
+            const res2  = document.getElementById('aaTokenResult');
+            const btn   = document.getElementById('aaBtn');
+            if (!email || !pin) {
+                msg.style.display='block'; msg.style.background='#fff5f5'; msg.style.color='#b91c1c';
+                msg.textContent='Completa email y PIN de autorización.'; return;
+            }
+            btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Creando...';
+            try {
+                const resp = await fetch(API_BASE, { method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({ action:'generateAdminToken', email, role:rol, admin_pin:pin, adminToken:ADMIN_TOKEN }) });
+                const data = await resp.json();
+                msg.style.display='block';
+                if (data.success) {
+                    msg.style.background='#f0fff4'; msg.style.color='#15803d';
+                    msg.textContent='✓ Admin creado correctamente.';
+                    if (data.data && data.data.token) {
+                        const link = window.location.origin + window.location.pathname.replace('admin-dashboard.html','') + 'admin-dashboard.html?adminToken=' + data.data.token;
+                        res2.style.display='block';
+                        res2.innerHTML=`<strong>Token de acceso:</strong><br><code style="word-break:break-all;font-size:0.78rem;">${data.data.token}</code><br><small style="color:#555;">Envía este link al nuevo admin:</small><br><a href="${link}" target="_blank" style="font-size:0.78rem;word-break:break-all;">${link}</a>`;
+                    }
+                    loadAdminUsers();
+                    btn.innerHTML='<i class="fas fa-check"></i> Creado';
+                } else {
+                    msg.style.background='#fff5f5'; msg.style.color='#b91c1c';
+                    msg.textContent='Error: ' + (data.message || 'Inténtalo de nuevo.');
+                    btn.disabled=false; btn.innerHTML='<i class="fas fa-user-shield"></i> Crear Admin';
+                }
+            } catch(e) {
+                msg.style.display='block'; msg.style.background='#fff5f5'; msg.style.color='#b91c1c';
+                msg.textContent='Error de conexión.';
+                btn.disabled=false; btn.innerHTML='<i class="fas fa-user-shield"></i> Crear Admin';
+            }
+        }
+
+        // ── Handoff → Onboarding ─────────────────────────────────────────────
+        function previewHandoff() {
+            const approved = candidates.filter(c => c.status && c.status.startsWith('approved_'));
+            const preview  = document.getElementById('handoffPreview');
+            const msg      = document.getElementById('handoffMensaje');
+            if (!approved.length) {
+                msg.style.display='block'; msg.style.background='#fff5f5'; msg.style.color='#b91c1c';
+                msg.textContent='No hay candidatos aprobados para transferir.';
+                preview.style.display='none'; return;
+            }
+            msg.style.display='block'; msg.style.background='#ede9fe'; msg.style.color='#5b21b6';
+            msg.textContent=approved.length + ' candidato(s) aprobado(s) serán evaluados para transferencia (los ya existentes en Onboarding serán omitidos).';
+            let html = `<table style="width:100%;border-collapse:collapse;font-size:0.79rem;">
+                <thead><tr style="background:#f3f4f6;">
+                    <th style="padding:0.4rem 0.6rem;text-align:left;border-bottom:1px solid #e9ecef;">Nombre</th>
+                    <th style="padding:0.4rem 0.6rem;text-align:left;border-bottom:1px solid #e9ecef;">Email</th>
+                    <th style="padding:0.4rem 0.6rem;text-align:left;border-bottom:1px solid #e9ecef;">Categoría</th>
+                </tr></thead><tbody>`;
+            approved.forEach(c => {
+                html += `<tr style="border-bottom:1px solid #f3f4f6;">
+                    <td style="padding:0.38rem 0.6rem;">${c.nombre||'—'}</td>
+                    <td style="padding:0.38rem 0.6rem;color:#555;">${c.email||'—'}</td>
+                    <td style="padding:0.38rem 0.6rem;">${getStatusBadge(c.status)}</td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            preview.style.display='block'; preview.innerHTML=html;
+        }
+
+        async function runHandoff() {
+            const msg = document.getElementById('handoffMensaje');
+            const btn = document.getElementById('handoffBtn');
+            if (!confirm('¿Confirmas el traspaso de candidatos aprobados al sistema de Onboarding?')) return;
+            btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Transfiriendo...';
+            try {
+                const res  = await fetch(API_BASE, { method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({ action:'handoff', adminToken:ADMIN_TOKEN }) });
+                const data = await res.json();
+                msg.style.display='block';
+                if (data.success) {
+                    msg.style.background='#f0fff4'; msg.style.color='#15803d';
+                    msg.innerHTML='<strong>✓ ' + data.message + '</strong>';
+                    if (data.data && data.data.details && data.data.details.length) {
+                        msg.innerHTML += '<ul style="margin:.5rem 0 0 1rem;font-size:.79rem;">' +
+                            data.data.details.map(d=>`<li>${d}</li>`).join('') + '</ul>';
+                    }
+                    btn.innerHTML='<i class="fas fa-check"></i> Transferido';
+                } else {
+                    msg.style.background='#fff5f5'; msg.style.color='#b91c1c';
+                    msg.textContent='Error: ' + (data.message||'Inténtalo de nuevo.');
+                    btn.disabled=false; btn.innerHTML='<i class="fas fa-share-square"></i> Transferir al Onboarding';
+                }
+            } catch(e) {
+                msg.style.display='block'; msg.style.background='#fff5f5'; msg.style.color='#b91c1c';
+                msg.textContent='Error de conexión.';
+                btn.disabled=false; btn.innerHTML='<i class="fas fa-share-square"></i> Transferir al Onboarding';
+            }
+        }
+
+        // ── Diagnóstico GAS ───────────────────────────────────────────────────
+        async function runGasDiagnostics() {
+            const content = document.getElementById('healthContent');
+            content.innerHTML = '<div class="resp-empty"><i class="fas fa-spinner fa-spin"></i>Ejecutando diagnóstico completo de Google Apps Script...</div>';
+            const now = new Date().toLocaleTimeString('es-CO', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+            document.getElementById('healthLastCheck').textContent = 'Diagnóstico: ' + now;
+            try {
+                const res  = await fetch(API_BASE, { method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({ action:'gasDiagnostic', adminToken:ADMIN_TOKEN }) });
+                const data = await res.json();
+                if (data.success && data.data) {
+                    renderDiagResults(data.data);
+                } else {
+                    content.innerHTML = `<div class="resp-empty" style="color:#dc3545;"><i class="fas fa-exclamation-triangle"></i>${data.message || 'Error al ejecutar diagnóstico'}</div>`;
+                }
+            } catch(e) {
+                content.innerHTML = '<div class="resp-empty" style="color:#dc3545;"><i class="fas fa-exclamation-triangle"></i>Error de conexión</div>';
+            }
+        }
+
+        function renderDiagResults(data) {
+            const content = document.getElementById('healthContent');
+            const overall = data.overall || 'OK';
+            const clsMap  = { OK:'ok', WARNING:'warning', ERROR:'error' };
+            const labelMap= { OK:'Todos los sistemas operativos', WARNING:'Advertencias detectadas', ERROR:'Errores detectados' };
+            let html = `<div class="admin-card" style="display:flex;align-items:center;gap:1rem;padding:1.25rem 1.5rem;margin-bottom:1.25rem;">
+                <span class="health-dot ${clsMap[overall]||'ok'}" style="width:16px;height:16px;"></span>
+                <div>
+                    <div style="font-weight:700;font-size:1rem;color:#001A55;">Diagnóstico GAS — ${labelMap[overall]||overall}</div>
+                    <div style="font-size:0.8rem;color:#aaa;">${data.timestamp ? new Date(data.timestamp).toLocaleString('es-MX') : ''}</div>
+                </div>
+            </div><div class="admin-card"><div class="admin-section-title">Resultados por módulo</div>`;
+            (data.tests || []).forEach(t => {
+                const s   = t.status || 'OK';
+                const cls = clsMap[s] || 'ok';
+                const icon= s==='OK' ? 'check-circle' : s==='WARNING' ? 'exclamation-triangle' : 'times-circle';
+                const clr = s==='OK' ? '#16a34a' : s==='WARNING' ? '#d97706' : '#dc2626';
+                html += `<div style="display:flex;align-items:flex-start;gap:0.75rem;padding:0.6rem 0;border-bottom:1px solid #f3f4f6;">
+                    <i class="fas fa-${icon}" style="color:${clr};font-size:0.95rem;margin-top:2px;flex-shrink:0;"></i>
+                    <div style="flex:1;">
+                        <div style="font-size:0.85rem;font-weight:700;color:#111;">${t.test}</div>
+                        <div style="font-size:0.77rem;color:#6b7280;">${t.detail || ''}</div>
+                    </div>
+                    ${t.ms !== undefined ? `<span style="font-size:0.72rem;color:#9ca3af;white-space:nowrap;">${t.ms}ms</span>` : ''}
+                </div>`;
+            });
+            html += '</div>';
+            content.innerHTML = html;
+        }
+
+        // ───────────────────────────────────────────────────────────────────
+        function refreshData() { loadData(); showToast('Datos actualizados', 'success'); }
+        function startAutoRefresh() { autoRefreshInterval = setInterval(loadData, REFRESH_INTERVAL); }
+        function logout() {
+            if (confirm('¿Cerrar sesión?')) {
+                sessionStorage.removeItem('adminToken');
+                window.location.href = 'acceso.html';
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.animation = 'slideInUp 0.3s reverse';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        window.onclick = function(event) {
+            document.querySelectorAll('.modal').forEach(modal => {
+                if (event.target === modal) modal.style.display = 'none';
+            });
+        };
+
+        // ── Centro de Ayuda ─────────────────────────────────────────────────
+        function toggleHelp() {
+            document.getElementById('helpOverlay').classList.toggle('open');
+            document.getElementById('helpDrawer').classList.toggle('open');
+            if (document.getElementById('helpDrawer').classList.contains('open')) {
+                switchHelpTab('manual', document.querySelector('.help-tab'));
+            }
+        }
+        function switchHelpTab(tab, btn) {
+            document.querySelectorAll('.help-tab').forEach(t => t.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            const body = document.getElementById('helpBody');
+            if (tab === 'manual')   body.innerHTML = getManualHTML();
+            else if (tab === 'faq') body.innerHTML = getFAQHTML();
+            else                    body.innerHTML = getContactoHTML();
+        }
+        function toggleFAQ(el) {
+            const ans = el.nextElementSibling;
+            ans.classList.toggle('open');
+            el.querySelector('.faq-chev').textContent = ans.classList.contains('open') ? '▲' : '▼';
+        }
+        function getManualHTML() {
+            return `
+            <div class="help-section">
+                <div class="help-section-title">Menú Lateral</div>
+                <div class="manual-row"><div class="manual-icon"><i class="fas fa-chart-bar"></i></div><div class="manual-text"><strong>Dashboard</strong>Resumen de acciones pendientes y actividad reciente.</div></div>
+                <div class="manual-row"><div class="manual-icon"><i class="fas fa-users"></i></div><div class="manual-text"><strong>Profesionales</strong>Listado completo con filtros de búsqueda y estado.</div></div>
+                <div class="manual-row"><div class="manual-icon"><i class="fas fa-clipboard-list"></i></div><div class="manual-text"><strong>Ver Respuestas</strong>Respuestas de E1, E2 y E3 con marcadores correcto/incorrecto.</div></div>
+                <div class="manual-row"><div class="manual-icon"><i class="fas fa-user-shield"></i></div><div class="manual-text"><strong>Gestión de Usuarios</strong>Administra los accesos al panel.</div></div>
+                <div class="manual-row"><div class="manual-icon"><i class="fas fa-heartbeat"></i></div><div class="manual-text"><strong>System Health</strong>Estado de los servicios del sistema en tiempo real.</div></div>
+            </div>
+            <div class="help-section">
+                <div class="help-section-title">Botón ⚙ Acciones (por candidato)</div>
+                <div class="manual-row"><div class="manual-icon"><i class="fas fa-envelope"></i></div><div class="manual-text"><strong>Reenviar Correos</strong>Reenvía invitación a E1/E2/E3, términos, entrevista o bienvenida.</div></div>
+                <div class="manual-row"><div class="manual-icon"><i class="fas fa-users"></i></div><div class="manual-text"><strong>Listas Brevo</strong>Añade al candidato a grupos: interesados, agenda, rechazados, inconclusos.</div></div>
+                <div class="manual-row"><div class="manual-icon"><i class="fas fa-check-circle"></i></div><div class="manual-text"><strong>Aprobar Examen</strong>Marca E1, E2 o E3 como aprobado manualmente.</div></div>
+                <div class="manual-row"><div class="manual-icon"><i class="fas fa-handshake"></i></div><div class="manual-text"><strong>Resultado Entrevista</strong>Registra PASS (pasa a categoría) o FAIL (envía correo de seguimiento al candidato con indicaciones para el próximo proceso).</div></div>
+                <div class="manual-row"><div class="manual-icon"><i class="fas fa-award"></i></div><div class="manual-text"><strong>Asignar Categoría</strong>Tras entrevista PASS: asigna Junior, Senior o Expert.</div></div>
+                <div class="manual-row"><div class="manual-icon"><i class="fas fa-times-circle"></i></div><div class="manual-text"><strong>Rechazar</strong>Cierra el proceso definitivamente con correo de rechazo.</div></div>
+            </div>`;
+        }
+        function getFAQHTML() {
+            const faqs = [
+                ['¿En qué consiste el proceso de admisión?', 'El proceso tiene 5 etapas: Registro → E1 → E2 → E3 → Entrevista → Aprobación. Cada etapa debe superarse para avanzar.'],
+                ['¿Cómo sé cuándo revisar un examen?', 'El Dashboard muestra en "Acciones Pendientes" los candidatos con revisión pendiente. En Profesionales verás el estado "Revisión E1/E2/E3".'],
+                ['¿Cómo paso un candidato de E1 a E2?', 'Abre ⚙ Acciones → "Aprobar E1". El sistema envía automáticamente el correo con enlace a E2.'],
+                ['¿Qué hago si un candidato reprueba?', 'Usa ⚙ Acciones → "Rechazar". Escribe el motivo y el sistema cierra el proceso enviando correo al candidato.'],
+                ['¿Cómo se califican los exámenes?', 'Las preguntas de opción múltiple se califican automáticamente. Las preguntas abiertas las evalúa IA (OpenAI) según calidad y autenticidad.'],
+                ['¿Qué es "Firma de Términos"?', 'Tras aprobar E1, el candidato debe aceptar términos antes de continuar. Puedes reenviar el correo de términos desde ⚙ Acciones.'],
+                ['¿Cómo agendo una entrevista?', 'Cuando el estado es "Entrevista por agendar": ⚙ Acciones → Reenviar Correos → "Agendar" para enviar el enlace de agendamiento.'],
+                ['¿Cómo asigno la categoría final?', 'Después de entrevista PASS, en el modal de Acciones aparece la sección "Asignar Categoría". Selecciona Junior, Senior o Expert.'],
+                ['¿Qué hago si no recibió un correo?', 'Ve a ⚙ Acciones → "Reenviar Correos" y selecciona el tipo correspondiente a la etapa actual del candidato.'],
+                ['¿Cómo veo las respuestas de un examen?', 'Ve a "Ver Respuestas" en el menú lateral. Selecciona el candidato y navega entre las tabs E1, E2 y E3.'],
+            ];
+            return '<div class="help-section"><div class="help-section-title">Preguntas Frecuentes</div>' +
+                faqs.map(([q, a]) => `
+                <div class="faq-item">
+                    <button class="faq-q" onclick="toggleFAQ(this)">
+                        <span>${q}</span><span class="faq-chev" style="font-size:0.7rem;opacity:0.45;flex-shrink:0;">▼</span>
+                    </button>
+                    <div class="faq-a">${a}</div>
+                </div>`).join('') + '</div>';
+        }
+        function getContactoHTML() {
+            return `
+            <div class="contact-card">
+                <h4><i class="fas fa-envelope" style="color:#0d6efd;margin-right:6px;"></i>Soporte por Correo</h4>
+                <p>Para problemas técnicos, dudas o sugerencias, no dudes en escribirnos.</p>
+                <a class="contact-link" href="mailto:sistemascatholizare@gmail.com"><i class="fas fa-envelope"></i> sistemascatholizare@gmail.com</a>
+            </div>
+            <div class="contact-card">
+                <h4><i class="fab fa-whatsapp" style="color:#25d366;margin-right:6px;"></i>WhatsApp</h4>
+                <p>Contáctanos directamente para una respuesta rápida.</p>
+                <a class="contact-link" href="https://wa.me/573001234567" target="_blank"><i class="fab fa-whatsapp"></i> Abrir WhatsApp</a>
+            </div>
+            <div class="contact-card">
+                <h4><i class="fas fa-video" style="color:#2d8cff;margin-right:6px;"></i>Reunión por Zoom</h4>
+                <p>Únete a nuestra sala de soporte para asistencia en tiempo real.</p>
+                <a class="contact-link" href="#" target="_blank"><i class="fas fa-video"></i> Unirse a Zoom</a>
+            </div>
+            <div class="contact-card">
+                <h4><i class="fas fa-clock" style="color:#888;margin-right:6px;"></i>Horario de Atención</h4>
+                <p>Nuestro equipo está disponible en el siguiente horario:</p>
+                <div style="font-size:0.84rem;font-weight:700;color:#001A55;">Lunes a Viernes: 9:00 AM – 6:00 PM (CST)</div>
+            </div>`;
+        }
+
+        // ─── CONTROL DE ACCESO: SUPERADMIN ────────────────────────────────
+        let PENDING_CRITICAL_ACTION = null;  // Almacena qué acción espera validación
+
+        async function validateSuperAdminPin() {
+            const pin = document.getElementById('superAdminPin').value;
+            const btn = document.getElementById('superAdminAuthBtn');
+            const msg = document.getElementById('superAdminAuthMsg');
+
+            if (!pin) {
+                msg.style.display = 'block';
+                msg.style.background = '#fee2e2';
+                msg.style.color = '#dc2626';
+                msg.textContent = 'Por favor ingresa el PIN';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Validando...';
+
+            try {
+                const resp = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'verifyAdminToken', token: pin })
+                });
+                const data = await resp.json();
+
+                if (data.success) {
+                    SUPERADMIN_PIN_VALIDATED = true;
+                    msg.style.display = 'block';
+                    msg.style.background = '#dcfce7';
+                    msg.style.color = '#15803d';
+                    msg.textContent = '✓ PIN válido. Ejecutando acción...';
+
+                    setTimeout(() => {
+                        document.getElementById('modalSuperAdminAuth').style.display = 'none';
+                        document.getElementById('superAdminPin').value = '';
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fas fa-lock"></i> Validar PIN';
+                        msg.style.display = 'none';
+
+                        // Ejecutar acción pendiente
+                        if (PENDING_CRITICAL_ACTION) {
+                            PENDING_CRITICAL_ACTION();
+                            PENDING_CRITICAL_ACTION = null;
+                        }
+                        // Auto-reset después de 1 acción
+                        SUPERADMIN_PIN_VALIDATED = false;
+                    }, 1500);
+                } else {
+                    msg.style.display = 'block';
+                    msg.style.background = '#fee2e2';
+                    msg.style.color = '#dc2626';
+                    msg.textContent = '✗ PIN incorrecto. Contacta al superadministrador.';
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-lock"></i> Validar PIN';
+                }
+            } catch (e) {
+                msg.style.display = 'block';
+                msg.style.background = '#fee2e2';
+                msg.style.color = '#dc2626';
+                msg.textContent = 'Error de conexión';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-lock"></i> Validar PIN';
+            }
+        }
+
+        function requireSuperAdminPin(action) {
+            if (USER_ROLE === 'superadmin' || SUPERADMIN_PIN_VALIDATED) {
+                // Es superadmin o ya validó PIN - ejecutar directamente
+                action();
+                SUPERADMIN_PIN_VALIDATED = false;  // Reset después de cada acción
+            } else {
+                // Guardar acción pendiente y mostrar modal
+                PENDING_CRITICAL_ACTION = action;
+                document.getElementById('superAdminPin').value = '';
+                document.getElementById('modalSuperAdminAuth').style.display = 'block';
+                document.getElementById('superAdminPin').focus();
+            }
+        }
+
+        // ────────────────────────────────────────────────────────────────────
+    </script>
+
+    <!-- Centro de Ayuda: overlay + drawer -->
+    <div id="helpOverlay" class="help-overlay" onclick="toggleHelp()"></div>
+    <div id="helpDrawer" class="help-drawer">
+        <div class="help-header-top">
+            <div>
+                <div class="help-title"><i class="fas fa-cog"></i> Centro de Ayuda</div>
+            </div>
+            <button class="help-close" onclick="toggleHelp()">&times;</button>
+        </div>
+        <div class="help-subtitle">Encuentra respuestas, guías y contacta a nuestro equipo de soporte.</div>
+        <div class="help-tabs">
+            <button class="help-tab active" onclick="switchHelpTab('manual', this)">📖 Manual</button>
+            <button class="help-tab"        onclick="switchHelpTab('faq', this)">❓ FAQ</button>
+            <button class="help-tab"        onclick="switchHelpTab('contacto', this)">📮 Contacto</button>
+        </div>
+        <div id="helpBody" class="help-body"></div>
+        <div class="help-footer">Versión del sistema: 1.0</div>
+    </div>
+</body>
+</html>
