@@ -33,7 +33,7 @@ function initializeSpreadsheet() {
     },
     'Tokens': {
       headers: ['token', 'candidate_id', 'exam', 'created_at', 'valid_from', 'valid_until',
-                'used', 'status', 'email', 'name', 'scheduled_date', 'used_at']
+                'used', 'status', 'email', 'name', 'scheduled_date']
     },
     'Timeline': {
       headers: ['timestamp', 'candidate_id', 'event_type', 'details_json', 'actor']
@@ -247,10 +247,12 @@ const SS = SpreadsheetApp.getActiveSpreadsheet();
 
 /**
  * Mapa de aliases: clave interna v3.0 → nombre real en Script Properties.
+ * Permite que el código use nombres descriptivos mientras las Properties
+ * usan los nombres cortos que ya tienes configurados.
  */
 const PROP_ALIASES = {
   'BREVO_LIST_INTERESADOS': 'INTERESADOS',
-  'BREVO_LIST_RECHAZADOS':  'RECHAZADOS',
+  'BREVO_LIST_RECHAZADOS':  'RECHAZADOS',   // en Props puede aparecer como "RECHAZADOS:"
   'BREVO_LIST_APROBADOS':   'APROBADOS',
   'BREVO_LIST_JUNIOR':      'JUNIOR',
   'BREVO_LIST_SENIOR':      'SENIOR',
@@ -259,33 +261,48 @@ const PROP_ALIASES = {
   'BREVO_LIST_INCONCLUSOS': 'INCONCLUSOS',
 };
 
+/**
+ * Lee una clave de configuración.
+ * Orden de prioridad:
+ *   1. Script Properties (nombre exacto)
+ *   2. Script Properties (alias del mapa PROP_ALIASES)
+ *   3. Hoja "Config" de Google Sheets (fallback)
+ *   4. defaultValue
+ */
 function getConfig(key, defaultValue) {
   if (defaultValue === undefined) defaultValue = null;
   try {
     const props = PropertiesService.getScriptProperties();
 
+    // 1. Nombre exacto en Script Properties
     let raw = props.getProperty(key);
 
+    // 2. Alias (ej: BREVO_LIST_JUNIOR → JUNIOR)
     if (raw === null && PROP_ALIASES[key]) {
       raw = props.getProperty(PROP_ALIASES[key]);
+      // Algunos nombres tienen colon al final (ej: "RECHAZADOS:")
       if (raw === null) raw = props.getProperty(PROP_ALIASES[key] + ':');
     }
 
     if (raw !== null && raw !== '') {
+      // Si es número puro, convertir
       if (!isNaN(raw) && raw.trim() !== '') return Number(raw);
+      // Si parece JSON, parsear
       if (raw.startsWith('{') || raw.startsWith('[')) {
         try { return JSON.parse(raw); } catch(e) {}
       }
       return raw;
     }
 
+    // 3. Fallback: hoja Config
+    // Los datos están en columnas J(9), K(10), L(11) — no en A,B,C
     const sheet = SS.getSheetByName('Config');
     if (!sheet) return defaultValue;
     const data = sheet.getDataRange().getValues();
     for (let i = 0; i < data.length; i++) {
-      const cellValue = String(data[i][9] || '').trim();
+      const cellValue = String(data[i][9] || '').trim();   // columna J
       if (!cellValue) continue;
-      const rawVal = data[i][10];
+      const rawVal = data[i][10];                          // columna K
       if (rawVal === undefined || rawVal === '') continue;
       if (cellValue === key) {
         const value = typeof rawVal === 'string' ? rawVal.trim() : rawVal;
@@ -301,6 +318,11 @@ function getConfig(key, defaultValue) {
   return defaultValue;
 }
 
+/**
+ * Función de diagnóstico: verifica que todas las claves críticas
+ * están resueltas. Ejecutar desde el editor GAS para validar.
+ * Dropdown → testConfig → ▶️
+ */
 function testConfig() {
   const keys = [
     'OPENAI_API_KEY', 'OPENAI_MODEL',
@@ -334,17 +356,20 @@ const CONFIG = {
   get app_name()                { return getConfig('APP_NAME', 'RCCC Evaluaciones'); },
   get handoff_spreadsheet_id()  { return getConfig('HANDOFF_SPREADSHEET_ID', ''); },
   get admin_pin()               { return getConfig('ADMIN_PIN', ''); },
+  // Exámenes
   get exam_e1_duration()        { return getConfig('EXAM_E1_DURATION_MIN', 120); },
   get exam_e1_min_score()       { return getConfig('EXAM_E1_MIN_SCORE', 75); },
   get exam_e2_duration()        { return getConfig('EXAM_E2_DURATION_MIN', 120); },
   get exam_e2_min_score()       { return getConfig('EXAM_E2_MIN_SCORE', 75); },
   get exam_e3_duration()        { return getConfig('EXAM_E3_DURATION_MIN', 120); },
   get exam_e3_min_score()       { return getConfig('EXAM_E3_MIN_SCORE', 75); },
+  // Categorías
   get category_junior_min()     { return getConfig('CATEGORY_JUNIOR_MIN', 75); },
   get category_junior_max()     { return getConfig('CATEGORY_JUNIOR_MAX', 79); },
   get category_senior_min()     { return getConfig('CATEGORY_SENIOR_MIN', 80); },
   get category_senior_max()     { return getConfig('CATEGORY_SENIOR_MAX', 89); },
   get category_expert_min()     { return getConfig('CATEGORY_EXPERT_MIN', 90); },
+  // Brevo listas
   get brevo_list_interesados()  { return getConfig('BREVO_LIST_INTERESADOS', 3); },
   get brevo_list_rechazados()   { return getConfig('BREVO_LIST_RECHAZADOS', 4); },
   get brevo_list_aprobados()    { return getConfig('BREVO_LIST_APROBADOS', 5); },
@@ -360,6 +385,9 @@ const CONFIG = {
 // ================================
 // ROUTER PRINCIPAL (doPost / doGet)
 // ================================
+/**
+ * POST: Recibe acciones desde proxy.php
+ */
 function doPost(e) {
   try {
     const data   = JSON.parse(e.postData.contents);
@@ -401,6 +429,9 @@ function doPost(e) {
   }
 }
 
+/**
+ * GET: Sirve datos al frontend
+ */
 function doGet(e) {
   try {
     const action = e.parameter.action;
@@ -441,8 +472,8 @@ function handleRegistration(data) {
         return jsonResponse(false, 'Email ya registrado');
     }
 
-    const candidate_id      = generateCandidateId();
-    const registration_date = new Date();
+    const candidate_id        = generateCandidateId();
+    const registration_date   = new Date();
 
     insertNewRow(sheet, [
       candidate_id, registration_date,
@@ -454,7 +485,7 @@ function handleRegistration(data) {
     ]);
 
     const token = generateToken(candidate_id, 'E1');
-    saveToken(token, candidate_id, 'E1', candidate.email, candidate.name);
+    saveToken(token, candidate_id, 'E1', candidate.email, candidate.name, '');
 
     addTimelineEvent(candidate_id, 'CANDIDATO_REGISTRADO', {
       nombre: candidate.name, email: candidate.email
@@ -514,11 +545,13 @@ function acceptTerms(candidateId, acceptedAt, clientIp, userAgent) {
         const email = data[i][3];
         const name  = data[i][2];
         sheet.getRange(i + 1, 11).setValue('pending_review_E2');
+        // Guardar firma de aceptación: columna V (22) = timestamp, W (23) = IP, X (24) = user-agent
         sheet.getRange(i + 1, 22).setValue(acceptedAt || new Date().toISOString());
         sheet.getRange(i + 1, 23).setValue(clientIp   || '');
         sheet.getRange(i + 1, 24).setValue(userAgent   || '');
-        const token = generateToken(candidateId, 'E2');
-        saveToken(token, candidateId, 'E2', email, name);
+        const token          = generateToken(candidateId, 'E2');
+        const scheduled_date = new Date().toISOString().split('T')[0];
+        saveToken(token, candidateId, 'E2', email, name, scheduled_date);
         sendEmailE2(email, name, token, candidateId);
         addTimelineEvent(candidateId, 'TERMINOS_ACEPTADOS', {
           email: email, token_e2_generado: token,
@@ -583,6 +616,7 @@ function handleExamSubmit(data) {
 
     updateCandidateStatus(candidate_id, 'pending_review_' + exam);
 
+    // Escribir score y fecha en columnas dedicadas de Candidatos
     const candSheet = SS.getSheetByName('Candidatos');
     if (candSheet) {
       const candData = candSheet.getDataRange().getValues();
@@ -592,7 +626,7 @@ function handleExamSubmit(data) {
           const dateCol  = exam === 'E1' ? 13 : exam === 'E2' ? 15 : 17;
           const scoreRange = candSheet.getRange(ci + 1, scoreCol);
           scoreRange.setValue(score);
-          scoreRange.setNumberFormat('0');
+          scoreRange.setNumberFormat('0');   // forzar formato numérico, no fecha
           candSheet.getRange(ci + 1, dateCol).setValue(new Date(finishedAt));
           break;
         }
@@ -615,6 +649,10 @@ function handleExamSubmit(data) {
   }
 }
 
+/**
+ * Guardar respuestas parciales cuando candidato cambia de pestaña
+ * Permite que el admin vea hasta dónde contestó si no termina el examen
+ */
 function handleSavePartialExam(data) {
   try {
     const token      = data.token;
@@ -629,25 +667,29 @@ function handleSavePartialExam(data) {
 
     const candidate_id = tokenData.candidate_id;
 
+    // Guardar respuestas parciales (sin marcar token como usado)
     const sheetName = 'Test_' + exam + '_Respuestas';
     const sheet = SS.getSheetByName(sheetName);
     if (sheet) {
       const data_rows = sheet.getDataRange().getValues();
+      // Buscar fila existente del candidato
       let found = false;
       for (let i = 1; i < data_rows.length; i++) {
         if (data_rows[i][0] === candidate_id) {
-          sheet.getRange(i + 1, 5).setValue(JSON.stringify(answers));
-          sheet.getRange(i + 1, 7).setValue(blur_count);
-          sheet.getRange(i + 1, 8).setValue(copy_count);
+          // Actualizar respuestas parciales
+          sheet.getRange(i + 1, 5).setValue(JSON.stringify(answers));  // responses_json
+          sheet.getRange(i + 1, 7).setValue(blur_count);                // blur_events
+          sheet.getRange(i + 1, 8).setValue(copy_count);                // copy_attempts
           found = true;
           break;
         }
       }
+      // Si no existe fila, crear una nueva con respuestas parciales
       if (!found) {
         insertNewRow(sheet, [
-          candidate_id, startedAt, '', '',
-          JSON.stringify(answers), blur_count, copy_count, 0,
-          '', '', ''
+          candidate_id, startedAt, '', '', // candidate_id, started_at, finished_at, elapsed_seconds
+          JSON.stringify(answers), blur_count, copy_count, 0, // responses_json, blur_events, copy_attempts, ai_detection_count
+          '', '', '' // verdict, openai_score_json, flags
         ]);
       }
     }
@@ -662,6 +704,11 @@ function handleSavePartialExam(data) {
 // ================================
 // MODULO: ACCIONES ADMIN (desde dashboard)
 // ================================
+
+/**
+ * GET /exec?action=getDashboardData
+ * Retorna candidatos + estadísticas para el dashboard.
+ */
 function handleGetDashboardData() {
   try {
     const candidatesResult = getCandidatesForAdmin();
@@ -676,6 +723,10 @@ function handleGetDashboardData() {
   }
 }
 
+/**
+ * POST action=approveExam
+ * Body: { candidateId, exam, notes }
+ */
 function handleApproveExam(data) {
   try {
     const candidateId = data.candidateId;
@@ -690,10 +741,19 @@ function handleApproveExam(data) {
   }
 }
 
+/**
+ * POST action=autoApproveE1
+ * Aprueba E1 automáticamente con score 70% (sin esperar que candidato lo complete)
+ * Body: { candidateId }
+ */
 function handleAutoApproveE1(data) {
   try {
     const candidateId = data.candidateId;
-    if (!candidateId) return jsonResponse(false, 'candidateId requerido');
+
+    if (!candidateId) {
+      return jsonResponse(false, 'candidateId requerido');
+    }
+
     const result = autoApproveE1Admin(candidateId);
     if (result.success) return jsonResponse(true, 'E1 aprobado automáticamente con 70%', result);
     return jsonResponse(false, result.error || 'Error al aprobar E1');
@@ -703,6 +763,10 @@ function handleAutoApproveE1(data) {
   }
 }
 
+/**
+ * POST action=rejectExam
+ * Body: { candidateId, exam, reason }
+ */
 function handleRejectExam(data) {
   try {
     const candidateId = data.candidateId;
@@ -718,6 +782,10 @@ function handleRejectExam(data) {
   }
 }
 
+/**
+ * POST action=assignCategory
+ * Body: { candidateId, category, comments }
+ */
 function handleAssignCategory(data) {
   try {
     const candidateId = data.candidateId;
@@ -732,6 +800,11 @@ function handleAssignCategory(data) {
   }
 }
 
+/**
+ * POST action=adminLogin
+ * Body: { email, password, pin }
+ * Por ahora valida solo por PIN (simple). Expandir con auth completo según necesidad.
+ */
 function handleAdminLogin(data) {
   try {
     const pin = data.pin || data.password || '';
@@ -745,10 +818,19 @@ function handleAdminLogin(data) {
   }
 }
 
+/**
+ * POST action=verifyOTP
+ * Placeholder: OTP no implementado aún. Retorna error informativo.
+ */
 function handleVerifyOTP(data) {
   return jsonResponse(false, 'OTP no implementado en esta versión');
 }
 
+/**
+ * POST action=verifyAdminToken
+ * Body: { token }
+ * Valida PIN de admin para acciones críticas
+ */
 function handleVerifyAdminToken(data) {
   try {
     const pin = (data.token || '').trim();
@@ -761,6 +843,11 @@ function handleVerifyAdminToken(data) {
   }
 }
 
+/**
+ * POST action=resendWelcomeEmail
+ * Body: { candidateId }
+ * Genera un nuevo token E1 y reenvía el correo de bienvenida.
+ */
 function handleResendWelcomeEmail(data) {
   try {
     const candidateId = data.candidateId;
@@ -779,7 +866,7 @@ function handleResendWelcomeEmail(data) {
     if (!candidate) return jsonResponse(false, 'Candidato no encontrado');
 
     const token = generateToken(candidateId, 'E1');
-    saveToken(token, candidateId, 'E1', candidate.email, candidate.name);
+    saveToken(token, candidateId, 'E1', candidate.email, candidate.name, '');
     sendWelcomeEmail(candidate.email, candidate.name, token, candidateId);
     return jsonResponse(true, 'Correo de bienvenida reenviado a ' + candidate.email);
   } catch (error) {
@@ -788,11 +875,25 @@ function handleResendWelcomeEmail(data) {
   }
 }
 
+/**
+ * POST action=sendEmailManual
+ * Body: { candidateId, emailType, reason?, category? }
+ *
+ * emailType:
+ *   'welcome'           → bienvenida + token E1
+ *   'terms'             → aceptar términos (post E1 aprobado)
+ *   'e2'                → acceso examen E2
+ *   'e3'                → acceso examen E3
+ *   'awaiting_interview'→ espera de entrevista
+ *   'rejected'          → rechazo (requiere reason)
+ *   'approved'          → aprobado + categoría (requiere category)
+ */
 function handleSendEmailManual(data) {
   try {
     const { candidateId, emailType, reason, category } = data;
     if (!candidateId || !emailType) return jsonResponse(false, 'candidateId y emailType requeridos');
 
+    // Cargar datos del candidato
     const sheet = SS.getSheetByName('Candidatos');
     if (!sheet) return jsonResponse(false, 'Sheet Candidatos no encontrada');
     const rows = sheet.getDataRange().getValues();
@@ -811,7 +912,7 @@ function handleSendEmailManual(data) {
     switch (emailType) {
       case 'welcome': {
         const token = generateToken(candidateId, 'E1');
-        saveToken(token, candidateId, 'E1', email, name);
+        saveToken(token, candidateId, 'E1', email, name, '');
         result = sendWelcomeEmail(email, name, token, candidateId);
         break;
       }
@@ -820,13 +921,13 @@ function handleSendEmailManual(data) {
         break;
       case 'e2': {
         const token = generateToken(candidateId, 'E2');
-        saveToken(token, candidateId, 'E2', email, name);
+        saveToken(token, candidateId, 'E2', email, name, new Date().toISOString().split('T')[0]);
         result = sendEmailE2(email, name, token, candidateId);
         break;
       }
       case 'e3': {
         const token = generateToken(candidateId, 'E3');
-        saveToken(token, candidateId, 'E3', email, name);
+        saveToken(token, candidateId, 'E3', email, name, new Date().toISOString().split('T')[0]);
         result = sendEmailE3(email, name, token, candidateId);
         break;
       }
@@ -857,6 +958,11 @@ function handleSendEmailManual(data) {
 // ================================
 // ACCIONES MANUALES DE ADMIN
 // ================================
+
+/**
+ * Añade manualmente un contacto a una lista Brevo por nombre de lista.
+ * No cambia el status del candidato — solo lo agrega al grupo.
+ */
 function handleAddToBrevoListManual(data) {
   try {
     const { candidateId, listName } = data;
@@ -893,6 +999,10 @@ function handleAddToBrevoListManual(data) {
   }
 }
 
+/**
+ * Marca un candidato como inconcluso (no asistió a la entrevista).
+ * Cambia status a 'inconclusive' y lo agrega a la lista Brevo inconclusos.
+ */
 function handleMarkAsIncomplete(data) {
   try {
     const { candidateId } = data;
@@ -918,6 +1028,12 @@ function handleMarkAsIncomplete(data) {
   }
 }
 
+/**
+ * POST action=registerInterviewResult
+ * Body: { candidateId, result: 'pass'|'fail', interviewNotes }
+ * Pass → status awaiting_category (admin asigna categoría después)
+ * Fail → status rejected + email de rechazo con notas como campo personalizado
+ */
 function handleRegisterInterviewResult(data) {
   try {
     const { candidateId, result, interviewNotes } = data;
@@ -944,6 +1060,7 @@ function interviewResultAdmin(candidateId, result, interviewNotes) {
       if (data[i][0] === candidateId) {
         const email = data[i][3];
         const name  = data[i][2];
+        // Guardar notas de entrevista (col 18, índice 17)
         sheet.getRange(i + 1, 18).setValue(interviewNotes);
         if (result === 'pass') {
           sheet.getRange(i + 1, 11).setValue('awaiting_category');
@@ -999,6 +1116,7 @@ function getCandidatesForAdmin() {
         });
       }
     }
+    // Ordenar por fecha de registro (más nuevos primero)
     candidates.sort((a, b) => new Date(b.registration_date || 0) - new Date(a.registration_date || 0));
     return { success: true, candidates: candidates };
   } catch (error) {
@@ -1019,8 +1137,9 @@ function approveExamAdmin(candidateId, exam) {
           sheet.getRange(i + 1, 11).setValue('awaiting_terms_acceptance');
           sendEmailTerms(email, name, candidateId);
         } else if (exam === 'E2') {
-          const token = generateToken(candidateId, 'E3');
-          saveToken(token, candidateId, 'E3', email, name);
+          const token          = generateToken(candidateId, 'E3');
+          const scheduled_date = new Date().toISOString().split('T')[0];
+          saveToken(token, candidateId, 'E3', email, name, scheduled_date);
           sheet.getRange(i + 1, 11).setValue('pending_review_E3');
           sendEmailE3(email, name, token, candidateId);
         } else if (exam === 'E3') {
@@ -1070,15 +1189,25 @@ function autoApproveE1Admin(candidateId) {
     const data  = sheet.getDataRange().getValues();
     for (let i = 1; i < data.length; i++) {
       if (data[i][0] === candidateId) {
-        const score = 70;
+        const email = data[i][3];
+        const name  = data[i][2];
+        const score = 70;  // Score automático
         const now   = new Date().toISOString();
-        sheet.getRange(i + 1, 12).setValue(score);
-        sheet.getRange(i + 1, 13).setValue(now);
+
+        // Registrar score E1
+        sheet.getRange(i + 1, 12).setValue(score);          // E1_score en columna 12
+        sheet.getRange(i + 1, 13).setValue(now);            // E1_date en columna 13
+
+        // Cambiar estado a pending_review_E1 (para que admin lo revise)
         sheet.getRange(i + 1, 11).setValue('pending_review_E1');
+
+        // Registrar evento
         addTimelineEvent(candidateId, 'E1_APROBADO_AUTOMATICAMENTE_REGISTRO', {
-          score: score, timestamp: now,
+          score: score,
+          timestamp: now,
           reason: 'Aprobación automática desde fase de registro'
         });
+
         return { success: true, score: score };
       }
     }
@@ -1185,17 +1314,13 @@ function generateToken(candidate_id, exam) {
   return exam + '_' + candidate_id.substring(0, 8) + '_' + timestamp + '_' + random;
 }
 
-/**
- * Guarda un token de un solo uso. Se invalida al completar el examen.
- */
-function saveToken(token, candidate_id, exam, email, name) {
+function saveToken(token, candidate_id, exam, email, name, scheduled_date) {
   const sheet = SS.getSheetByName('Tokens');
   if (!sheet) { Logger.log('[saveToken] Hoja Tokens no encontrada'); return; }
-  const now = new Date();
   insertNewRow(sheet, [
-    token, candidate_id, exam, now,
-    '', '',
-    false, 'active', email, name, '', ''
+    token, candidate_id, exam, new Date(),
+    '', '', // Columnas valid_from y valid_until (ya no se usan - mantener para compatibilidad)
+    false, 'active', email, name, scheduled_date || '', '' // Nueva columna: used_at
   ]);
   Logger.log('[saveToken] Token guardado: ' + token);
 }
@@ -1208,10 +1333,8 @@ function verifyToken(token, exam) {
     if (data[i][0] === token && data[i][2] === exam) {
       const used   = data[i][6];
       const status = data[i][7];
-
-      if (used)                return { valid: false, message: 'Token ya fue usado (solo se permite un intento)' };
+      if (used)              return { valid: false, message: 'Token ya fue usado (solo se permite un intento)' };
       if (status !== 'active') return { valid: false, message: 'Token no activo' };
-
       return { valid: true, candidate_id: data[i][1], email: data[i][8], name: data[i][9] };
     }
   }
@@ -1224,35 +1347,46 @@ function markTokenAsUsed(token) {
   const data = sheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === token) {
-      sheet.getRange(i + 1, 7).setValue(true);
-      sheet.getRange(i + 1, 8).setValue('used');
-      sheet.getRange(i + 1, 12).setValue(new Date());
+      sheet.getRange(i + 1, 7).setValue(true);           // used = true
+      sheet.getRange(i + 1, 8).setValue('used');         // status = 'used'
+      sheet.getRange(i + 1, 12).setValue(new Date());    // used_at = ahora
       break;
     }
   }
 }
 
+/**
+ * Reactivar intento de examen (SUPERADMIN ONLY)
+ * Body: { candidateId, exam, reason }
+ */
 function handleResetTokenAttempt(data) {
   try {
     const candidateId = data.candidateId;
     const exam        = data.exam;
     const reason      = data.reason || 'Sin especificar';
 
-    if (!candidateId || !exam) return jsonResponse(false, 'candidateId y exam requeridos');
+    if (!candidateId || !exam) {
+      return jsonResponse(false, 'candidateId y exam requeridos');
+    }
 
+    // Buscar token usado y reactivarlo
     const sheet = SS.getSheetByName('Tokens');
     if (!sheet) return jsonResponse(false, 'Hoja Tokens no encontrada');
 
     const data_sheet = sheet.getDataRange().getValues();
     for (let i = 1; i < data_sheet.length; i++) {
       if (data_sheet[i][0] && data_sheet[i][1] === candidateId && data_sheet[i][2] === exam && data_sheet[i][6]) {
-        sheet.getRange(i + 1, 7).setValue(false);
-        sheet.getRange(i + 1, 8).setValue('active');
-        sheet.getRange(i + 1, 12).setValue('');
+        // Encontró token usado - reactivarlo
+        sheet.getRange(i + 1, 7).setValue(false);        // used = false
+        sheet.getRange(i + 1, 8).setValue('active');     // status = 'active'
+        sheet.getRange(i + 1, 12).setValue('');          // used_at = vacío
 
+        // Registrar en timeline
         addTimelineEvent(candidateId, 'TOKEN_ATTEMPT_RESET', {
-          exam: exam, reason: reason,
-          reset_by: 'admin', reset_at: new Date().toISOString()
+          exam: exam,
+          reason: reason,
+          reset_by: 'admin',
+          reset_at: new Date().toISOString()
         });
 
         return jsonResponse(true, 'Intento reactivado para ' + exam);
@@ -1411,6 +1545,7 @@ function getExamData(token, exam) {
   try {
     const tokenData = verifyToken(token, exam);
     if (!tokenData.valid) return jsonResponse(false, tokenData.message);
+    // NO marcar token como usado aquí - se marca al enviar en handleExamSubmit()
     const questions = getQuestionsForExam(exam);
     const duration  = getExamDuration(exam);
     return jsonResponse(true, 'OK', {
@@ -1477,6 +1612,10 @@ function moveContactBetweenLists(email, fromListId, toListId) {
 // ================================
 // MODULO: EMAILS
 // ================================
+/**
+ * Envía email via Resend (primero) → GmailApp (fallback).
+ * Brevo se usa SOLO para gestión de listas, no para correos transaccionales.
+ */
 function sendEmail(to, subject, htmlBody) {
   const resendKey = CONFIG.resend_api_key;
   if (resendKey) {
@@ -1548,10 +1687,10 @@ function sendWelcomeEmail(email, name, token, candidate_id) {
     '<div style="background:linear-gradient(135deg,#001A55,#0966FF);color:white;padding:20px;text-align:center;border-radius:8px 8px 0 0;">' +
     '<h1>Bienvenido ' + name + '</h1><p>Catholizare.com</p></div>' +
     '<div style="background:#f9f9f9;padding:20px;">' +
-    '<p>Tu registro ha sido exitoso. Puedes acceder al <strong>Examen E1</strong> cuando lo desees — el enlace está activo ahora mismo.</p>' +
+    '<p>Tu registro ha sido exitoso. Ya puedes acceder al <strong>Examen E1</strong> cuando lo desees — no hay fecha límite para iniciarlo.</p>' +
     '<p><a href="' + exam_url + '" style="display:inline-block;background:#0966FF;color:white;padding:12px 24px;text-decoration:none;border-radius:4px;">Acceder al Examen E1</a></p>' +
     '<div style="background:#fef2f2;border-left:4px solid #dc2626;padding:12px;margin:16px 0;border-radius:4px;">' +
-    '<p style="margin:0;color:#991b1b;font-size:13px;"><strong>⚠️ Importante:</strong> Este enlace es de <strong>un solo uso</strong>. Una vez que presiones "Comenzar", no podrás reiniciar ni volver a acceder. Asegúrate de contar con el tiempo y las condiciones adecuadas antes de iniciar.</p>' +
+    '<p style="margin:0;color:#991b1b;font-size:13px;"><strong>⚠️ Una sola oportunidad:</strong> Cuentas con un único intento para completar este examen, sin importar el momento en que decidas tomarlo. Una vez que presiones "Comenzar", no podrás reiniciar ni volver a acceder. Asegúrate de contar con el tiempo y las condiciones adecuadas antes de iniciar.</p>' +
     '</div>' +
     '<p style="font-size:12px;color:#666;"><strong>Instrucciones:</strong> Duración 2h · No copy/paste · Máx. 3 cambios de ventana</p>' +
     '</div></div>';
@@ -1567,24 +1706,20 @@ function sendEmailTerms(email, name, candidateId) {
 
 function sendEmailE2(email, name, token, candidateId) {
   const url = 'https://profesionales.catholizare.com/catholizare_sistem/examen/?token=' + token + '&exam=E2';
-  const html =
-    '<div style="font-family:Arial;max-width:600px;margin:0 auto;"><h2>Hola ' + name + '</h2>' +
-    '<p>Has aceptado los términos. Ya puedes tomar el Examen E2.</p>' +
+  const html = '<div style="font-family:Arial;max-width:600px;margin:0 auto;"><h2>Hola ' + name + '</h2><p>Has aceptado los términos. Ya puedes tomar el Examen E2.</p>' +
     '<p><a href="' + url + '" style="display:inline-block;background:#0966FF;color:white;padding:12px 24px;text-decoration:none;border-radius:4px;">Acceder al Examen E2</a></p>' +
     '<div style="background:#fef2f2;border-left:4px solid #dc2626;padding:12px;margin:16px 0;border-radius:4px;">' +
-    '<p style="margin:0;color:#991b1b;font-size:13px;"><strong>⚠️ Importante:</strong> Este enlace es de <strong>un solo uso</strong>. Una vez que presiones "Comenzar", no podrás reiniciar ni volver a acceder. Asegúrate de contar con el tiempo y las condiciones adecuadas antes de iniciar.</p>' +
+    '<p style="margin:0;color:#991b1b;font-size:13px;"><strong>⚠️ Un solo intento:</strong> Solo tienes un intento para completar este examen. Una vez que presiones "Comenzar", no podrás reiniciar ni volver a acceder. Asegúrate de contar con el tiempo y condiciones necesarias antes de iniciar.</p>' +
     '</div></div>';
   return sendEmail(email, 'Accede al Examen E2', html);
 }
 
 function sendEmailE3(email, name, token, candidateId) {
   const url = 'https://profesionales.catholizare.com/catholizare_sistem/examen/?token=' + token + '&exam=E3';
-  const html =
-    '<div style="font-family:Arial;max-width:600px;margin:0 auto;"><h2>Hola ' + name + '</h2>' +
-    '<p>¡Excelente! Aprobaste E2. Ahora puedes tomar el Examen E3 (final).</p>' +
+  const html = '<div style="font-family:Arial;max-width:600px;margin:0 auto;"><h2>Hola ' + name + '</h2><p>¡Excelente! Aprobaste E2. Ahora puedes tomar el Examen E3 (final).</p>' +
     '<p><a href="' + url + '" style="display:inline-block;background:#0966FF;color:white;padding:12px 24px;text-decoration:none;border-radius:4px;">Acceder al Examen E3</a></p>' +
     '<div style="background:#fef2f2;border-left:4px solid #dc2626;padding:12px;margin:16px 0;border-radius:4px;">' +
-    '<p style="margin:0;color:#991b1b;font-size:13px;"><strong>⚠️ Importante:</strong> Este enlace es de <strong>un solo uso</strong>. Una vez que presiones "Comenzar", no podrás reiniciar ni volver a acceder. Asegúrate de contar con el tiempo y las condiciones adecuadas antes de iniciar.</p>' +
+    '<p style="margin:0;color:#991b1b;font-size:13px;"><strong>⚠️ Un solo intento:</strong> Solo tienes un intento para completar este examen. Una vez que presiones "Comenzar", no podrás reiniciar ni volver a acceder. Asegúrate de contar con el tiempo y condiciones necesarias antes de iniciar.</p>' +
     '</div></div>';
   return sendEmail(email, 'Accede al Examen E3 (Final)', html);
 }
@@ -1615,6 +1750,10 @@ function sendEmailRejected(email, name, exam, reason) {
   return sendEmail(email, 'Resultado de tu evaluación — Catholizare.com', html);
 }
 
+/**
+ * Correo de rechazo post-entrevista.
+ * Las notas de la entrevista se insertan como campo personalizado en el cuerpo del correo.
+ */
 function sendEmailRejectedInterview(email, name, interviewNotes) {
   const html =
     '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">' +
@@ -1725,7 +1864,7 @@ function notifyAdminNewCandidate(name, email, candidate_id) {
       '<div style="padding:20px;">' +
       '<p><strong>Nombre:</strong> ' + name + '</p><p><strong>Email:</strong> ' + email + '</p>' +
       '<p><strong>ID:</strong> ' + candidate_id + '</p>' +
-      '<p style="color:#666;font-size:13px;">El enlace de acceso E1 es de un solo uso. Si el candidato necesita un nuevo acceso, usa "Reenviar correo de bienvenida" en el dashboard.</p>' +
+      '<p style="color:#666;font-size:13px;">El candidato puede iniciar el Examen E1 cuando lo desee (un solo intento).</p>' +
       '</div></div>';
     return sendEmail(adminEmail, 'Nuevo Candidato: ' + name, html);
   } catch (error) { Logger.log('[notifyAdminNewCandidate Error] ' + error.message); }
@@ -1766,14 +1905,20 @@ function validateAdminPin(pin) {
 // ================================
 // MODULO: UTILIDADES
 // ================================
+
+/**
+ * Inserta una nueva fila de datos en posición 2 (después del header)
+ * Evita que los nuevos registros se agreguen al final
+ */
 function insertNewRow(sheet, values) {
   if (!sheet) return;
   try {
-    sheet.insertRows(2, 1);
+    sheet.insertRows(2, 1);  // Insertar 1 fila en posición 2
     const lastCol = values.length;
     sheet.getRange(2, 1, 1, lastCol).setValues([values]);
   } catch (e) {
     Logger.log('[insertNewRow Error] ' + e.message);
+    // Fallback a appendRow si falla
     sheet.appendRow(values);
   }
 }
@@ -2017,24 +2162,31 @@ function handleGetAdminUsers() {
   }
 }
 
+/**
+ * POST action=getUserRole
+ * Body: { adminToken }
+ * Retorna el rol del usuario basado en su token
+ */
 function handleGetUserRole(data) {
   try {
     const adminToken = data.adminToken;
     if (!adminToken) return jsonResponse(false, 'Token requerido');
 
+    // Buscar usuario con este token
     const sheet = SS.getSheetByName('Usuarios');
     if (!sheet) return jsonResponse(false, 'Hoja de usuarios no encontrada');
 
     const data_users = sheet.getDataRange().getValues();
     for (let i = 1; i < data_users.length; i++) {
-      if (data_users[i][1] === adminToken) {
+      if (data_users[i][1] === adminToken) { // columna 1 = token (password_hash almacena el token)
         const email = data_users[i][0];
-        const role  = data_users[i][2] || 'admin';
+        const role  = data_users[i][2] || 'admin';  // columna 2 = role
         Logger.log('[getUserRole] Email: ' + email + ', Role: ' + role);
         return jsonResponse(true, 'OK', { email, role });
       }
     }
 
+    // Si no encuentra en Usuarios, retornar admin por defecto
     Logger.log('[getUserRole] Token no encontrado en Usuarios, retornando admin por defecto');
     return jsonResponse(true, 'OK', { email: 'desconocido@catholizare.com', role: 'admin' });
   } catch (error) {
@@ -2067,6 +2219,17 @@ function handleGenerateAdminToken(data) {
 // ================================
 // MODULO: HANDOFF → ONBOARDING
 // ================================
+/**
+ * Transfiere candidatos aprobados de la hoja de Admisiones
+ * a la hoja de Onboarding (spreadsheet externo).
+ *
+ * Columnas destino (Onboarding sheet):
+ *   A: ID_Token      B: Nombre        C: Email
+ *   D: Especialidad  E: CV_Url        F: Docs_Profesion
+ *   G: Foto_Url      H: Carta_Sacerdote  I: Fase_Actual
+ *   J: Estado        K: Categoria     L: Legal_Aceptacion
+ *   M: Legal_Fecha
+ */
 function handleHandoff(data) {
   try {
     if (!validateAdminPin(data.admin_pin)) {
@@ -2077,6 +2240,7 @@ function handleHandoff(data) {
     const ONBOARDING_SHEET  = 'Onboarding';
     const APPROVED_STATUSES = ['approved_junior', 'approved_senior', 'approved_expert'];
 
+    // Abrir spreadsheet de onboarding
     let onbSS;
     try {
       onbSS = SpreadsheetApp.openById(ONBOARDING_SS_ID);
@@ -2086,14 +2250,16 @@ function handleHandoff(data) {
 
     let onbSheet = onbSS.getSheetByName(ONBOARDING_SHEET);
     if (!onbSheet) {
+      // Buscar cualquier hoja disponible y usarla, o crear nueva
       const sheets = onbSS.getSheets();
       if (sheets.length > 0) {
-        onbSheet = sheets[0];
+        onbSheet = sheets[0]; // usar la primera hoja
       } else {
         onbSheet = onbSS.insertSheet(ONBOARDING_SHEET);
       }
     }
 
+    // Leer emails ya existentes en onboarding para evitar duplicados
     const onbData = onbSheet.getDataRange().getValues();
     const existingEmails = new Set();
     for (let i = 1; i < onbData.length; i++) {
@@ -2101,6 +2267,7 @@ function handleHandoff(data) {
       if (email) existingEmails.add(email);
     }
 
+    // Leer candidatos de admisiones
     const candSheet = SS.getSheetByName('Candidatos');
     if (!candSheet) return jsonResponse(false, 'Hoja Candidatos no encontrada');
     const candData = candSheet.getDataRange().getValues();
@@ -2111,6 +2278,12 @@ function handleHandoff(data) {
 
     for (let i = 1; i < candData.length; i++) {
       const row = candData[i];
+      // Candidatos sheet columns (0-indexed):
+      // 0=candidate_id, 1=registration_date, 2=name, 3=email, 4=phone
+      // 5=country, 6=birthday, 7=professional_type, 8=therapeutic_approach, 9=about
+      // 10=status, 11=E1_score, 12=E1_date, 13=E2_score, 14=E2_date
+      // 15=E3_score, 16=E3_date, 17=interview_notes, 18=final_category
+      // 19=last_interaction, 20=notes, 21=terms_accepted_at, 22=terms_ip, 23=terms_user_agent
       const status = String(row[10] || '').trim();
       if (!APPROVED_STATUSES.includes(status)) continue;
 
@@ -2120,21 +2293,34 @@ function handleHandoff(data) {
         continue;
       }
 
-      const onbToken          = 'ONB-' + Utilities.getUuid().replace(/-/g, '').substring(0, 8).toUpperCase();
+      // Generar token ONB único
+      const onbToken = 'ONB-' + Utilities.getUuid().replace(/-/g, '').substring(0, 8).toUpperCase();
+
       const name              = row[2]  || '';
-      const professionalType  = row[7]  || '';
-      const finalCategory     = row[18] || '';
-      const termsAcceptedAt   = row[21] || '';
+      const professionalType  = row[7]  || '';   // Especialidad
+      const finalCategory     = row[18] || '';   // Categoria
+      const termsAcceptedAt   = row[21] || '';   // Legal_Fecha
+
+      // Determinar etiqueta Legal_Aceptacion
       const legalAceptacion   = termsAcceptedAt ? 'ACEPTADO | v1' : '';
 
       insertNewRow(onbSheet, [
-        onbToken, name, email, professionalType,
-        '', '', '', '',
-        'Fase 1', 'Activo', finalCategory,
-        legalAceptacion, termsAcceptedAt
+        onbToken,           // A: ID_Token
+        name,               // B: Nombre
+        email,              // C: Email
+        professionalType,   // D: Especialidad
+        '',                 // E: CV_Url
+        '',                 // F: Docs_Profesion
+        '',                 // G: Foto_Url
+        '',                 // H: Carta_Sacerdote
+        'Fase 1',           // I: Fase_Actual
+        'Activo',           // J: Estado
+        finalCategory,      // K: Categoria
+        legalAceptacion,    // L: Legal_Aceptacion
+        termsAcceptedAt     // M: Legal_Fecha
       ]);
 
-      existingEmails.add(email);
+      existingEmails.add(email); // prevenir duplicados dentro de la misma ejecución
       transferred++;
       transferredNames.push(name + ' <' + email + '>');
     }
