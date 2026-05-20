@@ -476,27 +476,28 @@ function handleRegistration(data) {
     const candidate_id        = generateCandidateId();
     const registration_date   = new Date();
 
+    // Subir CV a Drive ANTES de insertar la fila para incluir el URL atómicamente
+    let curriculum_url = '';
+    let curriculum_error = '';
+    if (data.curriculum_pdf && data.curriculum_name) {
+      try {
+        curriculum_url = saveCurriculumToDrive(data.curriculum_pdf, candidate_id + '_' + data.curriculum_name);
+      } catch (cvErr) {
+        curriculum_error = cvErr.message || String(cvErr);
+        Logger.log('[Curriculum Upload Error] ' + curriculum_error);
+      }
+    }
+
     insertNewRow(sheet, [
       candidate_id, registration_date,
       candidate.name, candidate.email,
       candidate.phone || '', candidate.country || '',
       candidate.birthday || '', candidate.professional_type || '',
       candidate.therapeutic_approach || '', candidate.about || '',
-      'registered'
+      'registered',
+      '', '', '', '', '', '', '', '', '', '',  // cols 12-21: E1_score → notes
+      curriculum_url                              // col 22: curriculum_url
     ]);
-
-    // Save curriculum to Drive if provided
-    let curriculum_url = '';
-    let curriculum_error = '';
-    if (data.curriculum_pdf && data.curriculum_name) {
-      try {
-        curriculum_url = saveCurriculumToDrive(data.curriculum_pdf, candidate_id + '_' + data.curriculum_name);
-        sheet.getRange(2, 22).setValue(curriculum_url);
-      } catch (cvErr) {
-        curriculum_error = cvErr.message || String(cvErr);
-        Logger.log('[Curriculum Upload Error] ' + curriculum_error);
-      }
-    }
 
     const token = generateToken(candidate_id, 'E1');
     saveToken(token, candidate_id, 'E1', candidate.email, candidate.name, '');
