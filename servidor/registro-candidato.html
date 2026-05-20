@@ -1,71 +1,67 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Postulación · Red Catholizare</title>
+<!--
+  Formulario de Postulación — Catholizare RCCC
+  Embebible en Elementor (widget HTML) o como página standalone.
+  No incluye <!DOCTYPE>, <html>, <head> ni <body>.
+-->
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
 <style>
-/* ── Variables ──────────────────────────────────────── */
-:root {
-  --blue-900: #001A55;
-  --blue-600: #0852CC;
-  --blue-500: #0966FF;
-  --blue-100: #EEF3FF;
-  --green-bg:  #DCFCE7;
-  --green-text:#166534;
-  --red-bg:    #FEE2E2;
-  --red-text:  #991B1B;
-  --red-err:   #DC2626;
-  --gray-50:   #F8FAFC;
-  --gray-100:  #F1F5F9;
-  --gray-200:  #E2E8F0;
-  --gray-400:  #94A3B8;
-  --gray-600:  #475569;
-  --gray-900:  #0F172A;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 20px;
-  --shadow-card: 0 4px 24px rgba(0,26,85,.08), 0 1px 4px rgba(0,0,0,.04);
-  --transition: all .2s ease;
-}
+#rc-admission-widget {
+  --rc-blue-900: #001A55;
+  --rc-blue-600: #0852CC;
+  --rc-blue-500: #0966FF;
+  --rc-blue-100: #EEF3FF;
+  --rc-green-bg:  #DCFCE7;
+  --rc-green-text:#166534;
+  --rc-red-bg:    #FEE2E2;
+  --rc-red-text:  #991B1B;
+  --rc-red-err:   #DC2626;
+  --rc-gray-50:   #F8FAFC;
+  --rc-gray-100:  #F1F5F9;
+  --rc-gray-200:  #E2E8F0;
+  --rc-gray-400:  #94A3B8;
+  --rc-gray-600:  #475569;
+  --rc-gray-900:  #0F172A;
+  --rc-radius-sm: 8px;
+  --rc-radius-md: 12px;
+  --rc-radius-lg: 20px;
+  --rc-shadow:    0 4px 24px rgba(0,26,85,.08), 0 1px 4px rgba(0,0,0,.04);
+  --rc-transition: all .2s ease;
 
-/* ── Reset ──────────────────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; }
-
-body {
+  width: 100%;
   font-family: 'Inter', system-ui, sans-serif;
-  background: var(--gray-100);
-  color: var(--gray-900);
-  min-height: 100vh;
-  padding: 20px 16px 40px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  color: var(--rc-gray-900);
 }
 
-/* ── Card ───────────────────────────────────────────── */
-.card {
+#rc-admission-widget *,
+#rc-admission-widget *::before,
+#rc-admission-widget *::after {
+  box-sizing: border-box;
+}
+
+/* ── Card ── */
+#rc-admission-widget .rc-card {
   width: 100%;
   max-width: 680px;
   background: #fff;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
+  border-radius: var(--rc-radius-lg);
+  box-shadow: var(--rc-shadow);
   overflow: hidden;
-  border: 1px solid var(--gray-200);
+  border: 1px solid var(--rc-gray-200);
+  margin: 0 auto;
 }
 
-/* ── Header ─────────────────────────────────────────── */
-.card-header {
-  background: linear-gradient(135deg, var(--blue-900) 0%, #003399 100%);
+/* ── Header ── */
+#rc-admission-widget .rc-card-header {
+  background: linear-gradient(135deg, var(--rc-blue-900) 0%, #003399 100%);
   padding: 36px 28px 32px;
   text-align: center;
   position: relative;
   overflow: hidden;
 }
-.card-header::before {
+#rc-admission-widget .rc-card-header::before {
   content: '';
   position: absolute;
   top: -40px; right: -40px;
@@ -73,7 +69,7 @@ body {
   border-radius: 50%;
   background: rgba(255,255,255,.05);
 }
-.card-header::after {
+#rc-admission-widget .rc-card-header::after {
   content: '';
   position: absolute;
   bottom: -30px; left: -30px;
@@ -81,7 +77,7 @@ body {
   border-radius: 50%;
   background: rgba(255,255,255,.04);
 }
-.header-badge {
+#rc-admission-widget .rc-header-badge {
   display: inline-block;
   background: rgba(255,255,255,.15);
   backdrop-filter: blur(4px);
@@ -94,56 +90,57 @@ body {
   border-radius: 50px;
   margin-bottom: 14px;
 }
-.card-header h1 {
+#rc-admission-widget .rc-card-header h1 {
   color: #fff;
   font-size: clamp(1.35rem, 4vw, 1.75rem);
   font-weight: 700;
   line-height: 1.25;
-  margin-bottom: 8px;
+  margin: 0 0 8px;
   position: relative;
 }
-.card-header p {
+#rc-admission-widget .rc-card-header p {
   color: rgba(255,255,255,.75);
   font-size: .9rem;
   font-weight: 300;
+  margin: 0;
   position: relative;
 }
 
-/* ── Progress strip ─────────────────────────────────── */
-.progress-bar {
+/* ── Progress strip ── */
+#rc-admission-widget .rc-progress-bar {
   height: 3px;
-  background: var(--gray-200);
+  background: var(--rc-gray-200);
 }
-.progress-bar-fill {
+#rc-admission-widget .rc-progress-fill {
   height: 100%;
   width: 0%;
-  background: linear-gradient(90deg, var(--blue-500), #38BDF8);
+  background: linear-gradient(90deg, var(--rc-blue-500), #38BDF8);
   transition: width .4s ease;
   border-radius: 0 2px 2px 0;
 }
 
-/* ── Body ───────────────────────────────────────────── */
-.card-body { padding: 28px 24px 32px; }
+/* ── Body ── */
+#rc-admission-widget .rc-card-body { padding: 28px 24px 32px; }
 
-/* ── Alerts ─────────────────────────────────────────── */
-.alert {
+/* ── Alerts ── */
+#rc-admission-widget .rc-alert {
   display: none;
   padding: 14px 16px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--rc-radius-sm);
   font-size: .9rem;
   line-height: 1.5;
   margin-bottom: 22px;
   text-align: left;
-  animation: fadeDown .3s ease;
+  animation: rc-fadeDown .3s ease;
 }
-.alert.show { display: flex; gap: 10px; align-items: flex-start; }
-.alert-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
-.alert.success { background: var(--green-bg); color: var(--green-text); border: 1px solid #BBF7D0; }
-.alert.error   { background: var(--red-bg);   color: var(--red-text);   border: 1px solid #FECACA; }
-@keyframes fadeDown { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:none; } }
+#rc-admission-widget .rc-alert.rc-show { display: flex; gap: 10px; align-items: flex-start; }
+#rc-admission-widget .rc-alert-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+#rc-admission-widget .rc-alert.rc-success { background: var(--rc-green-bg); color: var(--rc-green-text); border: 1px solid #BBF7D0; }
+#rc-admission-widget .rc-alert.rc-error   { background: var(--rc-red-bg);   color: var(--rc-red-text);   border: 1px solid #FECACA; }
+@keyframes rc-fadeDown { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:none; } }
 
-/* ── Section titles ─────────────────────────────────── */
-.section-label {
+/* ── Section labels ── */
+#rc-admission-widget .rc-section-label {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -151,145 +148,131 @@ body {
   font-weight: 700;
   letter-spacing: 1px;
   text-transform: uppercase;
-  color: var(--blue-600);
+  color: var(--rc-blue-600);
   margin: 24px 0 16px;
 }
-.section-label::after {
+#rc-admission-widget .rc-section-label::after {
   content: '';
   flex: 1;
   height: 1px;
-  background: var(--gray-200);
+  background: var(--rc-gray-200);
 }
 
-/* ── Grid layout ────────────────────────────────────── */
-.form-grid {
+/* ── Form grid ── */
+#rc-admission-widget .rc-form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px 16px;
 }
-.col-full  { grid-column: 1 / -1; }
-.col-left  { grid-column: 1; }
-.col-right { grid-column: 2; }
+#rc-admission-widget .rc-col-full  { grid-column: 1 / -1; }
+#rc-admission-widget .rc-col-left  { grid-column: 1; }
+#rc-admission-widget .rc-col-right { grid-column: 2; }
 
-/* ── Field group ────────────────────────────────────── */
-.field {
+/* ── Field ── */
+#rc-admission-widget .rc-field {
   display: flex;
   flex-direction: column;
   gap: 5px;
 }
-.field label {
+#rc-admission-widget .rc-field label {
   font-size: .8rem;
   font-weight: 600;
-  color: var(--gray-900);
+  color: var(--rc-gray-900);
+  margin: 0;
 }
-.field label .req { color: var(--red-err); margin-left: 2px; }
+#rc-admission-widget .rc-field label .rc-req { color: var(--rc-red-err); margin-left: 2px; }
 
-.field input,
-.field select,
-.field textarea {
+#rc-admission-widget .rc-field input,
+#rc-admission-widget .rc-field select,
+#rc-admission-widget .rc-field textarea {
+  width: 100%;
   padding: 11px 14px;
-  border: 1.5px solid var(--gray-200);
-  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--rc-gray-200);
+  border-radius: var(--rc-radius-sm);
   font-family: inherit;
   font-size: .92rem;
-  color: var(--gray-900);
-  background: var(--gray-50);
-  transition: var(--transition);
+  color: var(--rc-gray-900);
+  background: var(--rc-gray-50);
+  transition: var(--rc-transition);
   -webkit-appearance: none;
   appearance: none;
+  margin: 0;
 }
-.field input::placeholder,
-.field textarea::placeholder { color: var(--gray-400); }
-.field select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2394A3B8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; cursor: pointer; }
-
-.field input:focus,
-.field select:focus,
-.field textarea:focus {
+#rc-admission-widget .rc-field input::placeholder,
+#rc-admission-widget .rc-field textarea::placeholder { color: var(--rc-gray-400); }
+#rc-admission-widget .rc-field select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2394A3B8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+  cursor: pointer;
+}
+#rc-admission-widget .rc-field input:focus,
+#rc-admission-widget .rc-field select:focus,
+#rc-admission-widget .rc-field textarea:focus {
   outline: none;
-  border-color: var(--blue-500);
+  border-color: var(--rc-blue-500);
   background: #fff;
   box-shadow: 0 0 0 3px rgba(9,102,255,.1);
 }
-.field input.invalid,
-.field select.invalid,
-.field textarea.invalid {
-  border-color: var(--red-err);
+#rc-admission-widget .rc-field input.rc-invalid,
+#rc-admission-widget .rc-field select.rc-invalid,
+#rc-admission-widget .rc-field textarea.rc-invalid {
+  border-color: var(--rc-red-err);
   box-shadow: 0 0 0 3px rgba(220,38,38,.08);
 }
-.field textarea { resize: vertical; min-height: 90px; line-height: 1.5; }
+#rc-admission-widget .rc-field textarea { resize: vertical; min-height: 90px; line-height: 1.5; }
+#rc-admission-widget .rc-other-input { margin-top: 6px; }
 
-.other-input { margin-top: 6px !important; }
+/* ── Error messages ── */
+#rc-admission-widget .rc-err { font-size: .74rem; color: var(--rc-red-err); min-height: 16px; line-height: 1.3; }
 
-/* ── Error messages ─────────────────────────────────── */
-.err { font-size: .74rem; color: var(--red-err); min-height: 16px; line-height: 1.3; }
-
-/* ── Date hint ──────────────────────────────────────── */
-.field-hint {
-  font-size: .74rem;
-  color: var(--gray-600);
-  line-height: 1.4;
-  margin-top: 1px;
+/* ── Info card ── */
+#rc-admission-widget .rc-info-card {
+  background: #e3f2fd;
+  border: 1.5px solid #1976d2;
+  border-radius: var(--rc-radius-sm);
+  padding: 1.5rem;
+  text-align: center;
 }
+#rc-admission-widget .rc-info-card p { color: #424242; margin: 0.75rem 0 0; line-height: 1.6; }
 
-/* ── Date+time row ──────────────────────────────────── */
-.datetime-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-/* ── Scheduled date card ─────────────────────────────── */
-.exam-card {
-  background: var(--blue-100);
-  border: 1.5px solid #C7D9FF;
-  border-radius: var(--radius-md);
-  padding: 16px;
-}
-.exam-card-title {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: .83rem;
-  font-weight: 700;
-  color: var(--blue-900);
-  margin-bottom: 12px;
-}
-.exam-card-title span { font-size: 1rem; }
-
-/* ── Terms ──────────────────────────────────────────── */
-.terms-box {
+/* ── Terms ── */
+#rc-admission-widget .rc-terms-box {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  background: var(--gray-50);
-  border: 1.5px solid var(--gray-200);
-  border-radius: var(--radius-sm);
+  background: var(--rc-gray-50);
+  border: 1.5px solid var(--rc-gray-200);
+  border-radius: var(--rc-radius-sm);
   padding: 14px;
   cursor: pointer;
-  transition: var(--transition);
+  transition: var(--rc-transition);
+  margin: 0;
 }
-.terms-box:has(input:checked) { border-color: var(--blue-500); background: var(--blue-100); }
-.terms-box input[type="checkbox"] {
+#rc-admission-widget .rc-terms-box.rc-checked { border-color: var(--rc-blue-500); background: var(--rc-blue-100); }
+#rc-admission-widget .rc-terms-box input[type="checkbox"] {
   width: 18px; height: 18px;
   flex-shrink: 0;
   margin-top: 1px;
-  accent-color: var(--blue-500);
+  accent-color: var(--rc-blue-500);
   cursor: pointer;
 }
-.terms-box p {
+#rc-admission-widget .rc-terms-box p {
   font-size: .84rem;
-  color: var(--gray-600);
+  color: var(--rc-gray-600);
   line-height: 1.5;
+  margin: 0;
 }
-.terms-box a { color: var(--blue-500); font-weight: 600; text-decoration: none; }
-.terms-box a:hover { text-decoration: underline; }
+#rc-admission-widget .rc-terms-box a { color: var(--rc-blue-500); font-weight: 600; text-decoration: none; }
+#rc-admission-widget .rc-terms-box a:hover { text-decoration: underline; }
 
-/* ── Submit button ──────────────────────────────────── */
-.btn-submit {
+/* ── Submit button ── */
+#rc-admission-widget .rc-btn-submit {
   width: 100%;
   padding: 15px;
   margin-top: 24px;
-  background: linear-gradient(135deg, var(--blue-500) 0%, var(--blue-600) 100%);
+  background: linear-gradient(135deg, var(--rc-blue-500) 0%, var(--rc-blue-600) 100%);
   color: #fff;
   border: none;
   border-radius: 50px;
@@ -299,405 +282,422 @@ body {
   letter-spacing: .3px;
   cursor: pointer;
   box-shadow: 0 4px 14px rgba(9,102,255,.35);
-  transition: var(--transition);
+  transition: var(--rc-transition);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
 }
-.btn-submit:hover:not(:disabled) {
-  background: linear-gradient(135deg, var(--blue-600) 0%, var(--blue-900) 100%);
+#rc-admission-widget .rc-btn-submit:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--rc-blue-600) 0%, var(--rc-blue-900) 100%);
   box-shadow: 0 6px 20px rgba(9,102,255,.4);
   transform: translateY(-1px);
 }
-.btn-submit:active:not(:disabled) { transform: translateY(0); }
-.btn-submit:disabled { opacity: .65; cursor: wait; transform: none; }
+#rc-admission-widget .rc-btn-submit:active:not(:disabled) { transform: translateY(0); }
+#rc-admission-widget .rc-btn-submit:disabled { opacity: .65; cursor: wait; transform: none; }
 
-/* ── Spinner ─────────────────────────────────────────── */
-.spinner {
+/* ── Spinner ── */
+#rc-admission-widget .rc-spinner {
   width: 18px; height: 18px;
   border: 2px solid rgba(255,255,255,.3);
   border-top-color: #fff;
   border-radius: 50%;
-  animation: spin .7s linear infinite;
+  animation: rc-spin .7s linear infinite;
   display: none;
 }
-.btn-submit.loading .spinner { display: block; }
-.btn-submit.loading .btn-text { opacity: .85; }
-@keyframes spin { to { transform: rotate(360deg); } }
+#rc-admission-widget .rc-btn-submit.rc-loading .rc-spinner { display: block; }
+#rc-admission-widget .rc-btn-submit.rc-loading .rc-btn-text { opacity: .85; }
+@keyframes rc-spin { to { transform: rotate(360deg); } }
 
-/* ── Footer note ─────────────────────────────────────── */
-.card-footer-note {
+/* ── Footer note ── */
+#rc-admission-widget .rc-footer-note {
   text-align: center;
   font-size: .78rem;
-  color: var(--gray-400);
+  color: var(--rc-gray-400);
   margin-top: 18px;
 }
-.card-footer-note a { color: var(--blue-500); text-decoration: none; font-weight: 500; }
+#rc-admission-widget .rc-footer-note a { color: var(--rc-blue-500); text-decoration: none; font-weight: 500; }
 
-/* ── Responsive ──────────────────────────────────────── */
+/* ── Responsive ── */
 @media (max-width: 540px) {
-  body { padding: 12px 0 32px; }
-  .card { border-radius: 0; border-left: none; border-right: none; max-width: 100%; }
-  .card-header { padding: 28px 20px 24px; }
-  .card-body { padding: 20px 16px 24px; }
-  .form-grid { grid-template-columns: 1fr; gap: 12px; }
-  .col-full, .col-left, .col-right { grid-column: 1; }
-  .datetime-row { grid-template-columns: 1fr; gap: 10px; }
+  #rc-admission-widget .rc-card { border-radius: 0; border-left: none; border-right: none; max-width: 100%; }
+  #rc-admission-widget .rc-card-header { padding: 28px 20px 24px; }
+  #rc-admission-widget .rc-card-body { padding: 20px 16px 24px; }
+  #rc-admission-widget .rc-form-grid { grid-template-columns: 1fr; gap: 12px; }
+  #rc-admission-widget .rc-col-full,
+  #rc-admission-widget .rc-col-left,
+  #rc-admission-widget .rc-col-right { grid-column: 1; }
 }
 </style>
-</head>
-<body>
 
-<div class="card">
+<div id="rc-admission-widget">
+  <div class="rc-card">
 
-  <!-- Header -->
-  <div class="card-header">
-    <div class="header-badge">Red Catholizare · RCCC</div>
-    <h1>Postulación Profesional</h1>
-    <p>Únete a la Red de Psicólogos Católicos Catholizare</p>
-  </div>
-
-  <!-- Progress -->
-  <div class="progress-bar"><div class="progress-bar-fill" id="progressFill"></div></div>
-
-  <!-- Body -->
-  <div class="card-body">
-
-    <!-- Alerts -->
-    <div class="alert success" id="msgSuccess">
-      <span class="alert-icon">✅</span>
-      <div><strong>¡Solicitud enviada con éxito!</strong><br>Revisa tu correo — recibirás el acceso al Examen E1 en los próximos minutos.</div>
-    </div>
-    <div class="alert error" id="msgError">
-      <span class="alert-icon">⚠️</span>
-      <span id="msgErrorText">Hubo un problema al enviar. Verifica tu conexión e inténtalo de nuevo.</span>
+    <!-- Header -->
+    <div class="rc-card-header">
+      <div class="rc-header-badge">Red Catholizare · RCCC</div>
+      <h1>Postulación Profesional</h1>
+      <p>Únete a la Red de Psicólogos Católicos Catholizare</p>
     </div>
 
-    <form id="admissionForm" novalidate>
+    <!-- Progress -->
+    <div class="rc-progress-bar"><div class="rc-progress-fill" id="rc_progressFill"></div></div>
 
-      <!-- ── Sección 1: Datos personales ── -->
-      <div class="section-label">👤 Datos personales</div>
+    <!-- Body -->
+    <div class="rc-card-body">
 
-      <div class="form-grid">
-
-        <div class="field col-full">
-          <label for="full_name">Nombre Completo <span class="req">*</span></label>
-          <input type="text" id="full_name" placeholder="Ej. María García López" autocomplete="name">
-          <div class="err" id="err_full_name"></div>
-        </div>
-
-        <div class="field col-left">
-          <label for="email">Correo Electrónico <span class="req">*</span></label>
-          <input type="email" id="email" placeholder="nombre@correo.com" autocomplete="email" inputmode="email">
-          <div class="err" id="err_email"></div>
-        </div>
-
-        <div class="field col-right">
-          <label for="phone">Teléfono / WhatsApp <span class="req">*</span></label>
-          <input type="tel" id="phone" placeholder="+52 55 0000 0000" autocomplete="tel" inputmode="tel">
-          <div class="err" id="err_phone"></div>
-        </div>
-
-        <div class="field col-left">
-          <label for="birth_date">Fecha de Nacimiento <span class="req">*</span></label>
-          <input type="date" id="birth_date" autocomplete="bday">
-          <div class="err" id="err_birth_date"></div>
-        </div>
-
-        <div class="field col-right">
-          <label for="country">País de Residencia <span class="req">*</span></label>
-          <select id="country" onchange="toggleOther('country')">
-            <option value="">— Seleccionar —</option>
-            <option>México</option>
-            <option>Colombia</option>
-            <option>Argentina</option>
-            <option>Chile</option>
-            <option>España</option>
-            <option>Perú</option>
-            <option>Venezuela</option>
-            <option>Ecuador</option>
-            <option>Bolivia</option>
-            <option>Estados Unidos</option>
-            <option value="other">Otro país...</option>
-          </select>
-          <input type="text" id="country_other" class="other-input" placeholder="Escribe tu país" style="display:none;">
-          <div class="err" id="err_country"></div>
-        </div>
-
+      <!-- Alerts -->
+      <div class="rc-alert rc-success" id="rc_msgSuccess">
+        <span class="rc-alert-icon">✅</span>
+        <div><strong>¡Solicitud enviada con éxito!</strong><br>Revisa tu correo — recibirás el acceso al Examen E1 en los próximos minutos.</div>
+      </div>
+      <div class="rc-alert rc-error" id="rc_msgError">
+        <span class="rc-alert-icon">⚠️</span>
+        <span id="rc_msgErrorText">Hubo un problema al enviar. Verifica tu conexión e inténtalo de nuevo.</span>
       </div>
 
-      <!-- ── Sección 2: Perfil profesional ── -->
-      <div class="section-label">💼 Perfil profesional</div>
+      <form id="rc_admissionForm" novalidate>
 
-      <div class="form-grid">
+        <!-- Datos personales -->
+        <div class="rc-section-label">👤 Datos personales</div>
+        <div class="rc-form-grid">
 
-        <div class="field col-left">
-          <label for="professional_type">Tipo de Profesión <span class="req">*</span></label>
-          <select id="professional_type" onchange="toggleOther('professional_type')">
-            <option value="">— Seleccionar —</option>
-            <option>Psicólogo/a</option>
-            <option>Psiquiatra</option>
-            <option>Consejero/a Pastoral</option>
-            <option>Terapeuta Familiar</option>
-            <option value="other">Otro...</option>
-          </select>
-          <input type="text" id="professional_type_other" class="other-input" placeholder="Describe tu profesión" style="display:none;">
-          <div class="err" id="err_professional_type"></div>
+          <div class="rc-field rc-col-full">
+            <label for="rc_full_name">Nombre Completo <span class="rc-req">*</span></label>
+            <input type="text" id="rc_full_name" placeholder="Ej. María García López" autocomplete="name">
+            <div class="rc-err" id="rc_err_full_name"></div>
+          </div>
+
+          <div class="rc-field rc-col-left">
+            <label for="rc_email">Correo Electrónico <span class="rc-req">*</span></label>
+            <input type="email" id="rc_email" placeholder="nombre@correo.com" autocomplete="email" inputmode="email">
+            <div class="rc-err" id="rc_err_email"></div>
+          </div>
+
+          <div class="rc-field rc-col-right">
+            <label for="rc_phone">Teléfono / WhatsApp <span class="rc-req">*</span></label>
+            <input type="tel" id="rc_phone" placeholder="+52 55 0000 0000" autocomplete="tel" inputmode="tel">
+            <div class="rc-err" id="rc_err_phone"></div>
+          </div>
+
+          <div class="rc-field rc-col-left">
+            <label for="rc_birth_date">Fecha de Nacimiento <span class="rc-req">*</span></label>
+            <input type="date" id="rc_birth_date" autocomplete="bday">
+            <div class="rc-err" id="rc_err_birth_date"></div>
+          </div>
+
+          <div class="rc-field rc-col-right">
+            <label for="rc_country">País de Residencia <span class="rc-req">*</span></label>
+            <select id="rc_country">
+              <option value="">— Seleccionar —</option>
+              <option>México</option><option>Colombia</option><option>Argentina</option>
+              <option>Chile</option><option>España</option><option>Perú</option>
+              <option>Venezuela</option><option>Ecuador</option><option>Bolivia</option>
+              <option>Estados Unidos</option><option value="other">Otro país...</option>
+            </select>
+            <input type="text" id="rc_country_other" class="rc-other-input" placeholder="Escribe tu país" style="display:none;">
+            <div class="rc-err" id="rc_err_country"></div>
+          </div>
+
         </div>
 
-        <div class="field col-right">
-          <label for="therapeutic_focus">Enfoque Terapéutico <span class="req">*</span></label>
-          <input type="text" id="therapeutic_focus" placeholder="Ej. TCC, Humanista, Logoterapia...">
-          <div class="err" id="err_therapeutic_focus"></div>
+        <!-- Perfil profesional -->
+        <div class="rc-section-label">💼 Perfil profesional</div>
+        <div class="rc-form-grid">
+
+          <div class="rc-field rc-col-left">
+            <label for="rc_professional_type">Tipo de Profesión <span class="rc-req">*</span></label>
+            <select id="rc_professional_type">
+              <option value="">— Seleccionar —</option>
+              <option>Psicólogo/a</option><option>Psiquiatra</option>
+              <option>Consejero/a Pastoral</option><option>Terapeuta Familiar</option>
+              <option value="other">Otro...</option>
+            </select>
+            <input type="text" id="rc_professional_type_other" class="rc-other-input" placeholder="Describe tu profesión" style="display:none;">
+            <div class="rc-err" id="rc_err_professional_type"></div>
+          </div>
+
+          <div class="rc-field rc-col-right">
+            <label for="rc_therapeutic_focus">Enfoque Terapéutico <span class="rc-req">*</span></label>
+            <input type="text" id="rc_therapeutic_focus" placeholder="Ej. TCC, Humanista, Logoterapia...">
+            <div class="rc-err" id="rc_err_therapeutic_focus"></div>
+          </div>
+
+          <div class="rc-field rc-col-full">
+            <label for="rc_about_you">Reseña profesional — Cuéntanos sobre ti <span class="rc-req">*</span></label>
+            <textarea id="rc_about_you" placeholder="Tu experiencia, especialidades y motivación para unirte a RCCC..."></textarea>
+            <div class="rc-err" id="rc_err_about_you"></div>
+          </div>
+
         </div>
 
-        <div class="field col-full">
-          <label for="about_you">Reseña profesional — Cuéntanos sobre ti <span class="req">*</span></label>
-          <textarea id="about_you" placeholder="Tu experiencia, especialidades y motivación para unirte a RCCC..."></textarea>
-          <div class="err" id="err_about_you"></div>
+        <!-- Currículo -->
+        <div class="rc-section-label">📄 Currículo</div>
+        <div class="rc-field rc-col-full" style="margin-bottom:8px;">
+          <label for="rc_curriculum_file">Sube tu currículo en PDF <span style="color:#94A3B8;font-weight:400">(máx. 3 MB)</span></label>
+          <input type="file" id="rc_curriculum_file" accept="application/pdf"
+            style="width:100%;padding:10px 14px;border:1.5px solid #E2E8F0;border-radius:8px;font-family:inherit;font-size:0.92rem;background:#F8FAFC;cursor:pointer;">
+          <div class="rc-err" id="rc_err_curriculum_file"></div>
         </div>
 
-      </div>
+        <!-- Examen E1 info -->
+        <div class="rc-section-label">📧 Acceso al Examen E1</div>
+        <div class="rc-info-card">
+          <div style="font-size:2rem;margin-bottom:0.5rem;">📧</div>
+          <strong style="color:#1565c0;">Importante</strong>
+          <p>
+            Una vez completado el registro, recibirás un <strong>correo electrónico</strong> con el enlace y las instrucciones para acceder al Examen E1.
+            <br><br>
+            <strong>Revisa tu correo (incluyendo la carpeta de spam)</strong> para obtener tu enlace de acceso.
+          </p>
+        </div>
 
-      <!-- ── Sección: Currículo ── -->
-      <div class="section-label">📄 Currículo</div>
-      <div class="field col-full" style="margin-bottom:8px;">
-        <label for="curriculum_file">Sube tu currículo en PDF <span style="color:#94A3B8;font-weight:400">(máx. 3 MB)</span></label>
-        <input type="file" id="curriculum_file" accept="application/pdf"
-          style="width:100%;padding:10px 14px;border:1.5px solid #E2E8F0;border-radius:8px;font-family:inherit;font-size:0.92rem;background:#F8FAFC;cursor:pointer;box-sizing:border-box;">
-        <div class="err" id="err_curriculum_file"></div>
-      </div>
+        <!-- Términos -->
+        <div style="margin-top:20px;">
+          <label class="rc-terms-box" id="rc_termsBox" for="rc_terms">
+            <input type="checkbox" id="rc_terms">
+            <p>He leído y acepto el <a href="/aviso-privacidad" target="_blank">Aviso de Privacidad</a> y los <a href="/terminos" target="_blank">Términos y Condiciones</a> de la Red Catholizare.</p>
+          </label>
+          <div class="rc-err" id="rc_err_terms"></div>
+        </div>
 
-      <!-- ── Sección 3: Agenda tu Examen E1 ── -->
-      <div class="section-label">📅 Agenda tu Examen E1</div>
+        <!-- Submit -->
+        <button type="submit" class="rc-btn-submit" id="rc_submitBtn">
+          <span class="rc-spinner" id="rc_spinner"></span>
+          <span class="rc-btn-text" id="rc_btnText">Enviar Postulación ➜</span>
+        </button>
 
-      <div class="exam-card" style="background:#e3f2fd;border-color:#1976d2;padding:1.5rem;border-radius:8px;text-align:center;">
-        <div style="font-size:2rem;margin-bottom:0.5rem;">📧</div>
-        <div class="exam-card-title" style="text-align:center;color:#1565c0;"><strong>Importante</strong></div>
-        <p style="color:#424242;margin:0.75rem 0;line-height:1.6;">
-          Una vez completado el registro, recibirás un <strong>correo electrónico</strong> con el enlace y las instrucciones para acceder al Examen E1.
-          <br><br>
-          <strong>Revisa tu correo (incluyendo la carpeta de spam)</strong> para obtener tu enlace de acceso.
-        </p>
-      </div>
+      </form>
 
-      <!-- ── Términos ── -->
-      <div style="margin-top: 20px;">
-        <label class="terms-box" for="terms">
-          <input type="checkbox" id="terms">
-          <p>He leído y acepto el <a href="/aviso-privacidad" target="_blank">Aviso de Privacidad</a> y los <a href="/terminos" target="_blank">Términos y Condiciones</a> de la Red Catholizare.</p>
-        </label>
-        <div class="err" id="err_terms"></div>
-      </div>
+      <p class="rc-footer-note">
+        ¿Ya tienes una solicitud en proceso?
+        <a href="https://profesionales.catholizare.com/catholizare_sistem/onboarding/" target="_blank" rel="noopener">Consulta tu estado aquí</a>
+      </p>
 
-      <!-- Submit -->
-      <button type="submit" class="btn-submit" id="submitBtn">
-        <div class="spinner" id="spinner"></div>
-        <span class="btn-text" id="btnText">Enviar Postulación ➜</span>
-      </button>
-
-    </form>
-
-    <p class="card-footer-note">
-      ¿Ya tienes una solicitud en proceso?
-      <a href="https://profesionales.catholizare.com/catholizare_sistem/onboarding/">Consulta tu estado aquí</a>
-    </p>
-
-  </div><!-- /card-body -->
-</div><!-- /card -->
+    </div><!-- /rc-card-body -->
+  </div><!-- /rc-card -->
+</div><!-- /rc-admission-widget -->
 
 <script>
-const API_URL = 'https://profesionales.catholizare.com/catholizare_sistem/proxy.php';
+(function () {
+  'use strict';
 
-/* ── Progress bar (based on filled required fields) ── */
-const REQUIRED_IDS = [
-  'full_name','email','phone','birth_date','country',
-  'professional_type','therapeutic_focus','about_you'
-];
-function updateProgress() {
-  const filled = REQUIRED_IDS.filter(id => {
-    const el = document.getElementById(id);
-    return el && el.value.trim() !== '' && el.value !== '';
-  }).length;
-  document.getElementById('progressFill').style.width = Math.round((filled / REQUIRED_IDS.length) * 100) + '%';
-}
-REQUIRED_IDS.forEach(id => {
-  const el = document.getElementById(id);
-  if (el) el.addEventListener('input', updateProgress);
-});
+  const ROOT = document.getElementById('rc-admission-widget');
+  if (!ROOT) return;
 
-/* ── Toggle "Otro" inputs ── */
-function toggleOther(fieldId) {
-  const select = document.getElementById(fieldId);
-  const other  = document.getElementById(fieldId + '_other');
-  if (!other) return;
-  if (select.value === 'other') {
-    other.style.display = 'block';
-    other.required = true;
-  } else {
-    other.style.display = 'none';
-    other.required = false;
-    other.value = '';
-  }
-}
+  const API_URL = 'https://profesionales.catholizare.com/catholizare_sistem/proxy.php';
 
-/* ── Helpers ── */
-function getVal(id) {
-  const el = document.getElementById(id);
-  if (!el) return '';
-  if (el.tagName === 'SELECT' && el.value === 'other') {
-    const other = document.getElementById(id + '_other');
-    return other ? other.value.trim() : '';
-  }
-  return el.value.trim();
-}
-function markInvalid(id, msg) {
-  const el = document.getElementById(id);
-  const errEl = document.getElementById('err_' + id);
-  if (el) el.classList.add('invalid');
-  if (errEl) errEl.textContent = msg;
-}
-function clearErrors() {
-  document.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid'));
-  document.querySelectorAll('.err').forEach(el => el.textContent = '');
-  document.getElementById('msgError').classList.remove('show');
-  document.getElementById('msgSuccess').classList.remove('show');
-}
-function showAlert(type, text) {
-  if (type === 'error') {
-    document.getElementById('msgErrorText').textContent = text;
-    document.getElementById('msgError').classList.add('show');
-    document.getElementById('msgError').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  } else {
-    document.getElementById('msgSuccess').classList.add('show');
-    document.getElementById('msgSuccess').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }
-}
-function setLoading(state) {
-  const btn = document.getElementById('submitBtn');
-  const spinner = document.getElementById('spinner');
-  const text = document.getElementById('btnText');
-  btn.disabled = state;
-  btn.classList.toggle('loading', state);
-  spinner.style.display = state ? 'block' : 'none';
-  text.textContent = state ? 'Enviando...' : 'Enviar Postulación ➜';
-}
-
-/* ── Validation ── */
-function validate() {
-  let ok = true;
-  const required = [
-    { id: 'full_name',          msg: 'Ingresa tu nombre completo' },
-    { id: 'email',              msg: 'Ingresa tu correo electrónico' },
-    { id: 'phone',              msg: 'Ingresa tu teléfono o WhatsApp' },
-    { id: 'birth_date',         msg: 'Selecciona tu fecha de nacimiento' },
-    { id: 'country',            msg: 'Selecciona tu país de residencia' },
-    { id: 'professional_type',  msg: 'Selecciona tu tipo de profesión' },
-    { id: 'therapeutic_focus',  msg: 'Indica tu enfoque terapéutico' },
-    { id: 'about_you',          msg: 'Escribe una breve reseña sobre ti' }
+  const REQUIRED_IDS = [
+    'full_name','email','phone','birth_date','country',
+    'professional_type','therapeutic_focus','about_you'
   ];
-  required.forEach(({ id, msg }) => {
-    if (!getVal(id)) { markInvalid(id, msg); ok = false; }
-  });
-  // Email format
-  const email = getVal('email');
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    markInvalid('email', 'Ingresa un correo válido');
-    ok = false;
-  }
-  // Curriculum: optional but if provided must be PDF and <= 3MB
-  const cvInput = document.getElementById('curriculum_file');
-  if (cvInput && cvInput.files[0]) {
-    const cvFile = cvInput.files[0];
-    if (cvFile.type !== 'application/pdf') {
-      document.getElementById('err_curriculum_file').textContent = 'Solo se aceptan archivos PDF.';
-      ok = false;
-    } else if (cvFile.size > 3 * 1024 * 1024) {
-      document.getElementById('err_curriculum_file').textContent = 'El archivo no puede superar 3 MB.';
-      ok = false;
-    }
-  }
-  // Terms
-  if (!document.getElementById('terms').checked) {
-    document.getElementById('err_terms').textContent = 'Debes aceptar los términos y condiciones';
-    ok = false;
-  }
-  return ok;
-}
 
-/* ── Submit ── */
-document.getElementById('admissionForm').addEventListener('submit', async function(e) {
-  e.preventDefault();
-  clearErrors();
-  if (!validate()) {
-    // Scroll to first error
-    const firstErr = document.querySelector('.invalid');
-    if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    return;
-  }
-  setLoading(true);
-
-  let curriculum_pdf = '';
-  let curriculum_name = '';
-  const cvInput = document.getElementById('curriculum_file');
-  if (cvInput && cvInput.files[0]) {
-    const cvFile = cvInput.files[0];
-    curriculum_pdf = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = e => resolve(e.target.result.split(',')[1]);
-      reader.onerror = reject;
-      reader.readAsDataURL(cvFile);
-    });
-    curriculum_name = cvFile.name;
+  function byId(localId) {
+    return document.getElementById('rc_' + localId);
   }
 
-  const payload = {
-    action: 'initial_registration',
-    curriculum_pdf,
-    curriculum_name,
-    candidate: {
-      name:                 getVal('full_name'),
-      email:                getVal('email'),
-      phone:                getVal('phone'),
-      birthday:             getVal('birth_date'),
-      country:              getVal('country'),
-      professional_type:    getVal('professional_type'),
-      therapeutic_approach: getVal('therapeutic_focus'),
-      about:                getVal('about_you'),
-    }
-  };
-  try {
-    const res = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
-    if (data.success) {
-      document.getElementById('admissionForm').reset();
-      document.getElementById('progressFill').style.width = '0%';
-      showAlert('success');
-      // Hide "otro" inputs
-      ['country_other','professional_type_other'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.style.display = 'none';
-      });
+  /* ── Progress bar ── */
+  function updateProgress() {
+    const filled = REQUIRED_IDS.filter(id => (getVal(id) !== '')).length;
+    const fill = byId('progressFill');
+    if (fill) fill.style.width = Math.round((filled / REQUIRED_IDS.length) * 100) + '%';
+  }
+
+  /* ── Toggle "Otro" inputs ── */
+  function toggleOther(fieldId) {
+    const select = byId(fieldId);
+    const other  = byId(fieldId + '_other');
+    if (!select || !other) return;
+    if (select.value === 'other') {
+      other.style.display = 'block';
     } else {
-      throw new Error(data.message || 'Error desconocido');
+      other.style.display = 'none';
+      other.value = '';
     }
-  } catch (err) {
-    console.error(err);
-    showAlert('error', err.message.startsWith('HTTP')
-      ? 'Error de servidor (' + err.message + '). Por favor inténtalo más tarde.'
-      : (err.message || 'No se pudo conectar. Verifica tu internet e inténtalo de nuevo.')
-    );
-  } finally {
-    setLoading(false);
+    updateProgress();
   }
-});
-</script>
 
-</body>
-</html>
+  /* ── Get field value (handles "other" selects) ── */
+  function getVal(id) {
+    const el = byId(id);
+    if (!el) return '';
+    if (el.tagName === 'SELECT' && el.value === 'other') {
+      const other = byId(id + '_other');
+      return other ? other.value.trim() : '';
+    }
+    return el.value.trim();
+  }
+
+  function markInvalid(id, msg) {
+    const el    = byId(id);
+    const errEl = byId('err_' + id);
+    if (el) el.classList.add('rc-invalid');
+    if (errEl) errEl.textContent = msg;
+  }
+
+  function clearErrors() {
+    ROOT.querySelectorAll('.rc-invalid').forEach(el => el.classList.remove('rc-invalid'));
+    ROOT.querySelectorAll('.rc-err').forEach(el => el.textContent = '');
+    byId('msgError').classList.remove('rc-show');
+    byId('msgSuccess').classList.remove('rc-show');
+  }
+
+  function showAlert(type, text) {
+    if (type === 'error') {
+      byId('msgErrorText').textContent = text;
+      const el = byId('msgError');
+      el.classList.add('rc-show');
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } else {
+      byId('msgSuccess').classList.add('rc-show');
+      byId('msgSuccess').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }
+
+  function setLoading(state) {
+    const btn  = byId('submitBtn');
+    const text = byId('btnText');
+    if (btn) { btn.disabled = state; btn.classList.toggle('rc-loading', state); }
+    if (text) text.textContent = state ? 'Enviando...' : 'Enviar Postulación ➜';
+  }
+
+  /* ── Validation ── */
+  function validate() {
+    let ok = true;
+    const required = [
+      { id: 'full_name',         msg: 'Ingresa tu nombre completo' },
+      { id: 'email',             msg: 'Ingresa tu correo electrónico' },
+      { id: 'phone',             msg: 'Ingresa tu teléfono o WhatsApp' },
+      { id: 'birth_date',        msg: 'Selecciona tu fecha de nacimiento' },
+      { id: 'country',           msg: 'Selecciona tu país de residencia' },
+      { id: 'professional_type', msg: 'Selecciona tu tipo de profesión' },
+      { id: 'therapeutic_focus', msg: 'Indica tu enfoque terapéutico' },
+      { id: 'about_you',         msg: 'Escribe una breve reseña sobre ti' }
+    ];
+    required.forEach(({ id, msg }) => {
+      if (!getVal(id)) { markInvalid(id, msg); ok = false; }
+    });
+
+    const email = getVal('email');
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      markInvalid('email', 'Ingresa un correo válido');
+      ok = false;
+    }
+
+    const cvInput = byId('curriculum_file');
+    if (cvInput && cvInput.files[0]) {
+      const f = cvInput.files[0];
+      if (f.type !== 'application/pdf') {
+        document.getElementById('rc_err_curriculum_file').textContent = 'Solo se aceptan archivos PDF.';
+        ok = false;
+      } else if (f.size > 3 * 1024 * 1024) {
+        document.getElementById('rc_err_curriculum_file').textContent = 'El archivo no puede superar 3 MB.';
+        ok = false;
+      }
+    }
+
+    if (!byId('terms').checked) {
+      document.getElementById('rc_err_terms').textContent = 'Debes aceptar los términos y condiciones';
+      ok = false;
+    }
+    return ok;
+  }
+
+  /* ── Event listeners ── */
+  REQUIRED_IDS.forEach(id => {
+    const el = byId(id);
+    if (el) { el.addEventListener('input', updateProgress); el.addEventListener('change', updateProgress); }
+  });
+
+  const countrySelect = byId('country');
+  if (countrySelect) countrySelect.addEventListener('change', () => toggleOther('country'));
+
+  const profSelect = byId('professional_type');
+  if (profSelect) profSelect.addEventListener('change', () => toggleOther('professional_type'));
+
+  const termsChk = byId('terms');
+  if (termsChk) {
+    termsChk.addEventListener('change', () => {
+      document.getElementById('rc_termsBox').classList.toggle('rc-checked', termsChk.checked);
+    });
+  }
+
+  /* ── Submit ── */
+  const form = byId('admissionForm');
+  if (!form) return;
+
+  form.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    clearErrors();
+
+    if (!validate()) {
+      const firstErr = ROOT.querySelector('.rc-invalid');
+      if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    setLoading(true);
+
+    let curriculum_pdf  = '';
+    let curriculum_name = '';
+    const cvInput = byId('curriculum_file');
+    if (cvInput && cvInput.files[0]) {
+      const cvFile = cvInput.files[0];
+      curriculum_pdf = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload  = ev => resolve(ev.target.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(cvFile);
+      });
+      curriculum_name = cvFile.name;
+    }
+
+    const payload = {
+      action: 'initial_registration',
+      curriculum_pdf,
+      curriculum_name,
+      candidate: {
+        name:                 getVal('full_name'),
+        email:                getVal('email'),
+        phone:                getVal('phone'),
+        birthday:             getVal('birth_date'),
+        country:              getVal('country'),
+        professional_type:    getVal('professional_type'),
+        therapeutic_approach: getVal('therapeutic_focus'),
+        about:                getVal('about_you')
+      }
+    };
+
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      if (data.success) {
+        form.reset();
+        updateProgress();
+        ['country_other','professional_type_other'].forEach(id => {
+          const el = byId(id);
+          if (el) el.style.display = 'none';
+        });
+        document.getElementById('rc_termsBox').classList.remove('rc-checked');
+        showAlert('success');
+      } else {
+        throw new Error(data.message || 'Error desconocido');
+      }
+    } catch (err) {
+      console.error(err);
+      showAlert('error', err.message.startsWith('HTTP')
+        ? 'Error de servidor (' + err.message + '). Por favor inténtalo más tarde.'
+        : (err.message || 'No se pudo conectar. Verifica tu internet e inténtalo de nuevo.')
+      );
+    } finally {
+      setLoading(false);
+    }
+  });
+
+})();
+</script>
