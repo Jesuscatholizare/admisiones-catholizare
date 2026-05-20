@@ -399,6 +399,7 @@ function doPost(e) {
       case 'submit_exam':          return handleExamSubmit(data);
       case 'save_partial_exam':    return handleSavePartialExam(data);
       case 'acceptTerms':          return handleAcceptTerms(data);
+      case 'getTerminos':          return handleGetTerminos();
       case 'approveExam':          return handleApproveExam(data);
       case 'autoApproveE1':        return handleAutoApproveE1(data);
       case 'rejectExam':           return handleRejectExam(data);
@@ -524,6 +525,26 @@ function handleRegistration(data) {
 
 // ================================
 // MODULO: TÉRMINOS Y CONDICIONES
+// ================================
+function handleGetTerminos() {
+  try {
+    const sheet = SS.getSheetByName('Terminos');
+    if (!sheet) return jsonResponse(false, 'Hoja Terminos no encontrada');
+    const data = sheet.getDataRange().getValues();
+    const rows = [];
+    for (let i = 1; i < data.length; i++) {
+      const tipo     = (data[i][0] || '').toString().trim().toLowerCase();
+      const contenido = (data[i][1] || '').toString().trim();
+      if (!tipo || !contenido) continue;
+      rows.push({ tipo, contenido });
+    }
+    return jsonResponse(true, 'ok', { rows });
+  } catch (error) {
+    Logger.log('[ERROR handleGetTerminos] ' + error.message);
+    return jsonResponse(false, 'Error: ' + error.message);
+  }
+}
+
 // ================================
 function handleAcceptTerms(data) {
   try {
