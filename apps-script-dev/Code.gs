@@ -487,21 +487,24 @@ function handleRegistration(data) {
 
     // Save curriculum to Drive if provided
     let curriculum_url = '';
+    let curriculum_error = '';
     if (data.curriculum_pdf && data.curriculum_name) {
       try {
         curriculum_url = saveCurriculumToDrive(data.curriculum_pdf, candidate_id + '_' + data.curriculum_name);
         sheet.getRange(2, 22).setValue(curriculum_url);
       } catch (cvErr) {
-        Logger.log('[Curriculum Upload Error] ' + cvErr.message);
+        curriculum_error = cvErr.message || String(cvErr);
+        Logger.log('[Curriculum Upload Error] ' + curriculum_error);
       }
     }
 
     const token = generateToken(candidate_id, 'E1');
     saveToken(token, candidate_id, 'E1', candidate.email, candidate.name, '');
 
-    addTimelineEvent(candidate_id, 'CANDIDATO_REGISTRADO', {
-      nombre: candidate.name, email: candidate.email
-    });
+    const timelineMeta = { nombre: candidate.name, email: candidate.email };
+    if (curriculum_url)   timelineMeta.curriculum_url   = curriculum_url;
+    if (curriculum_error) timelineMeta.curriculum_error = curriculum_error;
+    addTimelineEvent(candidate_id, 'CANDIDATO_REGISTRADO', timelineMeta);
 
     addContactToBrevoList(
       candidate.email,
@@ -515,7 +518,9 @@ function handleRegistration(data) {
 
     return jsonResponse(true, 'Registro exitoso. Revisa tu email.', {
       candidate_id: candidate_id,
-      token: token
+      token: token,
+      curriculum_url: curriculum_url,
+      curriculum_error: curriculum_error
     });
   } catch (error) {
     Logger.log('[ERROR handleRegistration] ' + error.message);
