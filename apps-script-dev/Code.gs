@@ -484,6 +484,17 @@ function handleRegistration(data) {
       'registered'
     ]);
 
+    // Save curriculum to Drive if provided
+    let curriculum_url = '';
+    if (data.curriculum_pdf && data.curriculum_name) {
+      try {
+        curriculum_url = saveCurriculumToDrive(data.curriculum_pdf, candidate_id + '_' + data.curriculum_name);
+        sheet.getRange(2, 22).setValue(curriculum_url);
+      } catch (cvErr) {
+        Logger.log('[Curriculum Upload Error] ' + cvErr.message);
+      }
+    }
+
     const token = generateToken(candidate_id, 'E1');
     saveToken(token, candidate_id, 'E1', candidate.email, candidate.name, '');
 
@@ -1112,7 +1123,8 @@ function getCandidatesForAdmin() {
           interview_notes:  data[i][17],
           final_category:   data[i][18],
           last_interaction: data[i][19],
-          notes:            data[i][20]
+          notes:            data[i][20],
+          curriculum_url:   data[i][21] || ''
         });
       }
     }
@@ -1921,6 +1933,16 @@ function insertNewRow(sheet, values) {
     // Fallback a appendRow si falla
     sheet.appendRow(values);
   }
+}
+
+function saveCurriculumToDrive(base64Data, fileName) {
+  const folderId = '19CAus7qAZg7_fuTXVGVsF8cjJzsUErfI';
+  const folder = DriveApp.getFolderById(folderId);
+  const safeFileName = fileName.replace(/[^a-zA-Z0-9._\-]/g, '_');
+  const blob = Utilities.newBlob(Utilities.base64Decode(base64Data), 'application/pdf', safeFileName);
+  const file = folder.createFile(blob);
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  return 'https://drive.google.com/file/d/' + file.getId() + '/view';
 }
 
 function isValidEmail(email) {

@@ -460,6 +460,15 @@ body {
 
       </div>
 
+      <!-- ── Sección: Currículo ── -->
+      <div class="section-label">📄 Currículo</div>
+      <div class="field col-full" style="margin-bottom:8px;">
+        <label for="curriculum_file">Sube tu currículo en PDF <span style="color:#94A3B8;font-weight:400">(máx. 3 MB)</span></label>
+        <input type="file" id="curriculum_file" accept="application/pdf"
+          style="width:100%;padding:10px 14px;border:1.5px solid #E2E8F0;border-radius:8px;font-family:inherit;font-size:0.92rem;background:#F8FAFC;cursor:pointer;box-sizing:border-box;">
+        <div class="err" id="err_curriculum_file"></div>
+      </div>
+
       <!-- ── Sección 3: Agenda tu Examen E1 ── -->
       <div class="section-label">📅 Agenda tu Examen E1</div>
 
@@ -596,6 +605,18 @@ function validate() {
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     markInvalid('email', 'Ingresa un correo válido');
     ok = false;
+  }
+  // Curriculum: optional but if provided must be PDF and <= 3MB
+  const cvInput = document.getElementById('curriculum_file');
+  if (cvInput && cvInput.files[0]) {
+    const cvFile = cvInput.files[0];
+    if (cvFile.type !== 'application/pdf') {
+      document.getElementById('err_curriculum_file').textContent = 'Solo se aceptan archivos PDF.';
+      ok = false;
+    } else if (cvFile.size > 3 * 1024 * 1024) {
+      document.getElementById('err_curriculum_file').textContent = 'El archivo no puede superar 3 MB.';
+      ok = false;
+    }
   }
   // Terms
   if (!document.getElementById('terms').checked) {

@@ -1016,13 +1016,11 @@
                 <option value="Otro">Otro</option>
               </select>
             </div>
-            <div>
-              <label style="font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">Fecha agendada E1</label>
-              <input id="apFecha" type="date" style="width:100%;padding:0.5rem 0.75rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;">
-            </div>
-            <div>
-              <label style="font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">Hora del examen</label>
-              <input id="apHora" type="time" style="width:100%;padding:0.5rem 0.75rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;">
+            <div style="grid-column:1/-1;">
+              <label style="font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">Currículo (PDF, máx. 3 MB)</label>
+              <input id="apCurriculum" type="file" accept="application/pdf"
+                style="width:100%;padding:0.45rem 0.75rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;background:#fafafa;cursor:pointer;">
+              <div id="apCurriculumErr" style="font-size:0.74rem;color:#dc2626;min-height:16px;"></div>
             </div>
             <div style="grid-column:1/-1;">
               <label style="font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">Reseña Profesional</label>
@@ -1488,7 +1486,7 @@
                 <!-- Superior Izquierda: Datos del Candidato -->
                 <div class="tl-card-block"><div class="tl-card-title"><i class="fas fa-user"></i> Datos del Candidato</div><div class="tl-fields">${rows}</div></div>
                 <!-- Superior Derecha: Resultados de Exámenes -->
-                <div class="tl-card-block"><div class="tl-card-title"><i class="fas fa-chart-bar"></i> Resultados de Exámenes</div><div class="tl-fields">${examRows}</div></div>
+                <div class="tl-card-block"><div class="tl-card-title"><i class="fas fa-chart-bar"></i> Resultados de Exámenes</div><div class="tl-fields">${examRows}</div>${c.curriculum_url ? `<div style="margin-top:0.75rem"><a href="${c.curriculum_url}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:#0966FF;color:white;border-radius:6px;font-size:0.8rem;font-weight:600;text-decoration:none;"><i class="fas fa-file-pdf"></i> Ver Currículo</a></div>` : ''}</div>
                 <!-- Inferior Izquierda: Listas Brevo -->
                 <div class="tl-card-block"><div class="tl-card-title"><i class="fas fa-users"></i> Listas Brevo</div><div class="tl-brevo-list">${brevoRows}</div></div>
                 <!-- Inferior Derecha: Reseña Profesional -->
@@ -2203,13 +2201,11 @@
             const telefono = (document.getElementById('apTelefono').value || '').trim();
             const pais     = (document.getElementById('apPais').value     || '').trim();
             const profesion= document.getElementById('apProfesion').value;
-            const fecha    = document.getElementById('apFecha').value;
-            const hora     = (document.getElementById('apHora').value || '').trim();
             const resena   = (document.getElementById('apResena').value || '').trim();
+            const cvFile   = document.getElementById('apCurriculum').files[0];
             const msg      = document.getElementById('apMensaje');
             const btn      = document.getElementById('apBtn');
 
-            // Validación mejorada
             const camposFaltantes = [];
             if (!nombre) camposFaltantes.push('Nombre completo');
             if (!email) camposFaltantes.push('Email');
@@ -2221,13 +2217,48 @@
                 return;
             }
 
+            document.getElementById('apCurriculumErr').textContent = '';
+            if (cvFile) {
+                if (cvFile.type !== 'application/pdf') {
+                    document.getElementById('apCurriculumErr').textContent = 'Solo se aceptan archivos PDF.';
+                    return;
+                }
+                if (cvFile.size > 3 * 1024 * 1024) {
+                    document.getElementById('apCurriculumErr').textContent = 'El archivo supera el límite de 3 MB.';
+                    return;
+                }
+            }
+
             btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Registrando...';
+
+            let curriculum_pdf = '';
+            let curriculum_name = '';
+            if (cvFile) {
+                curriculum_pdf = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = e => resolve(e.target.result.split(',')[1]);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(cvFile);
+                });
+                curriculum_name = cvFile.name;
+            }
+
             try {
-                const res  = await fetch(API_BASE, { method:'POST', headers:{'Content-Type':'application/json'},
-                    body: JSON.stringify({ action:'initial_registration', adminToken:ADMIN_TOKEN,
-                        name:nombre, email, phone:telefono, country:pais,
-                        professional_type:profesion, scheduled_date:fecha||new Date().toISOString().split('T')[0],
-                        therapeutic_approach:hora, about:resena||'Registro manual por admin', birthday:'' }) });
+                const res = await fetch(API_BASE, { method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({
+                        action: 'initial_registration',
+                        adminToken: ADMIN_TOKEN,
+                        curriculum_pdf,
+                        curriculum_name,
+                        candidate: {
+                            name: nombre, email, phone: telefono, country: pais,
+                            professional_type: profesion,
+                            therapeutic_approach: '',
+                            about: resena || 'Registro manual por admin',
+                            birthday: ''
+                        }
+                    })
+                });
                 const data = await res.json();
                 msg.style.display='block';
                 if (data.success) {
@@ -2235,14 +2266,17 @@
                     msg.textContent='✓ Profesional registrado. Se envió el correo de bienvenida con el token E1.';
                     btn.innerHTML='<i class="fas fa-check"></i> Registrado';
                     loadData();
-                    setTimeout(() => { document.getElementById('modalAgregarProfesional').style.display='none';
-                        ['apNombre','apEmail','apTelefono','apPais','apFecha','apHora','apResena'].forEach(id=>{
-                            const el = document.getElementById(id);
-                            if (el.tagName === 'TEXTAREA') el.value=''; else el.value='';
+                    setTimeout(() => {
+                        document.getElementById('modalAgregarProfesional').style.display='none';
+                        ['apNombre','apEmail','apTelefono','apPais','apResena'].forEach(id => {
+                            document.getElementById(id).value = '';
                         });
-                        document.getElementById('apProfesion').value='';
+                        document.getElementById('apProfesion').value = '';
+                        document.getElementById('apCurriculum').value = '';
+                        document.getElementById('apCurriculumErr').textContent = '';
                         msg.style.display='none'; btn.disabled=false;
-                        btn.innerHTML='<i class="fas fa-user-plus"></i> Registrar Profesional'; }, 2500);
+                        btn.innerHTML='<i class="fas fa-user-plus"></i> Registrar Profesional';
+                    }, 2500);
                 } else {
                     msg.style.background='#fff5f5'; msg.style.color='#b91c1c';
                     msg.textContent='Error: ' + (data.message || 'Inténtalo de nuevo.');
