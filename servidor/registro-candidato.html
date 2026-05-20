@@ -637,8 +637,25 @@ document.getElementById('admissionForm').addEventListener('submit', async functi
     return;
   }
   setLoading(true);
+
+  let curriculum_pdf = '';
+  let curriculum_name = '';
+  const cvInput = document.getElementById('curriculum_file');
+  if (cvInput && cvInput.files[0]) {
+    const cvFile = cvInput.files[0];
+    curriculum_pdf = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(cvFile);
+    });
+    curriculum_name = cvFile.name;
+  }
+
   const payload = {
     action: 'initial_registration',
+    curriculum_pdf,
+    curriculum_name,
     candidate: {
       name:                 getVal('full_name'),
       email:                getVal('email'),
