@@ -78,6 +78,7 @@ $allowed_actions = [
     'verifyAdminToken',
     'getUserRole',
     // Acciones extras
+    'getTerminos',
     'resendWelcomeEmail',
     'sendEmailManual',
     'addToBrevoListManual',

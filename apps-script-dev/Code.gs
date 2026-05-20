@@ -582,10 +582,11 @@ function acceptTerms(candidateId, acceptedAt, clientIp, userAgent) {
         const email = data[i][3];
         const name  = data[i][2];
         sheet.getRange(i + 1, 11).setValue('pending_review_E2');
-        // Guardar firma de aceptación: columna V (22) = timestamp, W (23) = IP, X (24) = user-agent
-        sheet.getRange(i + 1, 22).setValue(acceptedAt || new Date().toISOString());
-        sheet.getRange(i + 1, 23).setValue(clientIp   || '');
-        sheet.getRange(i + 1, 24).setValue(userAgent   || '');
+        // col 22 = curriculum_url (no tocar)
+        // Guardar firma de aceptación: col 23 = terms_accepted_at, col 24 = IP, col 25 = user-agent
+        sheet.getRange(i + 1, 23).setValue(acceptedAt || new Date().toISOString());
+        sheet.getRange(i + 1, 24).setValue(clientIp   || '');
+        sheet.getRange(i + 1, 25).setValue(userAgent   || '');
         const token          = generateToken(candidateId, 'E2');
         const scheduled_date = new Date().toISOString().split('T')[0];
         saveToken(token, candidateId, 'E2', email, name, scheduled_date);
@@ -2331,7 +2332,7 @@ function handleHandoff(data) {
       // 5=country, 6=birthday, 7=professional_type, 8=therapeutic_approach, 9=about
       // 10=status, 11=E1_score, 12=E1_date, 13=E2_score, 14=E2_date
       // 15=E3_score, 16=E3_date, 17=interview_notes, 18=final_category
-      // 19=last_interaction, 20=notes, 21=terms_accepted_at, 22=terms_ip, 23=terms_user_agent
+      // 19=last_interaction, 20=notes, 21=curriculum_url, 22=terms_accepted_at, 23=terms_ip, 24=terms_user_agent
       const status = String(row[10] || '').trim();
       if (!APPROVED_STATUSES.includes(status)) continue;
 
@@ -2347,7 +2348,7 @@ function handleHandoff(data) {
       const name              = row[2]  || '';
       const professionalType  = row[7]  || '';   // Especialidad
       const finalCategory     = row[18] || '';   // Categoria
-      const termsAcceptedAt   = row[21] || '';   // Legal_Fecha
+      const termsAcceptedAt   = row[22] || '';   // Legal_Fecha (col 23 1-indexed)
 
       // Determinar etiqueta Legal_Aceptacion
       const legalAceptacion   = termsAcceptedAt ? 'ACEPTADO | v1' : '';
