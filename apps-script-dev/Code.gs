@@ -29,7 +29,8 @@ function initializeSpreadsheet() {
       headers: ['candidate_id', 'registration_date', 'name', 'email', 'phone', 'country',
                 'birthday', 'professional_type', 'therapeutic_approach', 'about',
                 'status', 'E1_score', 'E1_date', 'E2_score', 'E2_date',
-                'E3_score', 'E3_date', 'interview_notes', 'final_category', 'last_interaction', 'notes']
+                'E3_score', 'E3_date', 'interview_notes', 'final_category', 'last_interaction', 'notes',
+                'curriculum_url', 'terms_accepted_at', 'terms_ip', 'terms_user_agent']
     },
     'Tokens': {
       headers: ['token', 'candidate_id', 'exam', 'created_at', 'valid_from', 'valid_until',
@@ -488,10 +489,16 @@ function handleRegistration(data) {
       }
     }
 
-    // Asegurar que la hoja tiene al menos 22 columnas antes de escribir
+    // Asegurar que la hoja tiene al menos 22 columnas y el header de curriculum_url
     if (sheet.getMaxColumns() < 22) {
       sheet.insertColumnsAfter(sheet.getMaxColumns(), 22 - sheet.getMaxColumns());
       Logger.log('[handleRegistration] Columnas expandidas a 22');
+    }
+    const cvHeaderCell = sheet.getRange(1, 22);
+    if (!cvHeaderCell.getValue()) {
+      cvHeaderCell.setValue('curriculum_url');
+      cvHeaderCell.setBackground('#001A55').setFontColor('#FFFFFF').setFontWeight('bold').setHorizontalAlignment('center');
+      Logger.log('[handleRegistration] Header curriculum_url añadido en col 22');
     }
 
     insertNewRow(sheet, [
@@ -1985,6 +1992,36 @@ function insertNewRow(sheet, values) {
     // Fallback a appendRow si falla
     sheet.appendRow(values);
   }
+}
+
+/**
+ * MIGRACIÓN: Añade las 4 columnas faltantes a la hoja Candidatos.
+ *   col 22 = curriculum_url
+ *   col 23 = terms_accepted_at
+ *   col 24 = terms_ip
+ *   col 25 = terms_user_agent
+ * Ejecutar UNA VEZ desde el editor GAS: Dropdown > addCurriculumColumns > ▶️
+ */
+function addCurriculumColumns() {
+  const sheet = SS.getSheetByName('Candidatos');
+  if (!sheet) { Logger.log('Hoja Candidatos no encontrada'); return; }
+  const newHeaders = ['curriculum_url', 'terms_accepted_at', 'terms_ip', 'terms_user_agent'];
+  if (sheet.getMaxColumns() < 25) {
+    sheet.insertColumnsAfter(sheet.getMaxColumns(), 25 - sheet.getMaxColumns());
+  }
+  for (let i = 0; i < newHeaders.length; i++) {
+    const col = 22 + i;
+    const cell = sheet.getRange(1, col);
+    if (!cell.getValue()) {
+      cell.setValue(newHeaders[i]);
+      cell.setBackground('#001A55').setFontColor('#FFFFFF').setFontWeight('bold').setHorizontalAlignment('center');
+      Logger.log('Añadido header "' + newHeaders[i] + '" en columna ' + col);
+    } else {
+      Logger.log('Columna ' + col + ' ya tiene header: ' + cell.getValue());
+    }
+  }
+  try { sheet.autoResizeColumns(22, 4); } catch(e) {}
+  try { SpreadsheetApp.getUi().alert('✅ Columnas verificadas/añadidas en Candidatos.'); } catch(e) {}
 }
 
 function saveCurriculumToDrive(base64Data, fileName) {
