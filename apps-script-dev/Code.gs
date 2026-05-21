@@ -792,9 +792,29 @@ function handleGetDashboardData() {
   try {
     const candidatesResult = getCandidatesForAdmin();
     const stats            = getDashboardStats();
+    // Diagnóstico: incluir info de columnas para verificar que se lee correctamente
+    let _debug = {};
+    try {
+      const sheet = SS.getSheetByName('Candidatos');
+      const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+      let cvIdx = -1;
+      for (let h = 0; h < headers.length; h++) {
+        if (String(headers[h] || '').trim().toLowerCase() === 'curriculum_url') { cvIdx = h; break; }
+      }
+      const withCV = (candidatesResult.candidates || []).filter(c => c.curriculum_url).length;
+      _debug = {
+        sheet_last_col: sheet.getLastColumn(),
+        sheet_max_col:  sheet.getMaxColumns(),
+        cv_col_idx:     cvIdx,
+        cv_col_1based:  cvIdx >= 0 ? cvIdx + 1 : null,
+        headers:        headers,
+        candidates_with_cv: withCV
+      };
+    } catch (de) { _debug = { error: de.message }; }
     return jsonResponse(true, 'OK', {
       candidates: candidatesResult.candidates || [],
-      stats:      stats
+      stats:      stats,
+      _debug:     _debug
     });
   } catch (error) {
     Logger.log('[ERROR handleGetDashboardData] ' + error.message);
@@ -1176,7 +1196,7 @@ function getCandidatesForAdmin() {
     for (let h = 0; h < headers.length; h++) {
       if (String(headers[h] || '').trim().toLowerCase() === 'curriculum_url') { cvCol = h; break; }
     }
-    Logger.log('[getCandidatesForAdmin] curriculum_url col index: ' + cvCol);
+    console.log('[getCandidatesForAdmin] curriculum_url col index: ' + cvCol + ' | total cols: ' + headers.length);
     for (let i = 1; i < data.length; i++) {
       if (data[i][0]) {
         candidates.push({
