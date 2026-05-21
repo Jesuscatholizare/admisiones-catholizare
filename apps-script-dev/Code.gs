@@ -30,7 +30,7 @@ function initializeSpreadsheet() {
                 'birthday', 'professional_type', 'therapeutic_approach', 'about',
                 'status', 'E1_score', 'E1_date', 'E2_score', 'E2_date',
                 'E3_score', 'E3_date', 'interview_notes', 'final_category', 'last_interaction', 'notes',
-                'curriculum_url', 'terms_accepted_at', 'terms_ip', 'terms_user_agent']
+                'terms_accepted_at', 'terms_ip', 'terms_user_agent', 'curriculum_url']
     },
     'Tokens': {
       headers: ['token', 'candidate_id', 'exam', 'created_at', 'valid_from', 'valid_until',
@@ -489,16 +489,16 @@ function handleRegistration(data) {
       }
     }
 
-    // Asegurar que la hoja tiene al menos 22 columnas y el header de curriculum_url
-    if (sheet.getMaxColumns() < 22) {
-      sheet.insertColumnsAfter(sheet.getMaxColumns(), 22 - sheet.getMaxColumns());
-      Logger.log('[handleRegistration] Columnas expandidas a 22');
+    // Asegurar que la hoja tiene al menos 25 columnas y el header de curriculum_url
+    if (sheet.getMaxColumns() < 25) {
+      sheet.insertColumnsAfter(sheet.getMaxColumns(), 25 - sheet.getMaxColumns());
+      Logger.log('[handleRegistration] Columnas expandidas a 25');
     }
-    const cvHeaderCell = sheet.getRange(1, 22);
+    const cvHeaderCell = sheet.getRange(1, 25);
     if (!cvHeaderCell.getValue()) {
       cvHeaderCell.setValue('curriculum_url');
       cvHeaderCell.setBackground('#001A55').setFontColor('#FFFFFF').setFontWeight('bold').setHorizontalAlignment('center');
-      Logger.log('[handleRegistration] Header curriculum_url añadido en col 22');
+      Logger.log('[handleRegistration] Header curriculum_url añadido en col 25');
     }
 
     insertNewRow(sheet, [
@@ -510,7 +510,8 @@ function handleRegistration(data) {
       'registered',
       '', '', '', '', '', '', '', '', '', // cols 12-20: E1_score → last_interaction
       '',                                 // col 21: notes
-      curriculum_url                      // col 22: curriculum_url
+      '', '', '',                         // cols 22-24: terms_accepted_at, terms_ip, terms_user_agent
+      curriculum_url                      // col 25: curriculum_url
     ]);
 
     // Escritura explícita de curriculum_url buscando la fila por candidate_id
@@ -520,8 +521,8 @@ function handleRegistration(data) {
         const allRows = sheet.getDataRange().getValues();
         for (let ri = 1; ri < allRows.length; ri++) {
           if (allRows[ri][0] === candidate_id) {
-            sheet.getRange(ri + 1, 22).setValue(curriculum_url);
-            Logger.log('[CV] URL escrito en fila ' + (ri + 1) + ': ' + curriculum_url);
+            sheet.getRange(ri + 1, 25).setValue(curriculum_url);
+            Logger.log('[CV] URL escrito en fila ' + (ri + 1) + ' col 25: ' + curriculum_url);
             break;
           }
         }
@@ -614,11 +615,10 @@ function acceptTerms(candidateId, acceptedAt, clientIp, userAgent) {
         const email = data[i][3];
         const name  = data[i][2];
         sheet.getRange(i + 1, 11).setValue('pending_review_E2');
-        // col 22 = curriculum_url (no tocar)
-        // Guardar firma de aceptación: col 23 = terms_accepted_at, col 24 = IP, col 25 = user-agent
-        sheet.getRange(i + 1, 23).setValue(acceptedAt || new Date().toISOString());
-        sheet.getRange(i + 1, 24).setValue(clientIp   || '');
-        sheet.getRange(i + 1, 25).setValue(userAgent   || '');
+        // Cols 22-24: terms_accepted_at, terms_ip, terms_user_agent (ya existen en la hoja)
+        sheet.getRange(i + 1, 22).setValue(acceptedAt || new Date().toISOString());
+        sheet.getRange(i + 1, 23).setValue(clientIp   || '');
+        sheet.getRange(i + 1, 24).setValue(userAgent   || '');
         const token          = generateToken(candidateId, 'E2');
         const scheduled_date = new Date().toISOString().split('T')[0];
         saveToken(token, candidateId, 'E2', email, name, scheduled_date);
@@ -1183,7 +1183,7 @@ function getCandidatesForAdmin() {
           final_category:   data[i][18],
           last_interaction: data[i][19],
           notes:            data[i][20],
-          curriculum_url:   data[i][21] || ''
+          curriculum_url:   data[i][24] || ''
         });
       }
     }
@@ -2005,23 +2005,22 @@ function insertNewRow(sheet, values) {
 function addCurriculumColumns() {
   const sheet = SS.getSheetByName('Candidatos');
   if (!sheet) { Logger.log('Hoja Candidatos no encontrada'); return; }
-  const newHeaders = ['curriculum_url', 'terms_accepted_at', 'terms_ip', 'terms_user_agent'];
+  // Cols 22-24 (terms_accepted_at, terms_ip, terms_user_agent) ya existen
+  // Solo necesitamos añadir curriculum_url en col 25
   if (sheet.getMaxColumns() < 25) {
     sheet.insertColumnsAfter(sheet.getMaxColumns(), 25 - sheet.getMaxColumns());
+    Logger.log('Columnas expandidas a 25');
   }
-  for (let i = 0; i < newHeaders.length; i++) {
-    const col = 22 + i;
-    const cell = sheet.getRange(1, col);
-    if (!cell.getValue()) {
-      cell.setValue(newHeaders[i]);
-      cell.setBackground('#001A55').setFontColor('#FFFFFF').setFontWeight('bold').setHorizontalAlignment('center');
-      Logger.log('Añadido header "' + newHeaders[i] + '" en columna ' + col);
-    } else {
-      Logger.log('Columna ' + col + ' ya tiene header: ' + cell.getValue());
-    }
+  const cell = sheet.getRange(1, 25);
+  if (!cell.getValue()) {
+    cell.setValue('curriculum_url');
+    cell.setBackground('#001A55').setFontColor('#FFFFFF').setFontWeight('bold').setHorizontalAlignment('center');
+    Logger.log('Header "curriculum_url" añadido en columna 25');
+  } else {
+    Logger.log('Columna 25 ya tiene header: ' + cell.getValue());
   }
-  try { sheet.autoResizeColumns(22, 4); } catch(e) {}
-  try { SpreadsheetApp.getUi().alert('✅ Columnas verificadas/añadidas en Candidatos.'); } catch(e) {}
+  try { sheet.autoResizeColumns(25, 1); } catch(e) {}
+  try { SpreadsheetApp.getUi().alert('✅ Columna curriculum_url añadida en col 25.'); } catch(e) {}
 }
 
 function saveCurriculumToDrive(base64Data, fileName) {
@@ -2394,7 +2393,7 @@ function handleHandoff(data) {
       // 5=country, 6=birthday, 7=professional_type, 8=therapeutic_approach, 9=about
       // 10=status, 11=E1_score, 12=E1_date, 13=E2_score, 14=E2_date
       // 15=E3_score, 16=E3_date, 17=interview_notes, 18=final_category
-      // 19=last_interaction, 20=notes, 21=curriculum_url, 22=terms_accepted_at, 23=terms_ip, 24=terms_user_agent
+      // 19=last_interaction, 20=notes, 21=terms_accepted_at, 22=terms_ip, 23=terms_user_agent, 24=curriculum_url
       const status = String(row[10] || '').trim();
       if (!APPROVED_STATUSES.includes(status)) continue;
 
@@ -2410,7 +2409,7 @@ function handleHandoff(data) {
       const name              = row[2]  || '';
       const professionalType  = row[7]  || '';   // Especialidad
       const finalCategory     = row[18] || '';   // Categoria
-      const termsAcceptedAt   = row[22] || '';   // Legal_Fecha (col 23 1-indexed)
+      const termsAcceptedAt   = row[21] || '';   // Legal_Fecha (col 22 1-indexed = terms_accepted_at)
 
       // Determinar etiqueta Legal_Aceptacion
       const legalAceptacion   = termsAcceptedAt ? 'ACEPTADO | v1' : '';
