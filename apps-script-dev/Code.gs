@@ -488,6 +488,12 @@ function handleRegistration(data) {
       }
     }
 
+    // Asegurar que la hoja tiene al menos 22 columnas antes de escribir
+    if (sheet.getMaxColumns() < 22) {
+      sheet.insertColumnsAfter(sheet.getMaxColumns(), 22 - sheet.getMaxColumns());
+      Logger.log('[handleRegistration] Columnas expandidas a 22');
+    }
+
     insertNewRow(sheet, [
       candidate_id, registration_date,
       candidate.name, candidate.email,
@@ -495,9 +501,27 @@ function handleRegistration(data) {
       candidate.birthday || '', candidate.professional_type || '',
       candidate.therapeutic_approach || '', candidate.about || '',
       'registered',
-      '', '', '', '', '', '', '', '', '', '',  // cols 12-21: E1_score → notes
-      curriculum_url                              // col 22: curriculum_url
+      '', '', '', '', '', '', '', '', '', // cols 12-20: E1_score → last_interaction
+      '',                                 // col 21: notes
+      curriculum_url                      // col 22: curriculum_url
     ]);
+
+    // Escritura explícita de curriculum_url buscando la fila por candidate_id
+    // (seguridad extra por si insertNewRow truncó el array o usó appendRow)
+    if (curriculum_url) {
+      try {
+        const allRows = sheet.getDataRange().getValues();
+        for (let ri = 1; ri < allRows.length; ri++) {
+          if (allRows[ri][0] === candidate_id) {
+            sheet.getRange(ri + 1, 22).setValue(curriculum_url);
+            Logger.log('[CV] URL escrito en fila ' + (ri + 1) + ': ' + curriculum_url);
+            break;
+          }
+        }
+      } catch (writeErr) {
+        Logger.log('[CV write fallback error] ' + writeErr.message);
+      }
+    }
 
     const token = generateToken(candidate_id, 'E1');
     saveToken(token, candidate_id, 'E1', candidate.email, candidate.name, '');
