@@ -514,16 +514,25 @@ function handleRegistration(data) {
       curriculum_url                      // col 25: curriculum_url
     ]);
 
-    // Escritura explícita de curriculum_url buscando la fila por candidate_id
-    // (seguridad extra por si insertNewRow truncó el array o usó appendRow)
+    // Escritura explícita de curriculum_url buscando la columna por header
+    // y la fila por candidate_id (robusto a cambios de posición de columna)
     if (curriculum_url) {
       try {
         const allRows = sheet.getDataRange().getValues();
-        for (let ri = 1; ri < allRows.length; ri++) {
-          if (allRows[ri][0] === candidate_id) {
-            sheet.getRange(ri + 1, 25).setValue(curriculum_url);
-            Logger.log('[CV] URL escrito en fila ' + (ri + 1) + ' col 25: ' + curriculum_url);
-            break;
+        const hdrs = allRows[0] || [];
+        let cvColIdx = -1;
+        for (let h = 0; h < hdrs.length; h++) {
+          if (String(hdrs[h] || '').trim().toLowerCase() === 'curriculum_url') { cvColIdx = h; break; }
+        }
+        if (cvColIdx < 0) {
+          Logger.log('[CV] Header curriculum_url no encontrado tras insert — abortando escritura explícita');
+        } else {
+          for (let ri = 1; ri < allRows.length; ri++) {
+            if (allRows[ri][0] === candidate_id) {
+              sheet.getRange(ri + 1, cvColIdx + 1).setValue(curriculum_url);
+              Logger.log('[CV] URL escrito en fila ' + (ri + 1) + ' col ' + (cvColIdx + 1) + ': ' + curriculum_url);
+              break;
+            }
           }
         }
       } catch (writeErr) {
@@ -1161,6 +1170,13 @@ function getCandidatesForAdmin() {
     if (!sheet) return { success: false, error: 'Sheet Candidatos no encontrada', candidates: [] };
     const data       = sheet.getDataRange().getValues();
     const candidates = [];
+    // Buscar índice de columna curriculum_url por header (robusto a cambios de posición)
+    const headers = data[0] || [];
+    let cvCol = -1;
+    for (let h = 0; h < headers.length; h++) {
+      if (String(headers[h] || '').trim().toLowerCase() === 'curriculum_url') { cvCol = h; break; }
+    }
+    Logger.log('[getCandidatesForAdmin] curriculum_url col index: ' + cvCol);
     for (let i = 1; i < data.length; i++) {
       if (data[i][0]) {
         candidates.push({
@@ -1183,7 +1199,7 @@ function getCandidatesForAdmin() {
           final_category:   data[i][18],
           last_interaction: data[i][19],
           notes:            data[i][20],
-          curriculum_url:   data[i][24] || ''
+          curriculum_url:   cvCol >= 0 ? (data[i][cvCol] || '') : ''
         });
       }
     }
