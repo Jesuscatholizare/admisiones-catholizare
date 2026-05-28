@@ -553,13 +553,13 @@ function acceptTerms(candidateId, acceptedAt, clientIp, userAgent, tcAccepted, p
         const name  = data[i][2];
         sheet.getRange(i + 1, 11).setValue('pending_review_E2');
         // Firma de aceptación:
-        //   col 22 = timestamp, 23 = IP, 24 = user-agent
-        //   col 25 = aceptación T&C postulantes, 26 = aceptación Aviso de Privacidad
+        //   col 22 = timestamp, 23 = IP, 24 = user-agent, 25 = CV (no tocar)
+        //   col 26 = aceptación T&C postulantes, 27 = aceptación Aviso de Privacidad
         sheet.getRange(i + 1, 22).setValue(acceptedAt || new Date().toISOString());
         sheet.getRange(i + 1, 23).setValue(clientIp   || '');
         sheet.getRange(i + 1, 24).setValue(userAgent   || '');
-        sheet.getRange(i + 1, 25).setValue(tcAccepted   ? 'SI' : 'NO');
-        sheet.getRange(i + 1, 26).setValue(privAccepted ? 'SI' : 'NO');
+        sheet.getRange(i + 1, 26).setValue(tcAccepted   ? 'SI' : 'NO');
+        sheet.getRange(i + 1, 27).setValue(privAccepted ? 'SI' : 'NO');
         const token          = generateToken(candidateId, 'E2');
         const scheduled_date = new Date().toISOString().split('T')[0];
         saveToken(token, candidateId, 'E2', email, name, scheduled_date);
