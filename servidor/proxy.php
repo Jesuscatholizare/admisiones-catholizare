@@ -66,6 +66,7 @@ $allowed_actions = [
     'acceptTerms',
     // Datos
     'get_exam',
+    'get_terms_content',
     'getDashboardData',
     // Acciones admin
     'approveExam',

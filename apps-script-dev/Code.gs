@@ -441,6 +441,7 @@ function doGet(e) {
 
     if (action === 'get_exam')          return getExamData(token, exam);
     if (action === 'getDashboardData')  return handleGetDashboardData();
+    if (action === 'get_terms_content') return handleGetTermsContent();
     if (action === 'health')            return jsonResponse(true, 'OK', checkSystemHealth());
 
     return jsonResponse(false, 'Accion no valida');
@@ -519,24 +520,30 @@ function handleAcceptTerms(data) {
     const candidateId = data.candidate_id;
     if (!candidateId) return jsonResponse(false, 'candidate_id requerido');
 
-    const acceptedAt  = data.accepted_at  || new Date().toISOString();
-    const clientIp    = data.client_ip    || '';
-    const userAgent   = data.user_agent   || '';
+    const acceptedAt   = data.accepted_at  || new Date().toISOString();
+    const clientIp     = data.client_ip    || '';
+    const userAgent    = data.user_agent   || '';
+    const tcAccepted   = data.tc_postulantes_accepted === true;
+    const privAccepted = data.aviso_privacidad_accepted === true;
 
-    const result = acceptTerms(candidateId, acceptedAt, clientIp, userAgent);
+    if (!tcAccepted || !privAccepted) {
+      return jsonResponse(false, 'Debes aceptar los Términos y Condiciones y el Aviso de Privacidad para continuar');
+    }
+
+    const result = acceptTerms(candidateId, acceptedAt, clientIp, userAgent, tcAccepted, privAccepted);
     if (result.success) {
-      return jsonResponse(true, 'Términos aceptados. Token E2 enviado a tu email.', {
+      return jsonResponse(true, 'Información aceptada. Token E2 enviado a tu email.', {
         candidate_id: candidateId
       });
     }
-    return jsonResponse(false, result.error || 'Error al aceptar términos');
+    return jsonResponse(false, result.error || 'Error al aceptar la información');
   } catch (error) {
     Logger.log('[ERROR handleAcceptTerms] ' + error.message);
     return jsonResponse(false, 'Error: ' + error.message);
   }
 }
 
-function acceptTerms(candidateId, acceptedAt, clientIp, userAgent) {
+function acceptTerms(candidateId, acceptedAt, clientIp, userAgent, tcAccepted, privAccepted) {
   try {
     const sheet = SS.getSheetByName('Candidatos');
     const data  = sheet.getDataRange().getValues();
@@ -545,17 +552,23 @@ function acceptTerms(candidateId, acceptedAt, clientIp, userAgent) {
         const email = data[i][3];
         const name  = data[i][2];
         sheet.getRange(i + 1, 11).setValue('pending_review_E2');
-        // Guardar firma de aceptación: columna V (22) = timestamp, W (23) = IP, X (24) = user-agent
+        // Firma de aceptación:
+        //   col 22 = timestamp, 23 = IP, 24 = user-agent
+        //   col 25 = aceptación T&C postulantes, 26 = aceptación Aviso de Privacidad
         sheet.getRange(i + 1, 22).setValue(acceptedAt || new Date().toISOString());
         sheet.getRange(i + 1, 23).setValue(clientIp   || '');
         sheet.getRange(i + 1, 24).setValue(userAgent   || '');
+        sheet.getRange(i + 1, 25).setValue(tcAccepted   ? 'SI' : 'NO');
+        sheet.getRange(i + 1, 26).setValue(privAccepted ? 'SI' : 'NO');
         const token          = generateToken(candidateId, 'E2');
         const scheduled_date = new Date().toISOString().split('T')[0];
         saveToken(token, candidateId, 'E2', email, name, scheduled_date);
         sendEmailE2(email, name, token, candidateId);
         addTimelineEvent(candidateId, 'TERMINOS_ACEPTADOS', {
           email: email, token_e2_generado: token,
-          ip: clientIp, timestamp: acceptedAt
+          ip: clientIp, timestamp: acceptedAt,
+          tc_postulantes_accepted: tcAccepted,
+          aviso_privacidad_accepted: privAccepted
         });
         return { success: true, token: token };
       }
@@ -564,6 +577,65 @@ function acceptTerms(candidateId, acceptedAt, clientIp, userAgent) {
   } catch (error) {
     Logger.log('[acceptTerms Error] ' + error.message);
     return { success: false, error: error.message };
+  }
+}
+
+// ================================
+// LECTURA DE PESTAÑA "terminos"
+// ================================
+// Lee el contenido de la pestaña `terminos` del Spreadsheet y lo devuelve
+// como HTML para mostrarlo en la página "Información general sobre la Red Catholizare".
+// Formato esperado en la hoja: cada fila es un bloque; primera columna = tipo
+// ('h2','h3','p','li','html'), segunda columna = contenido. Si solo hay una
+// columna con texto, se trata como párrafo.
+function handleGetTermsContent() {
+  try {
+    const sheet = SS.getSheetByName('terminos') || SS.getSheetByName('Terminos');
+    if (!sheet) {
+      return jsonResponse(false, 'Pestaña "terminos" no encontrada en el Spreadsheet');
+    }
+    const rows = sheet.getDataRange().getValues();
+    const blocks = [];
+    let listOpen = null; // 'ul' | 'ol' | null
+
+    function closeList() {
+      if (listOpen) { blocks.push('</' + listOpen + '>'); listOpen = null; }
+    }
+
+    for (let i = 0; i < rows.length; i++) {
+      const a = (rows[i][0] || '').toString().trim();
+      const b = (rows[i][1] || '').toString().trim();
+      // Saltar header si existe
+      if (i === 0 && (a.toLowerCase() === 'tipo' || a.toLowerCase() === 'type')) continue;
+      if (!a && !b) continue;
+
+      const type    = (b ? a : 'p').toLowerCase();
+      const content = b || a;
+      if (!content) continue;
+
+      if (type === 'li' || type === 'ul') {
+        if (listOpen !== 'ul') { closeList(); blocks.push('<ul>'); listOpen = 'ul'; }
+        blocks.push('<li>' + content + '</li>');
+      } else if (type === 'oli' || type === 'ol') {
+        if (listOpen !== 'ol') { closeList(); blocks.push('<ol>'); listOpen = 'ol'; }
+        blocks.push('<li>' + content + '</li>');
+      } else if (type === 'html') {
+        closeList();
+        blocks.push(content);
+      } else if (type === 'h2' || type === 'h3' || type === 'h4') {
+        closeList();
+        blocks.push('<' + type + '>' + content + '</' + type + '>');
+      } else {
+        closeList();
+        blocks.push('<p>' + content + '</p>');
+      }
+    }
+    closeList();
+
+    return jsonResponse(true, 'OK', { html: blocks.join('\n') });
+  } catch (error) {
+    Logger.log('[ERROR handleGetTermsContent] ' + error.message);
+    return jsonResponse(false, 'Error: ' + error.message);
   }
 }
 
@@ -1699,9 +1771,12 @@ function sendWelcomeEmail(email, name, token, candidate_id) {
 
 function sendEmailTerms(email, name, candidateId) {
   const url = 'https://profesionales.catholizare.com/catholizare_sistem/terminos-y-condiciones.html?candidate_id=' + candidateId + '&email=' + encodeURIComponent(email);
-  const html = '<div style="font-family:Arial;"><h2>Hola ' + name + '</h2><p>Aprobaste E1. Acepta los Términos y Condiciones para continuar.</p>' +
-    '<a href="' + url + '" style="background:#0966FF;color:white;padding:12px 24px;text-decoration:none;border-radius:4px;">Aceptar Términos</a></div>';
-  return sendEmail(email, 'Paso siguiente: Acepta los Términos', html);
+  const html = '<div style="font-family:Arial;max-width:600px;margin:0 auto;"><h2>Hola ' + name + '</h2>' +
+    '<p>¡Felicidades! Aprobaste el Examen E1.</p>' +
+    '<p>Antes de continuar con el siguiente paso, te invitamos a revisar la <strong>Información general sobre la Red Catholizare</strong> y confirmar la aceptación de nuestros Términos y Condiciones para postulantes, así como del Aviso de Privacidad.</p>' +
+    '<p><a href="' + url + '" style="display:inline-block;background:#0966FF;color:white;padding:12px 24px;text-decoration:none;border-radius:4px;">Ver Información general y continuar</a></p>' +
+    '</div>';
+  return sendEmail(email, 'Información general sobre la Red Catholizare', html);
 }
 
 function sendEmailE2(email, name, token, candidateId) {
