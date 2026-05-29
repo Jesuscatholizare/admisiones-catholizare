@@ -1912,8 +1912,9 @@
         }
 
         function renderRespQuestions(data, exam) {
-            const panel     = document.getElementById('respQuestions');
-            const questions = data.questions || data.responses || data.preguntas || [];
+            const panel       = document.getElementById('respQuestions');
+            const questions   = data.questions || data.responses || data.preguntas || [];
+            const openaiScores = data.openai_scores || {};
 
             if (!questions.length) {
                 panel.innerHTML = '<div class="resp-empty"><i class="fas fa-inbox"></i>No hay respuestas registradas para ' + exam + '</div>';
@@ -1932,7 +1933,6 @@
             }
 
             questions.forEach((q, i) => {
-                // Mapear campos desde el backend (que usa: text, type, options, answer, is_correct)
                 const tipo     = q.type || q.tipo || 'open';
                 const texto    = q.text || q.texto || q.pregunta || q.question || q.n || '';
                 const respCand = q.answer || q.respuesta_candidato || q.candidate_answer || '';
@@ -1953,10 +1953,9 @@
 
                 if (esMulti && opciones && opciones.length) {
                     html += '<div class="resp-options">';
-                    // Si no hay respuesta, mostrar todas las opciones sin seleccionar
                     if (!respCand) {
                         opciones.forEach((op, idx) => {
-                            const key       = `option_${idx + 1}`;
+                            const key        = `option_${idx + 1}`;
                             const isCorrecto = correcta === key;
                             const cls2 = isCorrecto ? ' correct-opt' : '';
                             const icon = isCorrecto
@@ -1966,10 +1965,9 @@
                         });
                         html += '<div style="padding:0.5rem;color:#999;font-size:0.85em;font-style:italic;">Sin respuesta</div>';
                     } else {
-                        // Mostrar con la respuesta del candidato destacada
                         opciones.forEach((op, idx) => {
-                            const key       = `option_${idx + 1}`;
-                            const selected  = respCand === key;
+                            const key        = `option_${idx + 1}`;
+                            const selected   = respCand === key;
                             const isCorrecto = correcta === key;
                             const cls2 = isCorrecto ? ' correct-opt' : (selected ? ' wrong-opt' : '');
                             const icon = isCorrecto
@@ -1983,7 +1981,40 @@
                     }
                     html += '</div>';
                 } else {
-                    html += `<div class="resp-open-answer" style="padding:0.75rem;background:#f9f9f9;border-radius:4px;margin-top:0.5rem;"><strong>Respuesta:</strong> ${respCand || '<em style="color:#ccc;">Sin respuesta</em>'}</div>`;
+                    // Respuesta abierta
+                    html += `<div class="resp-open-answer" style="padding:0.75rem;background:#f9f9f9;border-radius:4px;margin-top:0.5rem;">
+                        <strong>Respuesta:</strong> ${respCand || '<em style="color:#ccc;">Sin respuesta</em>'}
+                    </div>`;
+
+                    // Bloque de calificación OpenAI
+                    const ai = openaiScores[q.id];
+                    if (ai && ai.type === 'open') {
+                        const lvlColor  = ai.rubric_level === 'excelente' ? '#198754'
+                                        : ai.rubric_level === 'aceptable' ? '#f59e0b' : '#dc3545';
+                        const lvlLabel  = ai.rubric_level === 'excelente' ? 'Excelente'
+                                        : ai.rubric_level === 'aceptable' ? 'Aceptable'
+                                        : ai.rubric_level === 'rechazada' ? 'Rechazada' : (ai.rubric_level || '—');
+                        const aiPct     = ai.ai_probability != null ? ai.ai_probability : null;
+                        const aiFlag    = aiPct !== null && aiPct > 60
+                            ? `<span style="margin-left:0.75rem;color:#dc3545;font-size:0.8em;font-weight:600;">⚠ IA ${aiPct}%</span>` : '';
+
+                        html += `<div style="margin-top:0.5rem;padding:0.75rem 1rem;background:#f0f4ff;border-left:4px solid ${lvlColor};border-radius:0 6px 6px 0;font-size:0.88em;">
+                            <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.4rem;flex-wrap:wrap;">
+                                <span style="font-weight:700;color:#001A55;">Calificación OpenAI</span>
+                                <span style="background:${lvlColor};color:white;padding:2px 8px;border-radius:10px;font-size:0.82em;font-weight:600;">${lvlLabel}</span>
+                                <span style="color:#001A55;font-weight:600;">Puntos: ${ai.score != null ? ai.score : '—'}</span>
+                                ${aiFlag}
+                            </div>
+                            ${ai.feedback ? `<div style="color:#444;"><strong>Feedback:</strong> ${ai.feedback}</div>` : ''}
+                            ${ai.reasoning ? `<div style="color:#666;margin-top:0.25rem;font-style:italic;"><strong>Razonamiento:</strong> ${ai.reasoning}</div>` : ''}
+                        </div>`;
+                    } else if (!respCand) {
+                        // sin respuesta — no mostrar nada extra
+                    } else {
+                        html += `<div style="margin-top:0.4rem;padding:0.5rem 0.75rem;background:#fff8e1;border-left:3px solid #f59e0b;border-radius:0 4px 4px 0;font-size:0.83em;color:#78350f;">
+                            <i class="fas fa-circle-info" style="margin-right:4px;"></i>Sin calificación OpenAI registrada
+                        </div>`;
+                    }
                 }
 
                 html += '</div>';
