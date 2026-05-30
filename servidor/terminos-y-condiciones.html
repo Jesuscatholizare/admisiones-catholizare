@@ -203,7 +203,7 @@
                 <h3>Hemos registrado tu decisión</h3>
                 <p>Gracias por tu tiempo. Si en el futuro decides continuar con tu postulación, con gusto te acompañaremos.</p>
                 <div style="margin-top:1.5rem;">
-                    <button class="btn-cancelar" style="width:100%;padding:0.75rem;" onclick="cerrarModalNoAcepto()">Cerrar</button>
+                    <button class="btn-cancelar" style="width:100%;padding:0.75rem;" onclick="window.location.href='https://catholizare.com/psicologos-catolicos/'">Cerrar</button>
                 </div>
             </div>
         </div>
@@ -352,6 +352,11 @@
             document.getElementById('modalConfirmacion').style.display = 'block';
             btn.disabled  = false;
             btn.innerHTML = 'Enviar';
+
+            // Redirigir automáticamente tras 6 segundos
+            setTimeout(() => {
+                window.location.href = 'https://catholizare.com/psicologos-catolicos/';
+            }, 6000);
         }
 
         window.addEventListener('load', () => {
