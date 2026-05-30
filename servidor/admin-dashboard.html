@@ -1535,6 +1535,12 @@
             if (!c) return '';
             const flags = [];
 
+            // Declinó la Información general
+            if (c.declined_at) {
+                const comment = c.declined_comment ? ` — "${c.declined_comment}"` : '';
+                flags.push({icon: 'fa-times-circle', color: '#dc3545', text: 'Declinó la Información general' + comment});
+            }
+
             // Proceso rechazado
             if (c.status === 'rejected') {
                 flags.push({icon: 'fa-times-circle', color: '#dc3545', text: 'Proceso Rechazado'});
@@ -1610,6 +1616,17 @@
                 let inner = '';
                 if (state !== 'pending') {
                     inner += `<p class="tl-phase-dtxt">${phase.desc}</p>`;
+                }
+
+                // Si es la fase de términos y el candidato declinó, añadir bloque informativo
+                if (phase.key === 'terminos' && c.declined_at) {
+                    const fmtDec = d => { try { return new Date(d).toLocaleString('es-MX'); } catch(e) { return d; } };
+                    inner += `<div style="margin:10px 0;padding:10px 14px;background:#fff5f5;border-left:3px solid #dc3545;border-radius:0 6px 6px 0;">
+                        <div style="font-size:.78rem;font-weight:700;color:#dc3545;margin-bottom:4px;"><i class="fas fa-times-circle" style="margin-right:5px"></i>DECLINÓ — ${fmtDec(c.declined_at)}</div>
+                        ${c.declined_comment
+                            ? `<div style="font-size:.82rem;color:#444;font-style:italic;">"${c.declined_comment}"</div>`
+                            : `<div style="font-size:.82rem;color:#999;font-style:italic;">Sin comentario.</div>`}
+                    </div>`;
                 }
 
                 if (state === 'active') {
