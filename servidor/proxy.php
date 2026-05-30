@@ -93,6 +93,7 @@ $allowed_actions = [
     'gasDiagnostic',
     'registerInterviewResult',
     'handoff',
+    'uploadCandidateCV',
 ];
 
 if (!in_array($action, $allowed_actions)) {

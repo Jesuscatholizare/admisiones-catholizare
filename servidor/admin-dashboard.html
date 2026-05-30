@@ -1450,16 +1450,34 @@
                 ['País',        c.pais         || '—'],
                 ['Profesión',   c.profesion    || '—'],
             ];
-            if (c.cv_url) {
-                fields.push(['Curriculum Vitae', `<a href="${c.cv_url}" target="_blank" rel="noopener" style="color:#0966FF;font-weight:600;text-decoration:underline;"><i class="fas fa-file-pdf" style="margin-right:4px;"></i>Ver / Descargar CV</a>`]);
-            } else {
-                fields.push(['Curriculum Vitae', '<span style="color:#aaa;font-style:italic">No adjuntó</span>']);
-            }
             if (c.final_category) fields.push(['Categoría final', `<span style="font-weight:700;color:#2e7d32">${c.final_category}</span>`]);
             if (c.last_interaction) fields.push(['Última interacción', fmtDate(c.last_interaction)]);
             const rows = fields.map(([k,v]) =>
                 `<div class="tl-field-row"><span class="tl-field-label">${k}</span><span class="tl-field-value">${v}</span></div>`
             ).join('');
+
+            // Card: Curriculum Vitae
+            const cvLinkHTML = c.cv_url
+                ? `<a href="${c.cv_url}" target="_blank" rel="noopener"
+                      style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:#0966FF;color:#fff;border-radius:6px;font-size:.85rem;font-weight:600;text-decoration:none;margin-bottom:10px;">
+                      <i class="fas fa-file-pdf"></i> Ver / Descargar CV
+                   </a><br>`
+                : `<span style="color:#aaa;font-size:.85rem;font-style:italic;display:block;margin-bottom:8px;">Sin CV adjunto</span>`;
+            const cvHTML = `<div class="tl-card-block">
+                <div class="tl-card-title"><i class="fas fa-file-alt"></i> Curriculum Vitae</div>
+                <div style="padding:.5rem 0">
+                    ${cvLinkHTML}
+                    <div style="margin-top:4px;">
+                        <label style="font-size:.75rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px;">${c.cv_url ? 'Reemplazar CV' : 'Subir CV'} (PDF, máx. 3 MB)</label>
+                        <input type="file" id="tlCVInput" accept="application/pdf" style="width:100%;font-size:.82rem;padding:4px;">
+                        <button onclick="uploadTLCandidateCV('${c.candidato_id}')"
+                            style="margin-top:6px;padding:5px 12px;background:#198754;color:#fff;border:none;border-radius:6px;font-size:.8rem;font-weight:600;cursor:pointer;">
+                            <i class="fas fa-upload"></i> Subir
+                        </button>
+                        <span id="tlCVMsg" style="font-size:.78rem;margin-left:8px;color:#555;"></span>
+                    </div>
+                </div>
+            </div>`;
 
             // Card: Resultados de Exámenes
             const exams = [
@@ -1469,7 +1487,11 @@
             ];
             const examRows = exams.map(ex => {
                 const hasData = (ex.score !== null && ex.score !== undefined && ex.score !== '') || ex.date;
-                const scoreHTML = hasData ? fmtScore(ex.score) : '<span style="color:#aaa;font-style:italic">Pendiente</span>';
+                const scoreNum = parseFloat(ex.score);
+                const scoreColor = hasData && !isNaN(scoreNum) ? (scoreNum >= 70 ? '#198754' : scoreNum >= 50 ? '#ff9800' : '#dc3545') : '';
+                const scoreHTML = hasData
+                    ? `<strong style="${scoreColor ? 'color:'+scoreColor : ''}">${ex.score}</strong>`
+                    : '<span style="color:#aaa;font-style:italic">Pendiente</span>';
                 const dateHTML  = ex.date ? `<span style="color:#888;font-size:.8em">${fmtDate(ex.date)}</span>` : '';
                 return `<div class="tl-field-row">
                     <span class="tl-field-label">${ex.label}</span>
@@ -1499,8 +1521,8 @@
                 <div class="tl-card-block"><div class="tl-card-title"><i class="fas fa-user"></i> Datos del Candidato</div><div class="tl-fields">${rows}</div></div>
                 <!-- Superior Derecha: Resultados de Exámenes -->
                 <div class="tl-card-block"><div class="tl-card-title"><i class="fas fa-chart-bar"></i> Resultados de Exámenes</div><div class="tl-fields">${examRows}</div></div>
-                <!-- Inferior Izquierda: Listas Brevo -->
-                <div class="tl-card-block"><div class="tl-card-title"><i class="fas fa-users"></i> Listas Brevo</div><div class="tl-brevo-list">${brevoRows}</div></div>
+                <!-- Inferior Izquierda: Curriculum Vitae -->
+                ${cvHTML}
                 <!-- Inferior Derecha: Reseña Profesional -->
                 <div>${aboutHTML}</div>
             </div>
@@ -1513,21 +1535,38 @@
             if (!c) return '';
             const flags = [];
 
-            // Comprobar cada examen por alertas
-            ['E1', 'E2', 'E3'].forEach(exam => {
-                const statusKey = exam === 'E1' ? 'pending_review_E1' : exam === 'E2' ? 'pending_review_E2' : 'pending_review_E3';
-                // Obtener datos de respuestas si están disponibles (esto es básico, idealmente viene del backend)
-                // Por ahora mostrar solo flags generales
-            });
-
-            // Si el candidato fue rechazado
+            // Proceso rechazado
             if (c.status === 'rejected') {
-                flags.push({icon: 'fa-times-circle', color: '#dc3545', text: 'Proceso Rechazado', desc: ''});
+                flags.push({icon: 'fa-times-circle', color: '#dc3545', text: 'Proceso Rechazado'});
             }
 
-            // Si tiene muchas interacciones (posible retraso)
+            // Puntuaciones bajas (< 60)
+            [['E1', c.E1_score], ['E2', c.E2_score], ['E3', c.E3_score]].forEach(([exam, score]) => {
+                const n = parseFloat(score);
+                if (!isNaN(n) && score !== '' && score !== null && score !== undefined) {
+                    if (n < 60) flags.push({icon: 'fa-exclamation-circle', color: '#dc3545', text: `Puntuación baja en ${exam}: ${score}`});
+                    else if (n < 70) flags.push({icon: 'fa-exclamation-triangle', color: '#ff9800', text: `Puntuación en el límite en ${exam}: ${score}`});
+                }
+            });
+
+            // Sin actividad reciente (> 21 días en mismo estado)
+            if (c.last_interaction) {
+                const daysSince = (Date.now() - new Date(c.last_interaction).getTime()) / (1000 * 60 * 60 * 24);
+                const inProgressStatuses = ['registered','awaiting_terms_acceptance','awaiting_E1','pending_review_E1',
+                    'awaiting_E2','pending_review_E2','awaiting_E3','pending_review_E3','awaiting_interview'];
+                if (daysSince > 21 && inProgressStatuses.includes(c.status)) {
+                    flags.push({icon: 'fa-clock', color: '#ff9800', text: `Sin actividad hace ${Math.round(daysSince)} días`});
+                }
+            }
+
+            // Sin CV
+            if (!c.cv_url) {
+                flags.push({icon: 'fa-file-times', color: '#888', text: 'No ha subido Curriculum Vitae'});
+            }
+
+            // Notas manuales que indican retraso
             if (c.notes && c.notes.toLowerCase().includes('atrasado')) {
-                flags.push({icon: 'fa-clock', color: '#ff9800', text: 'Candidato Atrasado', desc: ''});
+                flags.push({icon: 'fa-clock', color: '#ff9800', text: 'Marcado como Atrasado en notas'});
             }
 
             if (flags.length === 0) {
@@ -1536,10 +1575,12 @@
                 </div>`;
             }
 
-            return `<div style="margin-top:1.5rem;padding:1.5rem;background:#fff3e0;border-radius:10px;border-left:4px solid #ff9800;">
-                <div style="font-weight:700;color:#ff6f00;margin-bottom:0.75rem;"><i class="fas fa-exclamation-triangle"></i> Alertas Detectadas</div>
-                ${flags.map(f => `<div style="padding:0.5rem 0;color:#d84315;font-size:0.9rem;">
-                    <i class="fas ${f.icon}" style="color:${f.color};margin-right:6px;"></i> ${f.text}${f.desc ? ': ' + f.desc : ''}
+            // Separar rojas de amarillas
+            const hasRed = flags.some(f => f.color === '#dc3545');
+            return `<div style="margin-top:1.5rem;padding:1.5rem;background:${hasRed ? '#fff5f5' : '#fff3e0'};border-radius:10px;border-left:4px solid ${hasRed ? '#dc3545' : '#ff9800'};">
+                <div style="font-weight:700;color:${hasRed ? '#b91c1c' : '#ff6f00'};margin-bottom:0.75rem;"><i class="fas fa-exclamation-triangle"></i> Alertas (${flags.length})</div>
+                ${flags.map(f => `<div style="padding:0.4rem 0;font-size:0.875rem;">
+                    <i class="fas ${f.icon}" style="color:${f.color};margin-right:6px;width:14px;"></i> ${f.text}
                 </div>`).join('')}
             </div>`;
         }
@@ -1700,6 +1741,40 @@
         }
         async function doAddToBrevoList(listName) {
             await callApi({ action:'addToBrevoListManual', candidateId:currentCandidateId, listName, adminToken:ADMIN_TOKEN }, '📋 Añadido a lista '+listName, false);
+        }
+        async function uploadTLCandidateCV(candidateId) {
+            const input = document.getElementById('tlCVInput');
+            const msg   = document.getElementById('tlCVMsg');
+            if (!input || !input.files[0]) { if (msg) msg.textContent = 'Selecciona un archivo primero.'; return; }
+            const f = input.files[0];
+            if (f.type !== 'application/pdf') { if (msg) msg.textContent = 'Solo se aceptan PDF.'; return; }
+            if (f.size > 3 * 1024 * 1024) { if (msg) msg.textContent = 'El archivo supera 3 MB.'; return; }
+            if (msg) msg.textContent = 'Subiendo…';
+            try {
+                const base64 = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload  = ev => resolve(ev.target.result.split(',')[1]);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(f);
+                });
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action:'uploadCandidateCV', candidateId, cv_base64: base64, cv_filename: f.name, cv_mime: f.type, adminToken: ADMIN_TOKEN })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    if (msg) msg.textContent = '✓ CV subido correctamente.';
+                    // Update local candidate object so the link appears without reload
+                    const c = candidates.find(x => x.candidato_id === candidateId);
+                    if (c && data.cv_url) { c.cv_url = data.cv_url; }
+                    input.value = '';
+                } else {
+                    if (msg) msg.textContent = 'Error: ' + (data.message || 'No se pudo subir.');
+                }
+            } catch (e) {
+                if (msg) msg.textContent = 'Error de red.';
+            }
         }
         async function doApproveExamTL(exam) {
             if (!confirm(`¿Aprobar examen ${exam}?`)) return;

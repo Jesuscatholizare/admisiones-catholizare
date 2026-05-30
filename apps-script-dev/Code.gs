@@ -421,6 +421,7 @@ function doPost(e) {
       case 'health':                    return jsonResponse(true, 'OK', checkSystemHealth());
       case 'gasDiagnostic':             return handleGasDiagnostic();
       case 'handoff':                   return handleHandoff(data);
+      case 'uploadCandidateCV':         return handleUploadCandidateCV(data);
       default:
         return jsonResponse(false, 'Accion no valida: ' + action);
     }
@@ -563,6 +564,36 @@ function uploadCVToDrive(candidateId, candidateName, filename, mimeType, base64)
   const file = folder.createFile(blob);
   try { file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) {}
   return file.getUrl();
+}
+
+// Permite al admin subir o reemplazar el CV de un candidato existente.
+function handleUploadCandidateCV(data) {
+  try {
+    const candidateId = data.candidateId;
+    const cvBase64    = data.cv_base64;
+    const cvFilename  = data.cv_filename;
+    const cvMime      = data.cv_mime || 'application/pdf';
+    if (!candidateId || !cvBase64 || !cvFilename) return jsonResponse(false, 'Faltan datos requeridos');
+
+    const sheet = SS.getSheetByName('Candidatos');
+    if (!sheet) return jsonResponse(false, 'Hoja Candidatos no encontrada');
+    const rows = sheet.getDataRange().getValues();
+    let rowIndex = -1;
+    let candidateName = '';
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][0] === candidateId) { rowIndex = i; candidateName = rows[i][2] || ''; break; }
+    }
+    if (rowIndex === -1) return jsonResponse(false, 'Candidato no encontrado');
+
+    const cv_url = uploadCVToDrive(candidateId, candidateName, cvFilename, cvMime, cvBase64);
+    if (!cv_url) return jsonResponse(false, 'Error al subir el archivo a Drive');
+    sheet.getRange(rowIndex + 1, 25).setValue(cv_url);
+    addTimelineEvent(candidateId, 'CV_ACTUALIZADO', { admin: data.adminToken ? 'admin' : 'desconocido', filename: cvFilename });
+    return jsonResponse(true, 'CV subido correctamente', { cv_url });
+  } catch (e) {
+    Logger.log('[handleUploadCandidateCV] ' + e.message);
+    return jsonResponse(false, 'Error: ' + e.message);
+  }
 }
 
 // ================================
