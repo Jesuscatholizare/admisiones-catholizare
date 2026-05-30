@@ -681,6 +681,25 @@ function handleDeclineTerms(data) {
       });
     }
 
+    // Guardar en hoja Candidatos: col 28 = declined_at, col 29 = declined_comment
+    if (candidateId) {
+      try {
+        const sheet = SS.getSheetByName('Candidatos');
+        if (sheet) {
+          const rows = sheet.getDataRange().getValues();
+          for (let i = 1; i < rows.length; i++) {
+            if (rows[i][0] === candidateId) {
+              sheet.getRange(i + 1, 28).setValue(declinedAt);
+              sheet.getRange(i + 1, 29).setValue(comentario);
+              break;
+            }
+          }
+        }
+      } catch (e) {
+        Logger.log('[handleDeclineTerms save row] ' + e.message);
+      }
+    }
+
     // Notificar al admin por email (sin bloquear la respuesta)
     try {
       const adminEmail = CONFIG.email_admin || CONFIG.email_support;
@@ -1314,7 +1333,9 @@ function getCandidatesForAdmin() {
           final_category:   data[i][18],
           last_interaction: data[i][19],
           notes:            data[i][20],
-          cv_url:           data[i][24] || ''
+          cv_url:           data[i][24] || '',
+          declined_at:      data[i][27] || '',
+          declined_comment: data[i][28] || ''
         });
       }
     }
