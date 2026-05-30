@@ -64,8 +64,10 @@ $allowed_actions = [
     'submit_exam',
     'save_partial_exam',
     'acceptTerms',
+    'declineTerms',
     // Datos
     'get_exam',
+    'get_terms_content',
     'getDashboardData',
     // Acciones admin
     'approveExam',
@@ -91,6 +93,7 @@ $allowed_actions = [
     'gasDiagnostic',
     'registerInterviewResult',
     'handoff',
+    'uploadCandidateCV',
 ];
 
 if (!in_array($action, $allowed_actions)) {

@@ -3,13 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Términos y Condiciones - RCCC</title>
+    <title>Información general sobre la Red Catholizare</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
             --primary: #001A55;
             --primary-light: #0966FF;
@@ -20,479 +16,348 @@
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--light);
-            color: #333;
-            line-height: 1.6;
+            background: var(--light); color: #333; line-height: 1.6;
         }
-        /* Header */
         .header {
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-            color: white;
-            padding: 2rem;
-            text-align: center;
+            color: white; padding: 2rem; text-align: center;
             box-shadow: 0 4px 12px rgba(0, 26, 85, 0.15);
         }
-        .header h1 {
-            font-size: 2rem;
-            margin-bottom: 0.5rem;
-        }
-        .header p {
-            opacity: 0.9;
-            font-size: 1.05em;
-        }
-        /* Container */
-        .container {
-            max-width: 900px;
-            margin: 2rem auto;
-            padding: 0 1rem;
-        }
-        /* Content */
+        .header h1 { font-size: 1.8rem; margin-bottom: 0.5rem; }
+        .header p { opacity: 0.9; font-size: 1.05em; }
+        .container { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
         .terms-content {
-            background: white;
-            padding: 2rem;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-            margin-bottom: 2rem;
+            background: white; padding: 2rem; border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); margin-bottom: 2rem;
         }
         .terms-content h2 {
-            color: var(--primary);
-            font-size: 1.3em;
-            margin-top: 2rem;
-            margin-bottom: 1rem;
-            padding-bottom: 0.5rem;
+            color: var(--primary); font-size: 1.3em; margin-top: 2rem;
+            margin-bottom: 1rem; padding-bottom: 0.5rem;
             border-bottom: 2px solid var(--primary-light);
         }
-        .terms-content h2:first-child {
-            margin-top: 0;
-        }
-        .terms-content h3 {
-            color: var(--primary);
-            font-size: 1.1em;
-            margin-top: 1.5rem;
-            margin-bottom: 0.8rem;
-        }
-        .terms-content p {
-            margin-bottom: 1rem;
-            text-align: justify;
-        }
-        .terms-content ul,
-        .terms-content ol {
-            margin-left: 2rem;
-            margin-bottom: 1rem;
-        }
-        .terms-content li {
-            margin-bottom: 0.5rem;
-        }
-        .highlight {
-            background: #fffacd;
-            padding: 1rem;
-            border-left: 4px solid var(--primary-light);
-            border-radius: 6px;
-            margin: 1rem 0;
-        }
-        /* Acceptance Section */
+        .terms-content h2:first-child { margin-top: 0; }
+        .terms-content h3 { color: var(--primary); font-size: 1.1em; margin-top: 1.5rem; margin-bottom: 0.8rem; }
+        .terms-content p  { margin-bottom: 1rem; text-align: justify; }
+        .terms-content ul, .terms-content ol { margin-left: 2rem; margin-bottom: 1rem; }
+        .terms-content li { margin-bottom: 0.5rem; }
+        .loading-state { text-align: center; padding: 2rem; color: #999; font-style: italic; }
         .acceptance-section {
-            background: white;
-            padding: 2rem;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-            margin-bottom: 2rem;
+            background: white; padding: 2rem; border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); margin-bottom: 2rem;
             border: 2px solid var(--primary-light);
         }
-        .acceptance-section h2 {
-            color: var(--primary);
-            margin-top: 0;
-            margin-bottom: 1.5rem;
-        }
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-        .checkbox-group {
-            display: flex;
-            align-items: flex-start;
-            gap: 1rem;
-        }
+        .acceptance-section h2 { color: var(--primary); margin-top: 0; margin-bottom: 1.5rem; }
+        .form-group { margin-bottom: 1.2rem; }
+        .checkbox-group { display: flex; align-items: flex-start; gap: 1rem; }
         .checkbox-group input[type="checkbox"] {
-            width: 24px;
-            height: 24px;
-            margin-top: 2px;
-            cursor: pointer;
-            accent-color: var(--primary-light);
-            flex-shrink: 0;
+            width: 24px; height: 24px; margin-top: 2px; cursor: pointer;
+            accent-color: var(--primary-light); flex-shrink: 0;
         }
-        .checkbox-group label {
-            cursor: pointer;
-            font-size: 0.95em;
-        }
-        .checkbox-group label strong {
-            color: var(--primary);
-        }
+        .checkbox-group label { cursor: pointer; font-size: 0.95em; }
+        .checkbox-group label strong { color: var(--primary); }
+        .checkbox-group label a { color: var(--primary-light); font-weight: 600; text-decoration: underline; }
         .message {
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 1.5rem;
-            display: none;
+            padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; display: none;
         }
-        .message.error {
-            background: #FFEBEE;
-            color: #B71C1C;
-            border-left: 4px solid var(--danger);
-        }
-        .message.success {
-            background: #E8F5E9;
-            color: #1B5E20;
-            border-left: 4px solid var(--success);
-        }
-        .message.show {
-            display: block;
-        }
-        /* Buttons */
-        .button-group {
-            display: flex;
-            gap: 1rem;
-            margin-top: 2rem;
-        }
+        .message.error   { background: #FFEBEE; color: #B71C1C; border-left: 4px solid var(--danger); }
+        .message.success { background: #E8F5E9; color: #1B5E20; border-left: 4px solid var(--success); }
+        .message.show    { display: block; }
+        .button-group { display: flex; gap: 1rem; margin-top: 2rem; }
         button {
-            flex: 1;
-            padding: 1rem;
-            border: none;
-            border-radius: 8px;
-            font-size: 1em;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            flex: 1; padding: 1rem; border: none; border-radius: 8px;
+            font-size: 1em; font-weight: 600; cursor: pointer;
+            transition: all 0.3s; text-transform: uppercase; letter-spacing: 0.5px;
         }
-        .btn-accept {
-            background: var(--success);
-            color: white;
-        }
-        .btn-accept:hover:not(:disabled) {
-            background: #45a049;
-            transform: translateY(-2px);
+        .btn-continuar { background: var(--success); color: white; }
+        .btn-continuar:hover:not(:disabled) {
+            background: #45a049; transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
         }
-        .btn-decline {
-            background: #e0e0e0;
-            color: var(--primary);
-        }
-        .btn-decline:hover:not(:disabled) {
-            background: #d0d0d0;
-            transform: translateY(-2px);
-        }
-        button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
         .spinner {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
+            display: inline-block; width: 16px; height: 16px;
             border: 2px solid rgba(255, 255, 255, 0.3);
-            border-top: 2px solid white;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin-right: 0.5rem;
+            border-top: 2px solid white; border-radius: 50%;
+            animation: spin 0.8s linear infinite; margin-right: 0.5rem;
         }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .btn-no-acepto {
+            background: transparent; color: #999; border: 1.5px solid #d0d0d0;
+            flex: 0 0 auto; padding: 0.75rem 1.5rem; font-size: 0.9em;
         }
+        .btn-no-acepto:hover { background: #f5f5f5; color: #666; border-color: #bbb; transform: none; }
+        /* Modal "No acepto" */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.5); z-index: 1000;
+            align-items: center; justify-content: center; padding: 1rem;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal-box {
+            background: white; border-radius: 12px; padding: 2rem;
+            max-width: 500px; width: 100%;
+            box-shadow: 0 8px 32px rgba(0,0,26,0.2);
+            animation: slideUp 0.25s ease;
+        }
+        @keyframes slideUp { from { transform: translateY(20px); opacity:0; } to { transform: translateY(0); opacity:1; } }
+        .modal-box h3 { color: var(--primary); margin-bottom: 0.5rem; }
+        .modal-box p  { color: #555; font-size: 0.93em; margin-bottom: 1rem; }
+        .modal-box textarea {
+            width: 100%; min-height: 110px; padding: 0.75rem;
+            border: 1.5px solid var(--border-color); border-radius: 8px;
+            font-family: inherit; font-size: 0.93em; resize: vertical;
+            outline: none; transition: border-color 0.2s;
+        }
+        .modal-box textarea:focus { border-color: var(--primary-light); }
+        .modal-actions { display: flex; gap: 0.75rem; margin-top: 1rem; }
+        .modal-actions button { flex: 1; padding: 0.75rem; font-size: 0.95em; }
+        .btn-enviar { background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: background 0.2s; }
+        .btn-enviar:hover:not(:disabled) { background: #002a8a; }
+        .btn-cancelar { background: #f0f0f0; color: #555; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }
+        .btn-cancelar:hover { background: #e0e0e0; }
+        .modal-confirm { text-align: center; padding: 1rem 0; }
+        .modal-confirm .check-icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+        .modal-confirm h3 { color: var(--primary); margin-bottom: 0.5rem; }
+        .modal-confirm p  { color: #555; font-size: 0.9em; }
         .footer {
-            text-align: center;
-            color: #999;
-            font-size: 0.85em;
-            margin-top: 3rem;
-            padding-top: 2rem;
-            border-top: 1px solid var(--border-color);
+            text-align: center; color: #999; font-size: 0.85em;
+            margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border-color);
         }
-        /* Responsive */
         @media (max-width: 768px) {
-            .header h1 {
-                font-size: 1.5rem;
-            }
-            .container {
-                padding: 0 1rem;
-            }
-            .terms-content,
-            .acceptance-section {
-                padding: 1.5rem;
-            }
-            .button-group {
-                flex-direction: column;
-            }
+            .header h1 { font-size: 1.4rem; }
+            .container { padding: 0 1rem; }
+            .terms-content, .acceptance-section { padding: 1.5rem; }
+            .button-group { flex-direction: column; }
         }
     </style>
 </head>
 <body>
-    <!-- Header -->
     <div class="header">
-        <h1>Términos y Condiciones</h1>
-        <p>Red de Psicólogos Católicos (RCCC)</p>
+        <h1>Información general sobre la Red Catholizare</h1>
+        <p>Por favor revisa esta información antes de continuar con tu proceso</p>
     </div>
-    <!-- Main Content -->
-    <div class="container">
-        <div class="terms-content">
-            <h2>1. Objetivo del Programa</h2>
-            <p>
-                El presente programa de selección y evaluación de la Red de Psicólogos Católicos (RCCC)
-                tiene como objetivo identificar profesionales de la psicología y áreas afines que cumplan
-                con los estándares de competencia, ética y valores católicos requeridos para ser parte
-                de nuestra comunidad.
-            </p>
-            <h2>2. Descripción del Proceso</h2>
-            <p>El proceso de selección consta de tres evaluaciones:</p>
-            <ul>
-                <li><strong>Examen E1:</strong> Evaluación de fundamentos teóricos y conocimiento general</li>
-                <li><strong>Examen E2:</strong> Evaluación de competencias psicométricas y casos clínicos</li>
-                <li><strong>Examen E3:</strong> Evaluación final de integración y pensamiento crítico</li>
-            </ul>
-            <p>
-                Cada examen tiene una duración de 120 minutos. Las respuestas serán evaluadas
-                utilizando sistemas automatizados de calificación basados en rúbricas establecidas.
-            </p>
-            <h2>3. Privacidad y Protección de Datos</h2>
-            <p>
-                Los datos personales y profesionales proporcionados durante el proceso de selección
-                serán tratados con confidencialidad y únicamente para propósitos del programa de evaluación.
-                La información será almacenada de forma segura y no será compartida con terceros sin
-                consentimiento explícito.
-            </p>
-            <p>
-                RCCC cumple con las regulaciones internacionales de protección de datos y privacidad.
-            </p>
-            <h2>4. Sistemas de Seguridad y Anti-fraude</h2>
-            <p>
-                Durante la realización de los exámenes, se implementarán medidas de seguridad para
-                garantizar la integridad del proceso:
-            </p>
-            <ul>
-                <li>Detección de copiar/pegar (copy-paste blocking)</li>
-                <li>Monitoreo de cambios de ventana/pestaña del navegador</li>
-                <li>Análisis de respuestas mediante inteligencia artificial para detectar plagio</li>
-                <li>Registro de tiempo y duración de cada examen</li>
-            </ul>
-            <p>
-                Si se detecta comportamiento sospechoso, el candidato puede ser descalificado
-                automáticamente del proceso.
-            </p>
-            <h2>5. Evaluación con Inteligencia Artificial</h2>
-            <p>
-                Las respuestas abiertas serán evaluadas parcialmente mediante sistemas de inteligencia
-                artificial (OpenAI) utilizando rúbricas predefinidas. Los resultados preliminares
-                serán revisados por profesionales humanos antes de tomar decisiones finales.
-            </p>
-            <h2>6. Categorización de Candidatos</h2>
-            <p>
-                Al completar las tres evaluaciones, los candidatos aprobados serán categorizados como:
-            </p>
-            <ul>
-                <li><strong>JUNIOR (75-79%):</strong> Fundamentos sólidos, requiere desarrollo</li>
-                <li><strong>SENIOR (80-89%):</strong> Muy competente, listo para práctica independiente</li>
-                <li><strong>EXPERT (90%+):</strong> Excepcional, calificado para liderazgo y mentoreo</li>
-            </ul>
-            <h2>7. Comunicaciones y Notificaciones</h2>
-            <p>
-                RCCC se comunicará con los candidatos mediante email en las siguientes instancias:
-            </p>
-            <ul>
-                <li>Confirmación de registro</li>
-                <li>Acceso a cada examen</li>
-                <li>Resultados preliminares</li>
-                <li>Aprobación/rechazo del proceso</li>
-                <li>Información sobre la entrevista personal (si aplica)</li>
-            </ul>
-            <h2>8. Limitaciones de Responsabilidad</h2>
-            <p>
-                RCCC no se responsabiliza por:
-            </p>
-            <ul>
-                <li>Problemas de conexión a internet del candidato</li>
-                <li>Errores técnicos en dispositivos personales</li>
-                <li>Pérdida de acceso a email o contraseñas</li>
-                <li>Rechazo de candidatos basado en evaluaciones automatizadas</li>
-            </ul>
-            <div class="highlight">
-                <strong>Importante:</strong> Es responsabilidad del candidato garantizar una conexión
-                estable a internet y un entorno adecuado para realizar los exámenes.
-            </div>
-            <h2>9. Decisiones Finales</h2>
-            <p>
-                Las decisiones finales de aceptación, rechazo o postergación son determinadas por
-                el equipo administrativo de RCCC y no son apelables.
-            </p>
-            <h2>10. Modificaciones de Términos</h2>
-            <p>
-                RCCC se reserva el derecho de modificar estos términos y condiciones en cualquier momento.
-                Los cambios serán comunicados con anticipación a los candidatos afectados.
-            </p>
-            <h2>11. Aceptación de Términos</h2>
-            <p>
-                Al hacer clic en "Aceptar Términos y Condiciones", el candidato confirma que:
-            </p>
-            <ul>
-                <li>Ha leído y comprende completamente estos términos</li>
-                <li>Acepta ser evaluado según los criterios y procesos descritos</li>
-                <li>Acepta las medidas de seguridad y anti-fraude implementadas</li>
-                <li>Autoriza el uso de inteligencia artificial en la evaluación</li>
-                <li>Reconoce que las decisiones de RCCC son finales y no apelables</li>
-            </ul>
-            <h2>12. Contacto</h2>
-            <p>
-                Para preguntas o aclaraciones sobre estos términos, contacta a:
-            </p>
-            <p>
-                <strong>Email:</strong> <a href="mailto:info@rccc.org">info@rccc.org</a><br>
-                <strong>Sitio web:</strong> <a href="https://rccc.org" target="_blank">https://rccc.org</a>
-            </p>
-        </div>
-        <!-- Acceptance Form -->
-        <div class="acceptance-section">
-            <h2>Aceptar Términos y Condiciones</h2>
-            <div class="message error" id="errorMessage"></div>
-            <div class="message success" id="successMessage"></div>
-            <div class="form-group">
-                <div class="checkbox-group">
-                    <input type="checkbox" id="acceptTerms" required>
-                    <label for="acceptTerms">
-                        He leído y <strong>ACEPTO</strong> los Términos y Condiciones
-                    </label>
-                </div>
-            </div>
-            <div class="form-group">
-                <div class="checkbox-group">
-                    <input type="checkbox" id="acceptPrivacy" required>
-                    <label for="acceptPrivacy">
-                        Acepto que mis datos sean tratados conforme a la <strong>Política de Privacidad</strong>
-                    </label>
-                </div>
-            </div>
-            <div class="form-group">
-                <div class="checkbox-group">
-                    <input type="checkbox" id="acceptAI" required>
-                    <label for="acceptAI">
-                        Acepto que mis respuestas sean evaluadas con <strong>asistencia de Inteligencia Artificial</strong>
-                    </label>
-                </div>
-            </div>
-            <div class="form-group">
-                <div class="checkbox-group">
-                    <input type="checkbox" id="acceptAntifraud" required>
-                    <label for="acceptAntifraud">
-                        Entiendo y acepto las <strong>medidas de seguridad anti-fraude</strong> (copy-paste blocking, blur detection, etc)
-                    </label>
-                </div>
-            </div>
-            <div class="button-group">
-                <button class="btn-decline" onclick="declineTerms()">
-                    ← Declinar
-                </button>
-                <button class="btn-accept" id="acceptButton" onclick="acceptTerms()">
-                    ✓ Aceptar y Continuar
-                </button>
-            </div>
-        </div>
-    </div>
-    <!-- Footer -->
-    <div class="footer">
-        <p>
-            © 2026 Red de Psicólogos Católicos (RCCC). Todos los derechos reservados.<br>
-            <a href="https://rccc.org/privacidad" target="_blank" style="color: var(--primary-light);">Política de Privacidad</a> |
-            <a href="https://rccc.org/contacto" target="_blank" style="color: var(--primary-light);">Contacto</a>
-        </p>
-    </div>
-    <script>
-        // Obtener parámetros de URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const candidateId = urlParams.get('candidate_id');
-        const email = urlParams.get('email');
-        const token = urlParams.get('token');
 
-        // TODO: Reemplazar con la URL real de tu servidor
+    <div class="container">
+        <div class="terms-content" id="termsContent">
+            <div class="loading-state" id="loadingState">Cargando información…</div>
+        </div>
+
+        <div class="acceptance-section">
+            <h2>Aceptación para continuar</h2>
+            <div class="message error"   id="errorMessage"></div>
+            <div class="message success" id="successMessage"></div>
+
+            <div class="form-group">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="acceptTC">
+                    <label for="acceptTC">
+                        He leído y <strong>ACEPTO</strong> los
+                        <a href="https://catholizare.com/terminos-y-condiciones-postulantes/" target="_blank" rel="noopener">
+                            Términos y Condiciones para postulantes
+                        </a>
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="acceptPrivacy">
+                    <label for="acceptPrivacy">
+                        He leído y <strong>ACEPTO</strong> el
+                        <a href="https://catholizare.com/aviso-privacidad/" target="_blank" rel="noopener">
+                            Aviso de Privacidad
+                        </a>
+                    </label>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn-no-acepto" onclick="abrirModalNoAcepto()">
+                    No acepto
+                </button>
+                <button class="btn-continuar" id="continuarBtn" onclick="aceptarYContinuar()" disabled>
+                    Continuar →
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal "No acepto" -->
+    <div class="modal-overlay" id="modalNoAcepto">
+        <div class="modal-box">
+            <!-- Paso 1: formulario de comentarios -->
+            <div id="modalFormulario">
+                <h3>¿Tienes algún comentario?</h3>
+                <p>Tus comentarios nos harán crecer. Si lo deseas, comparte con nosotros el motivo de tu decisión — es completamente opcional.</p>
+                <textarea id="comentarioNoAcepto" placeholder="Escribe aquí tu comentario (opcional)…"></textarea>
+                <div class="modal-actions">
+                    <button class="btn-cancelar" onclick="cerrarModalNoAcepto()">Volver</button>
+                    <button class="btn-enviar" id="btnEnviarComentario" onclick="enviarNoAcepto()">
+                        Enviar
+                    </button>
+                </div>
+            </div>
+            <!-- Paso 2: confirmación -->
+            <div id="modalConfirmacion" class="modal-confirm" style="display:none;">
+                <div class="check-icon">✉️</div>
+                <h3>Hemos registrado tu decisión</h3>
+                <p>Gracias por tu tiempo. Si en el futuro decides continuar con tu postulación, con gusto te acompañaremos.</p>
+                <div style="margin-top:1.5rem;">
+                    <button class="btn-cancelar" style="width:100%;padding:0.75rem;" onclick="cerrarModalNoAcepto()">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>© 2026 Catholizare.com — Red de profesionales católicos</p>
+    </div>
+
+    <script>
+        const urlParams   = new URLSearchParams(window.location.search);
+        const candidateId = urlParams.get('candidate_id');
+        const email       = urlParams.get('email');
+        const token       = urlParams.get('token');
+
         const API_BASE = 'https://profesionales.catholizare.com/catholizare_sistem/proxy.php';
 
-        // Aceptar términos
-        async function acceptTerms() {
-            if (!document.getElementById('acceptTerms').checked ||
-                !document.getElementById('acceptPrivacy').checked ||
-                !document.getElementById('acceptAI').checked ||
-                !document.getElementById('acceptAntifraud').checked) {
-                showError('Debes aceptar todos los términos para continuar');
+        // ─── Cargar contenido desde la pestaña `terminos` del Spreadsheet ───
+        async function loadTermsContent() {
+            const container = document.getElementById('termsContent');
+            try {
+                const resp = await fetch(`${API_BASE}?action=get_terms_content`);
+                const json = await resp.json();
+                if (json && json.success && json.data && json.data.html) {
+                    container.innerHTML = json.data.html;
+                } else {
+                    container.innerHTML =
+                        '<p style="color:#B71C1C;">No se pudo cargar la información en este momento. ' +
+                        'Por favor intenta recargar la página.</p>';
+                }
+            } catch (err) {
+                container.innerHTML =
+                    '<p style="color:#B71C1C;">Error al cargar la información: ' + err.message + '</p>';
+            }
+        }
+
+        // ─── Habilitar botón "Continuar" sólo cuando ambos checkboxes están marcados ───
+        function refreshContinuarBtn() {
+            const tc   = document.getElementById('acceptTC').checked;
+            const priv = document.getElementById('acceptPrivacy').checked;
+            document.getElementById('continuarBtn').disabled = !(tc && priv);
+        }
+        document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            cb.addEventListener('change', refreshContinuarBtn);
+        });
+
+        // ─── Aceptar y continuar ───
+        async function aceptarYContinuar() {
+            const tc   = document.getElementById('acceptTC').checked;
+            const priv = document.getElementById('acceptPrivacy').checked;
+            if (!tc || !priv) {
+                showError('Debes aceptar los Términos y Condiciones y el Aviso de Privacidad para continuar');
                 return;
             }
             if (!candidateId) {
-                showError('ID de candidato no encontrado. Por favor intenta nuevamente.');
+                showError('ID de candidato no encontrado en la URL. Solicita un nuevo enlace.');
                 return;
             }
-            const button = document.getElementById('acceptButton');
-            button.disabled = true;
-            button.innerHTML = '<span class="spinner"></span>Procesando...';
+
+            const btn = document.getElementById('continuarBtn');
+            btn.disabled  = true;
+            btn.innerHTML = '<span class="spinner"></span>Procesando…';
+
             try {
-                const response = await fetch(`${API_BASE}?action=acceptTerms`, {
+                const resp = await fetch(`${API_BASE}?action=acceptTerms`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         candidate_id: candidateId,
-                        email: email,
-                        token: token,
-                        accepted_at: new Date().toISOString(),
-                        user_agent: navigator.userAgent
+                        email:        email,
+                        token:        token,
+                        accepted_at:  new Date().toISOString(),
+                        user_agent:   navigator.userAgent,
+                        tc_postulantes_accepted:   true,
+                        aviso_privacidad_accepted: true
                     })
                 });
-                const result = await response.json();
+                const result = await resp.json();
                 if (result.success) {
-                    showSuccess('¡Términos aceptados! Redirigiendo...');
+                    showSuccess('¡Información aceptada! Te enviamos el acceso al Examen E2 por correo. Redirigiendo…');
                     setTimeout(() => {
                         window.location.href = 'https://catholizare.com/ciencia-y-fe-para-la-vida-real/';
-                    }, 2000);
+                    }, 2500);
                 } else {
-                    showError(result.message || 'Error al aceptar términos');
-                    button.disabled = false;
-                    button.innerHTML = '✓ Aceptar y Continuar';
+                    showError(result.message || 'Error al registrar la aceptación');
+                    btn.disabled  = false;
+                    btn.innerHTML = 'Continuar →';
                 }
             } catch (error) {
                 showError('Error de conexión: ' + error.message);
-                button.disabled = false;
-                button.innerHTML = '✓ Aceptar y Continuar';
+                btn.disabled  = false;
+                btn.innerHTML = 'Continuar →';
             }
         }
 
-        // Declinar términos
-        function declineTerms() {
-            if (confirm('¿Deseas declinar los términos y cancelar tu participación?')) {
-                window.location.href = '/';
-            }
-        }
-
-        function showError(message) {
+        function showError(msg) {
             const el = document.getElementById('errorMessage');
-            el.textContent = message;
-            el.classList.add('show');
-            setTimeout(() => el.classList.remove('show'), 5000);
+            el.textContent = msg; el.classList.add('show');
+            setTimeout(() => el.classList.remove('show'), 6000);
         }
-
-        function showSuccess(message) {
+        function showSuccess(msg) {
             const el = document.getElementById('successMessage');
-            el.textContent = message;
-            el.classList.add('show');
+            el.textContent = msg; el.classList.add('show');
         }
 
-        window.addEventListener('load', () => { window.scrollTo(0, 0); });
-
-        // Habilitar botón solo cuando todos los checkboxes están marcados
-        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-            checkbox.addEventListener('change', () => {
-                const allChecked =
-                    document.getElementById('acceptTerms').checked &&
-                    document.getElementById('acceptPrivacy').checked &&
-                    document.getElementById('acceptAI').checked &&
-                    document.getElementById('acceptAntifraud').checked;
-                document.getElementById('acceptButton').disabled = !allChecked;
-            });
+        // ─── Modal "No acepto" ───
+        function abrirModalNoAcepto() {
+            document.getElementById('modalFormulario').style.display  = 'block';
+            document.getElementById('modalConfirmacion').style.display = 'none';
+            document.getElementById('comentarioNoAcepto').value = '';
+            document.getElementById('modalNoAcepto').classList.add('show');
+        }
+        function cerrarModalNoAcepto() {
+            document.getElementById('modalNoAcepto').classList.remove('show');
+        }
+        // Cerrar al clic en el fondo oscuro
+        document.getElementById('modalNoAcepto').addEventListener('click', function(e) {
+            if (e.target === this) cerrarModalNoAcepto();
         });
 
-        // Botón deshabilitado al inicio
-        document.getElementById('acceptButton').disabled = true;
+        async function enviarNoAcepto() {
+            const comentario = document.getElementById('comentarioNoAcepto').value.trim();
+            const btn = document.getElementById('btnEnviarComentario');
+            btn.disabled  = true;
+            btn.innerHTML = '<span class="spinner" style="border-top-color:white;"></span>Enviando…';
+
+            try {
+                // Registrar la decisión en el backend (Timeline + email admin)
+                await fetch(`${API_BASE}?action=declineTerms`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        candidate_id: candidateId,
+                        email:        email,
+                        comentario:   comentario,
+                        declined_at:  new Date().toISOString(),
+                        user_agent:   navigator.userAgent
+                    })
+                });
+            } catch (_) {
+                // La notificación es de cortesía — si falla, igual confirmamos al candidato
+            }
+
+            // Mostrar confirmación sin importar resultado de red
+            document.getElementById('modalFormulario').style.display  = 'none';
+            document.getElementById('modalConfirmacion').style.display = 'block';
+            btn.disabled  = false;
+            btn.innerHTML = 'Enviar';
+        }
+
+        window.addEventListener('load', () => {
+            window.scrollTo(0, 0);
+            loadTermsContent();
+        });
     </script>
 </body>
 </html>

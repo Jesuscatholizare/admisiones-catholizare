@@ -399,6 +399,7 @@ function doPost(e) {
       case 'submit_exam':          return handleExamSubmit(data);
       case 'save_partial_exam':    return handleSavePartialExam(data);
       case 'acceptTerms':          return handleAcceptTerms(data);
+      case 'declineTerms':         return handleDeclineTerms(data);
       case 'approveExam':          return handleApproveExam(data);
       case 'autoApproveE1':        return handleAutoApproveE1(data);
       case 'rejectExam':           return handleRejectExam(data);
@@ -420,6 +421,7 @@ function doPost(e) {
       case 'health':                    return jsonResponse(true, 'OK', checkSystemHealth());
       case 'gasDiagnostic':             return handleGasDiagnostic();
       case 'handoff':                   return handleHandoff(data);
+      case 'uploadCandidateCV':         return handleUploadCandidateCV(data);
       default:
         return jsonResponse(false, 'Accion no valida: ' + action);
     }
@@ -441,6 +443,7 @@ function doGet(e) {
 
     if (action === 'get_exam')          return getExamData(token, exam);
     if (action === 'getDashboardData')  return handleGetDashboardData();
+    if (action === 'get_terms_content') return handleGetTermsContent();
     if (action === 'health')            return jsonResponse(true, 'OK', checkSystemHealth());
 
     return jsonResponse(false, 'Accion no valida');
@@ -455,7 +458,18 @@ function doGet(e) {
 // ================================
 function handleRegistration(data) {
   try {
-    const candidate = data.candidate;
+    // Acepta tanto data.candidate {...} (formulario público / WP) como flat
+    // data.name, data.email, ... (registro manual desde admin dashboard).
+    const candidate = data.candidate || {
+      name:                 data.name,
+      email:                data.email,
+      phone:                data.phone,
+      country:              data.country,
+      birthday:             data.birthday,
+      professional_type:    data.professional_type,
+      therapeutic_approach: data.therapeutic_approach,
+      about:                data.about
+    };
 
     if (!candidate || !candidate.name || !candidate.email)
       return jsonResponse(false, 'Faltan datos requeridos');
@@ -484,11 +498,37 @@ function handleRegistration(data) {
       'registered'
     ]);
 
+    // Si viene CV adjunto, subir a Drive y guardar URL en col 25 del candidato.
+    // Acepta dos formatos:
+    //   - Formulario WP/Elementor: curriculum_pdf (base64) + curriculum_name
+    //   - Admin dashboard: cv_base64 + cv_filename + cv_mime
+    let cv_url = '';
+    const cvBase64   = data.cv_base64   || data.curriculum_pdf  || '';
+    const cvFilename = data.cv_filename || data.curriculum_name || '';
+    const cvMime     = data.cv_mime     || (cvFilename.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream');
+    if (cvBase64 && cvFilename) {
+      try {
+        cv_url = uploadCVToDrive(candidate_id, candidate.name, cvFilename, cvMime, cvBase64);
+        if (cv_url) {
+          // Buscar la fila recién insertada (fila 2 por insertNewRow) y guardar URL en col 25
+          const refreshed = sheet.getDataRange().getValues();
+          for (let i = 1; i < refreshed.length; i++) {
+            if (refreshed[i][0] === candidate_id) {
+              sheet.getRange(i + 1, 25).setValue(cv_url);
+              break;
+            }
+          }
+        }
+      } catch (e) {
+        Logger.log('[handleRegistration CV upload] ' + e.message);
+      }
+    }
+
     const token = generateToken(candidate_id, 'E1');
     saveToken(token, candidate_id, 'E1', candidate.email, candidate.name, '');
 
     addTimelineEvent(candidate_id, 'CANDIDATO_REGISTRADO', {
-      nombre: candidate.name, email: candidate.email
+      nombre: candidate.name, email: candidate.email, cv_url: cv_url
     });
 
     addContactToBrevoList(
@@ -503,11 +543,56 @@ function handleRegistration(data) {
 
     return jsonResponse(true, 'Registro exitoso. Revisa tu email.', {
       candidate_id: candidate_id,
-      token: token
+      token: token,
+      cv_url: cv_url
     });
   } catch (error) {
     Logger.log('[ERROR handleRegistration] ' + error.message);
     return jsonResponse(false, 'Error: ' + error.message);
+  }
+}
+
+// Sube el CV a la carpeta Drive y devuelve la URL pública.
+// Nombre: CANDIDATO_YYYYMMDD_XXXX_filename.pdf (candidateId ya tiene el prefijo CANDIDATO_)
+function uploadCVToDrive(candidateId, candidateName, filename, mimeType, base64) {
+  const folderId = '19CAus7qAZg7_fuTXVGVsF8cjJzsUErfI';
+  const folder = DriveApp.getFolderById(folderId);
+  const bytes  = Utilities.base64Decode(base64);
+  const safeFilename = (filename || 'cv').replace(/[^\w\s\-\.]/g, '').trim() || 'cv';
+  const finalName = candidateId + '_' + safeFilename;
+  const blob = Utilities.newBlob(bytes, mimeType || 'application/octet-stream', finalName);
+  const file = folder.createFile(blob);
+  try { file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) {}
+  return file.getUrl();
+}
+
+// Permite al admin subir o reemplazar el CV de un candidato existente.
+function handleUploadCandidateCV(data) {
+  try {
+    const candidateId = data.candidateId;
+    const cvBase64    = data.cv_base64;
+    const cvFilename  = data.cv_filename;
+    const cvMime      = data.cv_mime || 'application/pdf';
+    if (!candidateId || !cvBase64 || !cvFilename) return jsonResponse(false, 'Faltan datos requeridos');
+
+    const sheet = SS.getSheetByName('Candidatos');
+    if (!sheet) return jsonResponse(false, 'Hoja Candidatos no encontrada');
+    const rows = sheet.getDataRange().getValues();
+    let rowIndex = -1;
+    let candidateName = '';
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][0] === candidateId) { rowIndex = i; candidateName = rows[i][2] || ''; break; }
+    }
+    if (rowIndex === -1) return jsonResponse(false, 'Candidato no encontrado');
+
+    const cv_url = uploadCVToDrive(candidateId, candidateName, cvFilename, cvMime, cvBase64);
+    if (!cv_url) return jsonResponse(false, 'Error al subir el archivo a Drive');
+    sheet.getRange(rowIndex + 1, 25).setValue(cv_url);
+    addTimelineEvent(candidateId, 'CV_ACTUALIZADO', { admin: data.adminToken ? 'admin' : 'desconocido', filename: cvFilename });
+    return jsonResponse(true, 'CV subido correctamente', { cv_url });
+  } catch (e) {
+    Logger.log('[handleUploadCandidateCV] ' + e.message);
+    return jsonResponse(false, 'Error: ' + e.message);
   }
 }
 
@@ -519,24 +604,30 @@ function handleAcceptTerms(data) {
     const candidateId = data.candidate_id;
     if (!candidateId) return jsonResponse(false, 'candidate_id requerido');
 
-    const acceptedAt  = data.accepted_at  || new Date().toISOString();
-    const clientIp    = data.client_ip    || '';
-    const userAgent   = data.user_agent   || '';
+    const acceptedAt   = data.accepted_at  || new Date().toISOString();
+    const clientIp     = data.client_ip    || '';
+    const userAgent    = data.user_agent   || '';
+    const tcAccepted   = data.tc_postulantes_accepted === true;
+    const privAccepted = data.aviso_privacidad_accepted === true;
 
-    const result = acceptTerms(candidateId, acceptedAt, clientIp, userAgent);
+    if (!tcAccepted || !privAccepted) {
+      return jsonResponse(false, 'Debes aceptar los Términos y Condiciones y el Aviso de Privacidad para continuar');
+    }
+
+    const result = acceptTerms(candidateId, acceptedAt, clientIp, userAgent, tcAccepted, privAccepted);
     if (result.success) {
-      return jsonResponse(true, 'Términos aceptados. Token E2 enviado a tu email.', {
+      return jsonResponse(true, 'Información aceptada. Token E2 enviado a tu email.', {
         candidate_id: candidateId
       });
     }
-    return jsonResponse(false, result.error || 'Error al aceptar términos');
+    return jsonResponse(false, result.error || 'Error al aceptar la información');
   } catch (error) {
     Logger.log('[ERROR handleAcceptTerms] ' + error.message);
     return jsonResponse(false, 'Error: ' + error.message);
   }
 }
 
-function acceptTerms(candidateId, acceptedAt, clientIp, userAgent) {
+function acceptTerms(candidateId, acceptedAt, clientIp, userAgent, tcAccepted, privAccepted) {
   try {
     const sheet = SS.getSheetByName('Candidatos');
     const data  = sheet.getDataRange().getValues();
@@ -545,17 +636,23 @@ function acceptTerms(candidateId, acceptedAt, clientIp, userAgent) {
         const email = data[i][3];
         const name  = data[i][2];
         sheet.getRange(i + 1, 11).setValue('pending_review_E2');
-        // Guardar firma de aceptación: columna V (22) = timestamp, W (23) = IP, X (24) = user-agent
+        // Firma de aceptación:
+        //   col 22 = timestamp, 23 = IP, 24 = user-agent, 25 = CV (no tocar)
+        //   col 26 = aceptación T&C postulantes, 27 = aceptación Aviso de Privacidad
         sheet.getRange(i + 1, 22).setValue(acceptedAt || new Date().toISOString());
         sheet.getRange(i + 1, 23).setValue(clientIp   || '');
         sheet.getRange(i + 1, 24).setValue(userAgent   || '');
+        sheet.getRange(i + 1, 26).setValue(tcAccepted   ? 'SI' : 'NO');
+        sheet.getRange(i + 1, 27).setValue(privAccepted ? 'SI' : 'NO');
         const token          = generateToken(candidateId, 'E2');
         const scheduled_date = new Date().toISOString().split('T')[0];
         saveToken(token, candidateId, 'E2', email, name, scheduled_date);
         sendEmailE2(email, name, token, candidateId);
         addTimelineEvent(candidateId, 'TERMINOS_ACEPTADOS', {
           email: email, token_e2_generado: token,
-          ip: clientIp, timestamp: acceptedAt
+          ip: clientIp, timestamp: acceptedAt,
+          tc_postulantes_accepted: tcAccepted,
+          aviso_privacidad_accepted: privAccepted
         });
         return { success: true, token: token };
       }
@@ -564,6 +661,110 @@ function acceptTerms(candidateId, acceptedAt, clientIp, userAgent) {
   } catch (error) {
     Logger.log('[acceptTerms Error] ' + error.message);
     return { success: false, error: error.message };
+  }
+}
+
+// ================================
+// DECLINAR INFORMACIÓN GENERAL
+// ================================
+function handleDeclineTerms(data) {
+  try {
+    const candidateId = data.candidate_id || '';
+    const email       = data.email        || '';
+    const comentario  = data.comentario   || '';
+    const declinedAt  = data.declined_at  || new Date().toISOString();
+
+    // Registrar en Timeline
+    if (candidateId) {
+      addTimelineEvent(candidateId, 'INFORMACION_GENERAL_DECLINADA', {
+        email: email, comentario: comentario, timestamp: declinedAt
+      });
+    }
+
+    // Notificar al admin por email (sin bloquear la respuesta)
+    try {
+      const adminEmail = CONFIG.email_admin || CONFIG.email_support;
+      if (adminEmail) {
+        const subject = 'Postulante declinó Información general — ' + (email || candidateId);
+        const body =
+          '<div style="font-family:Arial;max-width:600px;">' +
+          '<h3 style="color:#001A55;">Un postulante no aceptó la Información general</h3>' +
+          '<p><strong>Candidato:</strong> ' + (email || candidateId) + '</p>' +
+          '<p><strong>Fecha:</strong> ' + declinedAt + '</p>' +
+          (comentario
+            ? '<div style="background:#f5f5f5;padding:12px;border-left:4px solid #0966FF;border-radius:0 6px 6px 0;margin-top:12px;">' +
+              '<strong>Comentario del postulante:</strong><br>' + comentario + '</div>'
+            : '<p style="color:#999;font-style:italic;">No dejó comentario.</p>') +
+          '</div>';
+        sendEmail(adminEmail, subject, body);
+      }
+    } catch (e) {
+      Logger.log('[handleDeclineTerms notify error] ' + e.message);
+    }
+
+    return jsonResponse(true, 'Decisión registrada');
+  } catch (error) {
+    Logger.log('[ERROR handleDeclineTerms] ' + error.message);
+    return jsonResponse(false, 'Error: ' + error.message);
+  }
+}
+
+// ================================
+// LECTURA DE PESTAÑA "terminos"
+// ================================
+// Lee el contenido de la pestaña `terminos` del Spreadsheet y lo devuelve
+// como HTML para mostrarlo en la página "Información general sobre la Red Catholizare".
+// Formato esperado en la hoja: cada fila es un bloque; primera columna = tipo
+// ('h2','h3','p','li','html'), segunda columna = contenido. Si solo hay una
+// columna con texto, se trata como párrafo.
+function handleGetTermsContent() {
+  try {
+    const sheet = SS.getSheetByName('terminos') || SS.getSheetByName('Terminos');
+    if (!sheet) {
+      return jsonResponse(false, 'Pestaña "terminos" no encontrada en el Spreadsheet');
+    }
+    const rows = sheet.getDataRange().getValues();
+    const blocks = [];
+    let listOpen = null; // 'ul' | 'ol' | null
+
+    function closeList() {
+      if (listOpen) { blocks.push('</' + listOpen + '>'); listOpen = null; }
+    }
+
+    for (let i = 0; i < rows.length; i++) {
+      const a = (rows[i][0] || '').toString().trim();
+      const b = (rows[i][1] || '').toString().trim();
+      // Saltar header si existe
+      if (i === 0 && (a.toLowerCase() === 'tipo' || a.toLowerCase() === 'type')) continue;
+      if (!a && !b) continue;
+
+      const type    = (b ? a : 'p').toLowerCase();
+      const content = b || a;
+      if (!content) continue;
+
+      if (type === 'li' || type === 'ul') {
+        if (listOpen !== 'ul') { closeList(); blocks.push('<ul>'); listOpen = 'ul'; }
+        blocks.push('<li>' + content + '</li>');
+      } else if (type === 'oli' || type === 'ol') {
+        if (listOpen !== 'ol') { closeList(); blocks.push('<ol>'); listOpen = 'ol'; }
+        blocks.push('<li>' + content + '</li>');
+      } else if (type === 'html') {
+        closeList();
+        blocks.push(content);
+      } else if (type === 'h2' || type === 'h3' || type === 'h4') {
+        closeList();
+        blocks.push('<' + type + '>' + content + '</' + type + '>');
+      } else {
+        closeList();
+        blocks.push('<p>' + content + '</p>');
+      }
+    }
+    closeList();
+
+    return jsonResponse(true, 'OK', { html: blocks.join('\n') });
+  } catch (error) {
+    Logger.log('[ERROR handleGetTermsContent] ' + error.message);
+    return jsonResponse(false, 'Error: ' + error.message);
   }
 }
 
@@ -1112,7 +1313,8 @@ function getCandidatesForAdmin() {
           interview_notes:  data[i][17],
           final_category:   data[i][18],
           last_interaction: data[i][19],
-          notes:            data[i][20]
+          notes:            data[i][20],
+          cv_url:           data[i][24] || ''
         });
       }
     }
@@ -1699,9 +1901,12 @@ function sendWelcomeEmail(email, name, token, candidate_id) {
 
 function sendEmailTerms(email, name, candidateId) {
   const url = 'https://profesionales.catholizare.com/catholizare_sistem/terminos-y-condiciones.html?candidate_id=' + candidateId + '&email=' + encodeURIComponent(email);
-  const html = '<div style="font-family:Arial;"><h2>Hola ' + name + '</h2><p>Aprobaste E1. Acepta los Términos y Condiciones para continuar.</p>' +
-    '<a href="' + url + '" style="background:#0966FF;color:white;padding:12px 24px;text-decoration:none;border-radius:4px;">Aceptar Términos</a></div>';
-  return sendEmail(email, 'Paso siguiente: Acepta los Términos', html);
+  const html = '<div style="font-family:Arial;max-width:600px;margin:0 auto;"><h2>Hola ' + name + '</h2>' +
+    '<p>¡Felicidades! Aprobaste el Examen E1.</p>' +
+    '<p>Antes de continuar con el siguiente paso, te invitamos a revisar la <strong>Información general sobre la Red Catholizare</strong> y confirmar la aceptación de nuestros Términos y Condiciones para postulantes, así como del Aviso de Privacidad.</p>' +
+    '<p><a href="' + url + '" style="display:inline-block;background:#0966FF;color:white;padding:12px 24px;text-decoration:none;border-radius:4px;">Ver Información general y continuar</a></p>' +
+    '</div>';
+  return sendEmail(email, 'Información general sobre la Red Catholizare', html);
 }
 
 function sendEmailE2(email, name, token, candidateId) {
