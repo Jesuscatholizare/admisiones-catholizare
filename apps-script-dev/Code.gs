@@ -545,15 +545,14 @@ function handleRegistration(data) {
   }
 }
 
-// Sube el CV a la carpeta Drive (Script Property DRIVE_FOLDER_ID) y devuelve la URL pública.
+// Sube el CV a la carpeta Drive y devuelve la URL pública.
+// Nombre: CANDIDATO_YYYYMMDD_XXXX_filename.pdf (candidateId ya tiene el prefijo CANDIDATO_)
 function uploadCVToDrive(candidateId, candidateName, filename, mimeType, base64) {
-  const folderId = PropertiesService.getScriptProperties().getProperty('DRIVE_FOLDER_ID');
-  if (!folderId) { Logger.log('[uploadCVToDrive] DRIVE_FOLDER_ID no configurado'); return ''; }
+  const folderId = '19CAus7qAZg7_fuTXVGVsF8cjJzsUErfI';
   const folder = DriveApp.getFolderById(folderId);
   const bytes  = Utilities.base64Decode(base64);
-  const safeName = (candidateName || candidateId).replace(/[^\w\s\-\.]/g, '').trim() || candidateId;
-  const ext = (filename.match(/\.[a-zA-Z0-9]+$/) || [''])[0];
-  const finalName = 'CV_' + safeName + '_' + candidateId + ext;
+  const safeFilename = (filename || 'cv').replace(/[^\w\s\-\.]/g, '').trim() || 'cv';
+  const finalName = candidateId + '_' + safeFilename;
   const blob = Utilities.newBlob(bytes, mimeType || 'application/octet-stream', finalName);
   const file = folder.createFile(blob);
   try { file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) {}

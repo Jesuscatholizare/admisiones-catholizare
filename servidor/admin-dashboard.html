@@ -1031,7 +1031,7 @@
             <div style="grid-column:1/-1;">
               <label style="font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">Curriculum Vitae (PDF, DOC o imagen)</label>
               <input id="apCV" type="file" accept=".pdf,.doc,.docx,application/pdf,image/*" style="width:100%;padding:0.5rem 0.75rem;border:1.5px dashed #dee2e6;border-radius:7px;font-size:0.85rem;box-sizing:border-box;background:#fafafa;cursor:pointer;">
-              <div id="apCVInfo" style="font-size:0.75rem;color:#999;margin-top:4px;">Tamaño máximo recomendado: 5 MB</div>
+              <div id="apCVInfo" style="font-size:0.75rem;color:#999;margin-top:4px;">Tamaño máximo: 3 MB</div>
             </div>
           </div>
           <div style="display:flex;gap:0.75rem;margin-top:1.25rem;">
@@ -2274,9 +2274,9 @@
                 msg.textContent='Campos obligatorios faltantes: ' + camposFaltantes.join(', ');
                 return;
             }
-            if (cvFile && cvFile.size > 8 * 1024 * 1024) {
+            if (cvFile && cvFile.size > 3 * 1024 * 1024) {
                 msg.style.display='block'; msg.style.background='#fff5f5'; msg.style.color='#b91c1c';
-                msg.textContent='El CV supera 8 MB. Comprime el archivo o sube uno más pequeño.';
+                msg.textContent='El CV supera 3 MB. Comprime el archivo o sube uno más pequeño.';
                 return;
             }
 
