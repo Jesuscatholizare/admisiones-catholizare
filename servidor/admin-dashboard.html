@@ -1757,7 +1757,7 @@
                     reader.onerror = reject;
                     reader.readAsDataURL(f);
                 });
-                const res = await fetch(API_URL, {
+                const res = await fetch(API_BASE, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action:'uploadCandidateCV', candidateId, cv_base64: base64, cv_filename: f.name, cv_mime: f.type, adminToken: ADMIN_TOKEN })
