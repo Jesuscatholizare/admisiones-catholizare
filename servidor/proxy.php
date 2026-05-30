@@ -64,6 +64,7 @@ $allowed_actions = [
     'submit_exam',
     'save_partial_exam',
     'acceptTerms',
+    'declineTerms',
     // Datos
     'get_exam',
     'get_terms_content',

@@ -399,6 +399,7 @@ function doPost(e) {
       case 'submit_exam':          return handleExamSubmit(data);
       case 'save_partial_exam':    return handleSavePartialExam(data);
       case 'acceptTerms':          return handleAcceptTerms(data);
+      case 'declineTerms':         return handleDeclineTerms(data);
       case 'approveExam':          return handleApproveExam(data);
       case 'autoApproveE1':        return handleAutoApproveE1(data);
       case 'rejectExam':           return handleRejectExam(data);
@@ -577,6 +578,51 @@ function acceptTerms(candidateId, acceptedAt, clientIp, userAgent, tcAccepted, p
   } catch (error) {
     Logger.log('[acceptTerms Error] ' + error.message);
     return { success: false, error: error.message };
+  }
+}
+
+// ================================
+// DECLINAR INFORMACIÓN GENERAL
+// ================================
+function handleDeclineTerms(data) {
+  try {
+    const candidateId = data.candidate_id || '';
+    const email       = data.email        || '';
+    const comentario  = data.comentario   || '';
+    const declinedAt  = data.declined_at  || new Date().toISOString();
+
+    // Registrar en Timeline
+    if (candidateId) {
+      addTimelineEvent(candidateId, 'INFORMACION_GENERAL_DECLINADA', {
+        email: email, comentario: comentario, timestamp: declinedAt
+      });
+    }
+
+    // Notificar al admin por email (sin bloquear la respuesta)
+    try {
+      const adminEmail = CONFIG.email_admin || CONFIG.email_support;
+      if (adminEmail) {
+        const subject = 'Postulante declinó Información general — ' + (email || candidateId);
+        const body =
+          '<div style="font-family:Arial;max-width:600px;">' +
+          '<h3 style="color:#001A55;">Un postulante no aceptó la Información general</h3>' +
+          '<p><strong>Candidato:</strong> ' + (email || candidateId) + '</p>' +
+          '<p><strong>Fecha:</strong> ' + declinedAt + '</p>' +
+          (comentario
+            ? '<div style="background:#f5f5f5;padding:12px;border-left:4px solid #0966FF;border-radius:0 6px 6px 0;margin-top:12px;">' +
+              '<strong>Comentario del postulante:</strong><br>' + comentario + '</div>'
+            : '<p style="color:#999;font-style:italic;">No dejó comentario.</p>') +
+          '</div>';
+        sendEmail(adminEmail, subject, body);
+      }
+    } catch (e) {
+      Logger.log('[handleDeclineTerms notify error] ' + e.message);
+    }
+
+    return jsonResponse(true, 'Decisión registrada');
+  } catch (error) {
+    Logger.log('[ERROR handleDeclineTerms] ' + error.message);
+    return jsonResponse(false, 'Error: ' + error.message);
   }
 }
 

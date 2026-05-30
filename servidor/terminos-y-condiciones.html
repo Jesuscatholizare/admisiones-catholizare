@@ -81,6 +81,44 @@
             animation: spin 0.8s linear infinite; margin-right: 0.5rem;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+        .btn-no-acepto {
+            background: transparent; color: #999; border: 1.5px solid #d0d0d0;
+            flex: 0 0 auto; padding: 0.75rem 1.5rem; font-size: 0.9em;
+        }
+        .btn-no-acepto:hover { background: #f5f5f5; color: #666; border-color: #bbb; transform: none; }
+        /* Modal "No acepto" */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.5); z-index: 1000;
+            align-items: center; justify-content: center; padding: 1rem;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal-box {
+            background: white; border-radius: 12px; padding: 2rem;
+            max-width: 500px; width: 100%;
+            box-shadow: 0 8px 32px rgba(0,0,26,0.2);
+            animation: slideUp 0.25s ease;
+        }
+        @keyframes slideUp { from { transform: translateY(20px); opacity:0; } to { transform: translateY(0); opacity:1; } }
+        .modal-box h3 { color: var(--primary); margin-bottom: 0.5rem; }
+        .modal-box p  { color: #555; font-size: 0.93em; margin-bottom: 1rem; }
+        .modal-box textarea {
+            width: 100%; min-height: 110px; padding: 0.75rem;
+            border: 1.5px solid var(--border-color); border-radius: 8px;
+            font-family: inherit; font-size: 0.93em; resize: vertical;
+            outline: none; transition: border-color 0.2s;
+        }
+        .modal-box textarea:focus { border-color: var(--primary-light); }
+        .modal-actions { display: flex; gap: 0.75rem; margin-top: 1rem; }
+        .modal-actions button { flex: 1; padding: 0.75rem; font-size: 0.95em; }
+        .btn-enviar { background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: background 0.2s; }
+        .btn-enviar:hover:not(:disabled) { background: #002a8a; }
+        .btn-cancelar { background: #f0f0f0; color: #555; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }
+        .btn-cancelar:hover { background: #e0e0e0; }
+        .modal-confirm { text-align: center; padding: 1rem 0; }
+        .modal-confirm .check-icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+        .modal-confirm h3 { color: var(--primary); margin-bottom: 0.5rem; }
+        .modal-confirm p  { color: #555; font-size: 0.9em; }
         .footer {
             text-align: center; color: #999; font-size: 0.85em;
             margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border-color);
@@ -134,9 +172,39 @@
             </div>
 
             <div class="button-group">
+                <button class="btn-no-acepto" onclick="abrirModalNoAcepto()">
+                    No acepto
+                </button>
                 <button class="btn-continuar" id="continuarBtn" onclick="aceptarYContinuar()" disabled>
                     Continuar →
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal "No acepto" -->
+    <div class="modal-overlay" id="modalNoAcepto">
+        <div class="modal-box">
+            <!-- Paso 1: formulario de comentarios -->
+            <div id="modalFormulario">
+                <h3>¿Tienes algún comentario?</h3>
+                <p>Tus comentarios nos harán crecer. Si lo deseas, comparte con nosotros el motivo de tu decisión — es completamente opcional.</p>
+                <textarea id="comentarioNoAcepto" placeholder="Escribe aquí tu comentario (opcional)…"></textarea>
+                <div class="modal-actions">
+                    <button class="btn-cancelar" onclick="cerrarModalNoAcepto()">Volver</button>
+                    <button class="btn-enviar" id="btnEnviarComentario" onclick="enviarNoAcepto()">
+                        Enviar
+                    </button>
+                </div>
+            </div>
+            <!-- Paso 2: confirmación -->
+            <div id="modalConfirmacion" class="modal-confirm" style="display:none;">
+                <div class="check-icon">✉️</div>
+                <h3>Hemos registrado tu decisión</h3>
+                <p>Gracias por tu tiempo. Si en el futuro decides continuar con tu postulación, con gusto te acompañaremos.</p>
+                <div style="margin-top:1.5rem;">
+                    <button class="btn-cancelar" style="width:100%;padding:0.75rem;" onclick="cerrarModalNoAcepto()">Cerrar</button>
+                </div>
             </div>
         </div>
     </div>
@@ -239,6 +307,51 @@
         function showSuccess(msg) {
             const el = document.getElementById('successMessage');
             el.textContent = msg; el.classList.add('show');
+        }
+
+        // ─── Modal "No acepto" ───
+        function abrirModalNoAcepto() {
+            document.getElementById('modalFormulario').style.display  = 'block';
+            document.getElementById('modalConfirmacion').style.display = 'none';
+            document.getElementById('comentarioNoAcepto').value = '';
+            document.getElementById('modalNoAcepto').classList.add('show');
+        }
+        function cerrarModalNoAcepto() {
+            document.getElementById('modalNoAcepto').classList.remove('show');
+        }
+        // Cerrar al clic en el fondo oscuro
+        document.getElementById('modalNoAcepto').addEventListener('click', function(e) {
+            if (e.target === this) cerrarModalNoAcepto();
+        });
+
+        async function enviarNoAcepto() {
+            const comentario = document.getElementById('comentarioNoAcepto').value.trim();
+            const btn = document.getElementById('btnEnviarComentario');
+            btn.disabled  = true;
+            btn.innerHTML = '<span class="spinner" style="border-top-color:white;"></span>Enviando…';
+
+            try {
+                // Registrar la decisión en el backend (Timeline + email admin)
+                await fetch(`${API_BASE}?action=declineTerms`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        candidate_id: candidateId,
+                        email:        email,
+                        comentario:   comentario,
+                        declined_at:  new Date().toISOString(),
+                        user_agent:   navigator.userAgent
+                    })
+                });
+            } catch (_) {
+                // La notificación es de cortesía — si falla, igual confirmamos al candidato
+            }
+
+            // Mostrar confirmación sin importar resultado de red
+            document.getElementById('modalFormulario').style.display  = 'none';
+            document.getElementById('modalConfirmacion').style.display = 'block';
+            btn.disabled  = false;
+            btn.innerHTML = 'Enviar';
         }
 
         window.addEventListener('load', () => {
