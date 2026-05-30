@@ -1017,16 +1017,21 @@
               </select>
             </div>
             <div>
-              <label style="font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">Fecha agendada E1</label>
-              <input id="apFecha" type="date" style="width:100%;padding:0.5rem 0.75rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;">
+              <label style="font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">Fecha de nacimiento</label>
+              <input id="apBirthday" type="date" style="width:100%;padding:0.5rem 0.75rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;">
             </div>
-            <div>
-              <label style="font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">Hora del examen</label>
-              <input id="apHora" type="time" style="width:100%;padding:0.5rem 0.75rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;">
+            <div style="grid-column:1/-1;">
+              <label style="font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">Enfoque terapéutico</label>
+              <input id="apEnfoque" type="text" placeholder="Cognitivo-conductual, sistémico, integrativo…" style="width:100%;padding:0.5rem 0.75rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;">
             </div>
             <div style="grid-column:1/-1;">
               <label style="font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">Reseña Profesional</label>
               <textarea id="apResena" placeholder="Experiencia, especialidades y motivación para unirse a RCCC..." style="width:100%;padding:0.5rem 0.75rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;min-height:80px;resize:vertical;"></textarea>
+            </div>
+            <div style="grid-column:1/-1;">
+              <label style="font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">Curriculum Vitae (PDF, DOC o imagen)</label>
+              <input id="apCV" type="file" accept=".pdf,.doc,.docx,application/pdf,image/*" style="width:100%;padding:0.5rem 0.75rem;border:1.5px dashed #dee2e6;border-radius:7px;font-size:0.85rem;box-sizing:border-box;background:#fafafa;cursor:pointer;">
+              <div id="apCVInfo" style="font-size:0.75rem;color:#999;margin-top:4px;">Tamaño máximo recomendado: 5 MB</div>
             </div>
           </div>
           <div style="display:flex;gap:0.75rem;margin-top:1.25rem;">
@@ -1445,6 +1450,11 @@
                 ['País',        c.pais         || '—'],
                 ['Profesión',   c.profesion    || '—'],
             ];
+            if (c.cv_url) {
+                fields.push(['Curriculum Vitae', `<a href="${c.cv_url}" target="_blank" rel="noopener" style="color:#0966FF;font-weight:600;text-decoration:underline;"><i class="fas fa-file-pdf" style="margin-right:4px;"></i>Ver / Descargar CV</a>`]);
+            } else {
+                fields.push(['Curriculum Vitae', '<span style="color:#aaa;font-style:italic">No adjuntó</span>']);
+            }
             if (c.final_category) fields.push(['Categoría final', `<span style="font-weight:700;color:#2e7d32">${c.final_category}</span>`]);
             if (c.last_interaction) fields.push(['Última interacción', fmtDate(c.last_interaction)]);
             const rows = fields.map(([k,v]) =>
@@ -2228,52 +2238,95 @@
         }
         // ───────────────────────────────────────────────────────────────────
         // ── Agregar Profesional ──────────────────────────────────────────────
+        function _fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const r = new FileReader();
+                r.onload  = () => {
+                    const s = r.result || '';
+                    const i = s.indexOf(',');
+                    resolve(i >= 0 ? s.slice(i + 1) : s);
+                };
+                r.onerror = () => reject(new Error('No se pudo leer el archivo'));
+                r.readAsDataURL(file);
+            });
+        }
+
         async function submitAgregarProfesional() {
             const nombre   = (document.getElementById('apNombre').value   || '').trim();
             const email    = (document.getElementById('apEmail').value    || '').trim();
             const telefono = (document.getElementById('apTelefono').value || '').trim();
             const pais     = (document.getElementById('apPais').value     || '').trim();
             const profesion= document.getElementById('apProfesion').value;
-            const fecha    = document.getElementById('apFecha').value;
-            const hora     = (document.getElementById('apHora').value || '').trim();
-            const resena   = (document.getElementById('apResena').value || '').trim();
+            const birthday = document.getElementById('apBirthday').value;
+            const enfoque  = (document.getElementById('apEnfoque').value || '').trim();
+            const resena   = (document.getElementById('apResena').value  || '').trim();
+            const cvInput  = document.getElementById('apCV');
+            const cvFile   = cvInput && cvInput.files && cvInput.files[0] ? cvInput.files[0] : null;
             const msg      = document.getElementById('apMensaje');
             const btn      = document.getElementById('apBtn');
 
-            // Validación mejorada
             const camposFaltantes = [];
-            if (!nombre) camposFaltantes.push('Nombre completo');
-            if (!email) camposFaltantes.push('Email');
+            if (!nombre)    camposFaltantes.push('Nombre completo');
+            if (!email)     camposFaltantes.push('Email');
             if (!profesion) camposFaltantes.push('Tipo de profesional');
-
             if (camposFaltantes.length > 0) {
                 msg.style.display='block'; msg.style.background='#fff5f5'; msg.style.color='#b91c1c';
                 msg.textContent='Campos obligatorios faltantes: ' + camposFaltantes.join(', ');
                 return;
             }
+            if (cvFile && cvFile.size > 8 * 1024 * 1024) {
+                msg.style.display='block'; msg.style.background='#fff5f5'; msg.style.color='#b91c1c';
+                msg.textContent='El CV supera 8 MB. Comprime el archivo o sube uno más pequeño.';
+                return;
+            }
 
             btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Registrando...';
+
+            let cv_base64 = '', cv_filename = '', cv_mime = '';
+            if (cvFile) {
+                try {
+                    cv_base64   = await _fileToBase64(cvFile);
+                    cv_filename = cvFile.name;
+                    cv_mime     = cvFile.type || 'application/octet-stream';
+                } catch (e) {
+                    msg.style.display='block'; msg.style.background='#fff5f5'; msg.style.color='#b91c1c';
+                    msg.textContent='No se pudo leer el archivo del CV.';
+                    btn.disabled=false; btn.innerHTML='<i class="fas fa-user-plus"></i> Registrar Profesional';
+                    return;
+                }
+            }
+
             try {
-                const res  = await fetch(API_BASE, { method:'POST', headers:{'Content-Type':'application/json'},
-                    body: JSON.stringify({ action:'initial_registration', adminToken:ADMIN_TOKEN,
-                        name:nombre, email, phone:telefono, country:pais,
-                        professional_type:profesion, scheduled_date:fecha||new Date().toISOString().split('T')[0],
-                        therapeutic_approach:hora, about:resena||'Registro manual por admin', birthday:'' }) });
+                const payload = {
+                    action: 'initial_registration',
+                    adminToken: ADMIN_TOKEN,
+                    candidate: {
+                        name: nombre, email, phone: telefono, country: pais,
+                        birthday: birthday || '',
+                        professional_type: profesion,
+                        therapeutic_approach: enfoque,
+                        about: resena || 'Registro manual por admin'
+                    },
+                    cv_base64, cv_filename, cv_mime
+                };
+                const res  = await fetch(API_BASE, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
                 const data = await res.json();
                 msg.style.display='block';
                 if (data.success) {
                     msg.style.background='#f0fff4'; msg.style.color='#15803d';
-                    msg.textContent='✓ Profesional registrado. Se envió el correo de bienvenida con el token E1.';
+                    msg.textContent='✓ Profesional registrado.' + (cvFile ? ' CV subido a Drive.' : '') + ' Se envió el correo de bienvenida con el token E1.';
                     btn.innerHTML='<i class="fas fa-check"></i> Registrado';
                     loadData();
-                    setTimeout(() => { document.getElementById('modalAgregarProfesional').style.display='none';
-                        ['apNombre','apEmail','apTelefono','apPais','apFecha','apHora','apResena'].forEach(id=>{
-                            const el = document.getElementById(id);
-                            if (el.tagName === 'TEXTAREA') el.value=''; else el.value='';
+                    setTimeout(() => {
+                        document.getElementById('modalAgregarProfesional').style.display='none';
+                        ['apNombre','apEmail','apTelefono','apPais','apBirthday','apEnfoque','apResena'].forEach(id => {
+                            const el = document.getElementById(id); if (el) el.value = '';
                         });
-                        document.getElementById('apProfesion').value='';
+                        document.getElementById('apProfesion').value = '';
+                        if (cvInput) cvInput.value = '';
                         msg.style.display='none'; btn.disabled=false;
-                        btn.innerHTML='<i class="fas fa-user-plus"></i> Registrar Profesional'; }, 2500);
+                        btn.innerHTML='<i class="fas fa-user-plus"></i> Registrar Profesional';
+                    }, 2500);
                 } else {
                     msg.style.background='#fff5f5'; msg.style.color='#b91c1c';
                     msg.textContent='Error: ' + (data.message || 'Inténtalo de nuevo.');

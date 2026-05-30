@@ -457,7 +457,18 @@ function doGet(e) {
 // ================================
 function handleRegistration(data) {
   try {
-    const candidate = data.candidate;
+    // Acepta tanto data.candidate {...} (formulario público / WP) como flat
+    // data.name, data.email, ... (registro manual desde admin dashboard).
+    const candidate = data.candidate || {
+      name:                 data.name,
+      email:                data.email,
+      phone:                data.phone,
+      country:              data.country,
+      birthday:             data.birthday,
+      professional_type:    data.professional_type,
+      therapeutic_approach: data.therapeutic_approach,
+      about:                data.about
+    };
 
     if (!candidate || !candidate.name || !candidate.email)
       return jsonResponse(false, 'Faltan datos requeridos');
@@ -486,11 +497,31 @@ function handleRegistration(data) {
       'registered'
     ]);
 
+    // Si viene CV adjunto, subir a Drive y guardar URL en col 25 del candidato
+    let cv_url = '';
+    if (data.cv_base64 && data.cv_filename) {
+      try {
+        cv_url = uploadCVToDrive(candidate_id, candidate.name, data.cv_filename, data.cv_mime, data.cv_base64);
+        if (cv_url) {
+          // Buscar la fila recién insertada (fila 2 por insertNewRow) y guardar URL en col 25
+          const refreshed = sheet.getDataRange().getValues();
+          for (let i = 1; i < refreshed.length; i++) {
+            if (refreshed[i][0] === candidate_id) {
+              sheet.getRange(i + 1, 25).setValue(cv_url);
+              break;
+            }
+          }
+        }
+      } catch (e) {
+        Logger.log('[handleRegistration CV upload] ' + e.message);
+      }
+    }
+
     const token = generateToken(candidate_id, 'E1');
     saveToken(token, candidate_id, 'E1', candidate.email, candidate.name, '');
 
     addTimelineEvent(candidate_id, 'CANDIDATO_REGISTRADO', {
-      nombre: candidate.name, email: candidate.email
+      nombre: candidate.name, email: candidate.email, cv_url: cv_url
     });
 
     addContactToBrevoList(
@@ -505,12 +536,28 @@ function handleRegistration(data) {
 
     return jsonResponse(true, 'Registro exitoso. Revisa tu email.', {
       candidate_id: candidate_id,
-      token: token
+      token: token,
+      cv_url: cv_url
     });
   } catch (error) {
     Logger.log('[ERROR handleRegistration] ' + error.message);
     return jsonResponse(false, 'Error: ' + error.message);
   }
+}
+
+// Sube el CV a la carpeta Drive (Script Property DRIVE_FOLDER_ID) y devuelve la URL pública.
+function uploadCVToDrive(candidateId, candidateName, filename, mimeType, base64) {
+  const folderId = PropertiesService.getScriptProperties().getProperty('DRIVE_FOLDER_ID');
+  if (!folderId) { Logger.log('[uploadCVToDrive] DRIVE_FOLDER_ID no configurado'); return ''; }
+  const folder = DriveApp.getFolderById(folderId);
+  const bytes  = Utilities.base64Decode(base64);
+  const safeName = (candidateName || candidateId).replace(/[^\w\s\-\.]/g, '').trim() || candidateId;
+  const ext = (filename.match(/\.[a-zA-Z0-9]+$/) || [''])[0];
+  const finalName = 'CV_' + safeName + '_' + candidateId + ext;
+  const blob = Utilities.newBlob(bytes, mimeType || 'application/octet-stream', finalName);
+  const file = folder.createFile(blob);
+  try { file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) {}
+  return file.getUrl();
 }
 
 // ================================
@@ -1230,7 +1277,8 @@ function getCandidatesForAdmin() {
           interview_notes:  data[i][17],
           final_category:   data[i][18],
           last_interaction: data[i][19],
-          notes:            data[i][20]
+          notes:            data[i][20],
+          cv_url:           data[i][24] || ''
         });
       }
     }
