@@ -497,11 +497,17 @@ function handleRegistration(data) {
       'registered'
     ]);
 
-    // Si viene CV adjunto, subir a Drive y guardar URL en col 25 del candidato
+    // Si viene CV adjunto, subir a Drive y guardar URL en col 25 del candidato.
+    // Acepta dos formatos:
+    //   - Formulario WP/Elementor: curriculum_pdf (base64) + curriculum_name
+    //   - Admin dashboard: cv_base64 + cv_filename + cv_mime
     let cv_url = '';
-    if (data.cv_base64 && data.cv_filename) {
+    const cvBase64   = data.cv_base64   || data.curriculum_pdf  || '';
+    const cvFilename = data.cv_filename || data.curriculum_name || '';
+    const cvMime     = data.cv_mime     || (cvFilename.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream');
+    if (cvBase64 && cvFilename) {
       try {
-        cv_url = uploadCVToDrive(candidate_id, candidate.name, data.cv_filename, data.cv_mime, data.cv_base64);
+        cv_url = uploadCVToDrive(candidate_id, candidate.name, cvFilename, cvMime, cvBase64);
         if (cv_url) {
           // Buscar la fila recién insertada (fila 2 por insertNewRow) y guardar URL en col 25
           const refreshed = sheet.getDataRange().getValues();
