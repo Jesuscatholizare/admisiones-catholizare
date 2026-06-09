@@ -639,6 +639,9 @@
             <button class="nav-item" onclick="showView('respuestas')" id="nav-respuestas">
                 <i class="fas fa-clipboard-list"></i> Ver Respuestas
             </button>
+            <button class="nav-item" onclick="showView('correos')" id="nav-correos">
+                <i class="fas fa-envelope-open-text"></i> Correos Enviados
+            </button>
         </div>
         <div class="sidebar-section">
             <div class="sidebar-section-label">Admin</div>
@@ -828,6 +831,57 @@
         </div>
     </div>
 
+    <!-- Vista: Correos Enviados -->
+    <div id="view-correos" class="view">
+        <div class="container">
+            <div class="header-section">
+                <div>
+                    <h1><i class="fas fa-envelope-open-text" style="color:var(--primary);font-size:1.4rem;vertical-align:middle;margin-right:0.5rem;"></i>Correos Enviados</h1>
+                    <small>Registro de notificaciones enviadas por el sistema (hoja Notificaciones)</small>
+                </div>
+                <div style="display:flex;gap:0.6rem;">
+                    <button class="btn" style="background:#001A55;color:white;" onclick="loadCorreos(true)">
+                        <i class="fas fa-sync-alt"></i> Actualizar
+                    </button>
+                </div>
+            </div>
+            <!-- Filtros -->
+            <div class="filters-section">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="correosSearch" placeholder="Buscar por destinatario, asunto o proveedor..." onkeyup="renderCorreosTable()">
+                </div>
+                <select class="filter-select" id="correosStatusFilter" onchange="renderCorreosTable()">
+                    <option value="">Todos los estados</option>
+                    <option value="SENT">Enviados</option>
+                    <option value="ERROR">Con error</option>
+                </select>
+                <select class="filter-select" id="correosProviderFilter" onchange="renderCorreosTable()">
+                    <option value="">Todos los proveedores</option>
+                    <option value="RESEND">Resend</option>
+                    <option value="MAILAPP">MailApp (fallback)</option>
+                    <option value="FAILED">Fallidos</option>
+                </select>
+                <select class="filter-select" id="correosTipoFilter" onchange="renderCorreosTable()">
+                    <option value="">Todos los tipos</option>
+                </select>
+            </div>
+            <!-- Tabla -->
+            <div class="table-container">
+                <div class="table-header">
+                    <h2>Notificaciones</h2>
+                    <span class="table-header-meta" id="correosCount">0 registros</span>
+                </div>
+                <div id="correosTableContent">
+                    <div class="empty-state">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Cargando correos...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div><!-- /#view-correos -->
+
     <!-- Vista: Gestión de Usuarios -->
     <div id="view-usuarios" class="view">
         <div class="container">
@@ -945,6 +999,27 @@
 
     </div><!-- /.main-content -->
 </div><!-- /.app-layout -->
+
+    <!-- Modal: Plantilla de correo -->
+    <div id="modalPlantillaCorreo" class="modal">
+      <div class="modal-content" style="max-width:680px;padding:0;border-radius:12px;overflow:hidden;">
+        <div style="background:#001A55;color:white;padding:1.1rem 1.4rem;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-weight:800;font-size:1rem;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+            <i class="fas fa-envelope" style="margin-right:8px;"></i><span id="plantillaModalTitle">Plantilla de correo</span>
+          </div>
+          <button onclick="document.getElementById('modalPlantillaCorreo').style.display='none'" style="background:none;border:none;color:white;font-size:1.4rem;cursor:pointer;line-height:1;">&times;</button>
+        </div>
+        <div style="padding:1.4rem;background:white;max-height:75vh;overflow-y:auto;">
+          <div style="background:#fff8e6;border:1px solid #ffe1a0;border-radius:8px;padding:0.7rem 1rem;margin-bottom:1.1rem;font-size:0.8rem;color:#8a6d1a;line-height:1.5;">
+            <i class="fas fa-info-circle"></i> Esta es la <strong>plantilla genérica</strong> del correo que envía el sistema.
+            Los campos resaltados <span style="background:#fff3cd;border:1px dashed #d4a017;border-radius:3px;padding:0 4px;">[así]</span>
+            se reemplazan con los datos reales de cada candidato al momento del envío.
+          </div>
+          <div style="font-size:0.78rem;color:#888;margin-bottom:0.35rem;"><strong>Asunto:</strong> <span id="plantillaModalSubject"></span></div>
+          <div id="plantillaModalBody" style="border:1px solid #e9ecef;border-radius:8px;padding:1rem;background:#fafbfc;overflow-x:auto;"></div>
+        </div>
+      </div>
+    </div>
 
     <!-- Modal: Handoff → Onboarding -->
     <div id="modalHandoff" class="modal">
@@ -1865,9 +1940,263 @@
             // hooks por vista
             if (view === 'dashboard')  buildDashboard();
             if (view === 'respuestas') renderRespCandidates('');
+            if (view === 'correos')    loadCorreos();
             if (view === 'usuarios')   loadAdminUsers();
             if (view === 'superadmin') initSuperAdmin();
             if (view === 'health')     loadHealth();
+        }
+
+        // ── Correos Enviados ────────────────────────────────────────────────
+        let correosData   = [];
+        let correosLoaded = false;
+
+        function escapeHtml(str) {
+            return String(str == null ? '' : str)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        // Placeholder resaltado para los campos variables de las plantillas
+        function PH(label) {
+            return '<span style="background:#fff3cd;border:1px dashed #d4a017;border-radius:3px;padding:0 4px;">[' + label + ']</span>';
+        }
+
+        // Catálogo de plantillas: refleja los correos que envía el backend (Code.gs).
+        // match() identifica la plantilla a partir del asunto registrado en Notificaciones.
+        const EMAIL_TEMPLATES = [
+            {
+                id: 'welcome', label: 'Bienvenida + Examen E1',
+                match: s => s.startsWith('Bienvenido a '),
+                html: () =>
+                    '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">' +
+                    '<div style="background:linear-gradient(135deg,#001A55,#0966FF);color:white;padding:20px;text-align:center;border-radius:8px 8px 0 0;">' +
+                    '<h1 style="margin:0;">Bienvenido ' + PH('Nombre') + '</h1><p>Catholizare.com</p></div>' +
+                    '<div style="background:#f9f9f9;padding:20px;">' +
+                    '<p>Tu registro ha sido exitoso. Ya puedes acceder al <strong>Examen E1</strong> cuando lo desees — no hay fecha límite para iniciarlo.</p>' +
+                    '<p><span style="display:inline-block;background:#0966FF;color:white;padding:12px 24px;border-radius:4px;">Acceder al Examen E1 → ' + PH('link con token E1') + '</span></p>' +
+                    '<div style="background:#fef2f2;border-left:4px solid #dc2626;padding:12px;margin:16px 0;border-radius:4px;">' +
+                    '<p style="margin:0;color:#991b1b;font-size:13px;"><strong>⚠️ Una sola oportunidad:</strong> Cuentas con un único intento para completar este examen, sin importar el momento en que decidas tomarlo. Una vez que presiones "Comenzar", no podrás reiniciar ni volver a acceder.</p></div>' +
+                    '<p style="font-size:12px;color:#666;"><strong>Instrucciones:</strong> Duración 2h · No copy/paste · Máx. 3 cambios de ventana</p>' +
+                    '</div></div>'
+            },
+            {
+                id: 'terms', label: 'Información general / T&C (E1 aprobado)',
+                match: s => s === 'Información general sobre la Red Catholizare',
+                html: () =>
+                    '<div style="font-family:Arial;max-width:600px;margin:0 auto;"><h2>Hola ' + PH('Nombre') + '</h2>' +
+                    '<p>¡Felicidades! Aprobaste el Examen E1.</p>' +
+                    '<p>Antes de continuar con el siguiente paso, te invitamos a revisar la <strong>Información general sobre la Red Catholizare</strong> y confirmar la aceptación de nuestros Términos y Condiciones para postulantes, así como del Aviso de Privacidad.</p>' +
+                    '<p><span style="display:inline-block;background:#0966FF;color:white;padding:12px 24px;border-radius:4px;">Ver Información general y continuar → ' + PH('link personalizado') + '</span></p></div>'
+            },
+            {
+                id: 'e2', label: 'Acceso Examen E2 (T&C aceptados)',
+                match: s => s === 'Accede al Examen E2',
+                html: () =>
+                    '<div style="font-family:Arial;max-width:600px;margin:0 auto;"><h2>Hola ' + PH('Nombre') + '</h2>' +
+                    '<p>Has aceptado los términos. Ya puedes tomar el Examen E2.</p>' +
+                    '<p><span style="display:inline-block;background:#0966FF;color:white;padding:12px 24px;border-radius:4px;">Acceder al Examen E2 → ' + PH('link con token E2') + '</span></p>' +
+                    '<div style="background:#fef2f2;border-left:4px solid #dc2626;padding:12px;margin:16px 0;border-radius:4px;">' +
+                    '<p style="margin:0;color:#991b1b;font-size:13px;"><strong>⚠️ Un solo intento:</strong> Solo tienes un intento para completar este examen. Una vez que presiones "Comenzar", no podrás reiniciar ni volver a acceder.</p></div></div>'
+            },
+            {
+                id: 'e3', label: 'Acceso Examen E3 (E2 aprobado)',
+                match: s => s === 'Accede al Examen E3 (Final)',
+                html: () =>
+                    '<div style="font-family:Arial;max-width:600px;margin:0 auto;"><h2>Hola ' + PH('Nombre') + '</h2>' +
+                    '<p>¡Excelente! Aprobaste E2. Ahora puedes tomar el Examen E3 (final).</p>' +
+                    '<p><span style="display:inline-block;background:#0966FF;color:white;padding:12px 24px;border-radius:4px;">Acceder al Examen E3 → ' + PH('link con token E3') + '</span></p>' +
+                    '<div style="background:#fef2f2;border-left:4px solid #dc2626;padding:12px;margin:16px 0;border-radius:4px;">' +
+                    '<p style="margin:0;color:#991b1b;font-size:13px;"><strong>⚠️ Un solo intento:</strong> Solo tienes un intento para completar este examen. Una vez que presiones "Comenzar", no podrás reiniciar ni volver a acceder.</p></div></div>'
+            },
+            {
+                id: 'interview', label: 'Entrevista pendiente (E3 aprobado)',
+                match: s => s === 'Entrevista Personal - Pendiente de Agendamiento',
+                html: () =>
+                    '<div style="font-family:Arial;"><h2>Hola ' + PH('Nombre') + '</h2>' +
+                    '<p>¡Felicidades! Completaste los 3 exámenes. Pronto te contactaremos para agendar tu entrevista.</p></div>'
+            },
+            {
+                id: 'rejected', label: 'Resultado de evaluación (no aprobado)',
+                match: s => s === 'Resultado de tu evaluación — Catholizare.com',
+                html: () =>
+                    '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">' +
+                    '<div style="background:linear-gradient(135deg,#001A55,#0966FF);color:white;padding:20px;text-align:center;border-radius:8px 8px 0 0;">' +
+                    '<h1 style="margin:0;">Gracias por tu participación</h1><p style="margin:8px 0 0 0;font-size:0.95em;">Catholizare.com</p></div>' +
+                    '<div style="padding:24px;background:#f9f9f9;">' +
+                    '<p>Hola <strong>' + PH('Nombre') + '</strong>,</p>' +
+                    '<p>Gracias por el tiempo y la dedicación que invertiste en completar nuestro proceso de evaluación. Valoramos profundamente tu interés en unirte al equipo de profesionales de <strong>Catholizare.com</strong>.</p>' +
+                    '<p>Tras revisar tu examen <strong>' + PH('E1/E2/E3 o entrevista') + '</strong>, en esta ocasión no has superado el filtro inicial del proceso. Esto no significa el cierre definitivo de tu candidatura: <strong>tu caso podrá ser evaluado por nuestro comité</strong>.</p>' +
+                    '<div style="background:white;border-left:4px solid #0966FF;padding:12px 16px;margin:16px 0;border-radius:0 6px 6px 0;">' +
+                    '<p style="font-size:0.85em;font-weight:700;color:#001A55;margin:0 0 6px 0;">RETROALIMENTACIÓN</p>' +
+                    '<p style="font-size:0.9em;color:#444;margin:0;">' + PH('Razón / notas del admin (opcional)') + '</p></div>' +
+                    '<p>Además, <strong>este intento quedará registrado</strong> y se tendrá en cuenta en futuras evaluaciones. El año que viene podrás volver a intentarlo.</p>' +
+                    '<p>Que Dios te bendiga y te acompañe en este camino.</p>' +
+                    '<p style="font-size:0.85em;color:#999;margin-top:20px;">— Equipo Catholizare.com</p></div></div>'
+            },
+            {
+                id: 'approved', label: 'Aprobación final con categoría',
+                match: s => s.startsWith('Aprobado en RCCC'),
+                html: () =>
+                    '<div style="font-family:Arial;">' +
+                    '<div style="background:linear-gradient(135deg,#001A55,#0966FF);color:white;padding:20px;text-align:center;border-radius:8px;">' +
+                    '<h1 style="margin:0;">¡Felicidades ' + PH('Nombre') + '!</h1></div>' +
+                    '<div style="padding:20px;"><p>Has sido <strong>APROBADO</strong> en el proceso de selección de RCCC.</p>' +
+                    '<p><strong>Categoría:</strong> ' + PH('Junior / Senior / Expert') + '</p></div></div>'
+            },
+            {
+                id: 'adminNew', label: 'Aviso interno: nuevo candidato (admin)',
+                match: s => s.startsWith('Nuevo Candidato:'),
+                html: () =>
+                    '<div style="font-family:Arial;">' +
+                    '<div style="background:#4CAF50;color:white;padding:20px;text-align:center;"><h1 style="margin:0;">Nuevo Candidato Registrado</h1></div>' +
+                    '<div style="padding:20px;">' +
+                    '<p><strong>Nombre:</strong> ' + PH('Nombre') + '</p><p><strong>Email:</strong> ' + PH('Email') + '</p>' +
+                    '<p><strong>ID:</strong> ' + PH('CANDIDATO_AAAAMMDD_NNNN') + '</p>' +
+                    '<p style="color:#666;font-size:13px;">El candidato puede iniciar el Examen E1 cuando lo desee (un solo intento).</p></div></div>'
+            },
+            {
+                id: 'adminExam', label: 'Aviso interno: examen completado (admin)',
+                match: s => /^Examen E[123] - /.test(s),
+                html: () =>
+                    '<div style="font-family:Arial;">' +
+                    '<div style="background:#4CAF50;color:white;padding:20px;text-align:center;"><h1 style="margin:0;">Examen ' + PH('E1/E2/E3') + ' Completado</h1></div>' +
+                    '<div style="padding:20px;">' +
+                    '<p><strong>Candidato:</strong> ' + PH('Nombre') + '</p><p><strong>Email:</strong> ' + PH('Email') + '</p>' +
+                    '<p style="font-size:2em;text-align:center;color:#4CAF50;">' + PH('Puntaje') + '%</p>' +
+                    '<p style="text-align:center;color:#4CAF50;"><strong>' + PH('APROBADO / REVISAR / NO APROBADO') + '</strong></p>' +
+                    '<div style="background:#fff3cd;border-left:4px solid #ffc107;padding:10px;"><strong>Alertas:</strong><br>' + PH('Flags anti-fraude (si hay)') + '</div></div></div>'
+            },
+            {
+                id: 'declined', label: 'Aviso interno: postulante declinó T&C (admin)',
+                match: s => s.startsWith('Postulante declinó'),
+                html: () =>
+                    '<div style="font-family:Arial;max-width:600px;">' +
+                    '<h3 style="color:#001A55;">Un postulante no aceptó la Información general</h3>' +
+                    '<p><strong>Candidato:</strong> ' + PH('Email o ID') + '</p>' +
+                    '<p><strong>Fecha:</strong> ' + PH('Fecha de declinación') + '</p>' +
+                    '<div style="background:#f5f5f5;padding:12px;border-left:4px solid #0966FF;border-radius:0 6px 6px 0;margin-top:12px;">' +
+                    '<strong>Comentario del postulante:</strong><br>' + PH('Comentario (opcional)') + '</div></div>'
+            },
+            {
+                id: 'handoff', label: 'Aviso interno: handoff a onboarding (admin)',
+                match: s => s.startsWith('Handoff:'),
+                html: () =>
+                    '<div style="font-family:Arial;"><h2>Nuevo candidato para Onboarding</h2>' +
+                    '<p><strong>Nombre:</strong> ' + PH('Nombre') + '</p><p><strong>Email:</strong> ' + PH('Email') + '</p>' +
+                    '<p><strong>Categoría:</strong> ' + PH('Junior / Senior / Expert') + '</p></div>'
+            }
+        ];
+
+        function findEmailTemplate(subject) {
+            const s = String(subject || '');
+            return EMAIL_TEMPLATES.find(t => t.match(s)) || null;
+        }
+
+        async function loadCorreos(force = false) {
+            const container = document.getElementById('correosTableContent');
+            if (correosLoaded && !force) { renderCorreosTable(); return; }
+            container.innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Cargando correos...</p></div>';
+            try {
+                const res = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'getNotifications', adminToken: ADMIN_TOKEN, limit: 500 })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    correosData   = (data.data && data.data.notifications) || [];
+                    correosLoaded = true;
+                    buildCorreosTipoFilter();
+                    renderCorreosTable();
+                } else {
+                    container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>' + escapeHtml(data.message || 'Error al cargar') + '</p></div>';
+                }
+            } catch (e) {
+                container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>Error de conexión: ' + escapeHtml(e.message) + '</p></div>';
+            }
+        }
+
+        function buildCorreosTipoFilter() {
+            const sel = document.getElementById('correosTipoFilter');
+            if (!sel) return;
+            const current = sel.value;
+            const usados  = new Set(correosData.map(n => { const t = findEmailTemplate(n.subject); return t ? t.id : null; }).filter(Boolean));
+            sel.innerHTML = '<option value="">Todos los tipos</option>' +
+                EMAIL_TEMPLATES.filter(t => usados.has(t.id))
+                    .map(t => '<option value="' + t.id + '">' + escapeHtml(t.label) + '</option>').join('');
+            sel.value = current;
+        }
+
+        function formatCorreoFecha(n) {
+            const raw = n.iso_timestamp || n.timestamp;
+            if (!raw) return '--';
+            const d = new Date(raw);
+            return isNaN(d) ? escapeHtml(String(raw)) : d.toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' });
+        }
+
+        function renderCorreosTable() {
+            const container = document.getElementById('correosTableContent');
+            if (!container) return;
+            const q        = (document.getElementById('correosSearch').value || '').toLowerCase().trim();
+            const fStatus  = document.getElementById('correosStatusFilter').value;
+            const fProv    = document.getElementById('correosProviderFilter').value;
+            const fTipo    = document.getElementById('correosTipoFilter').value;
+
+            const filtered = correosData.filter(n => {
+                const status = String(n.status || '');
+                if (fStatus === 'SENT'  && status !== 'SENT') return false;
+                if (fStatus === 'ERROR' && status === 'SENT') return false;
+                if (fProv && String(n.provider || '') !== fProv) return false;
+                if (fTipo) { const t = findEmailTemplate(n.subject); if (!t || t.id !== fTipo) return false; }
+                if (q) {
+                    const haystack = (String(n.email || '') + ' ' + String(n.subject || '') + ' ' + String(n.provider || '') + ' ' + status).toLowerCase();
+                    if (!haystack.includes(q)) return false;
+                }
+                return true;
+            });
+
+            document.getElementById('correosCount').textContent = filtered.length + ' de ' + correosData.length + ' registros';
+
+            if (!filtered.length) {
+                container.innerHTML = '<div class="empty-state"><i class="fas fa-envelope"></i><p>No hay correos que coincidan con la búsqueda</p></div>';
+                return;
+            }
+
+            const rows = filtered.map((n, idx) => {
+                const sent     = String(n.status || '') === 'SENT';
+                const badge    = sent
+                    ? '<span style="background:#d1f5d9;color:#0d7a32;padding:2px 9px;border-radius:10px;font-size:0.74rem;font-weight:700;">ENVIADO</span>'
+                    : '<span style="background:#fde2e2;color:#b91c1c;padding:2px 9px;border-radius:10px;font-size:0.74rem;font-weight:700;" title="' + escapeHtml(n.status) + '">ERROR</span>';
+                const provider = String(n.provider || '--');
+                const provBadge = '<span style="background:#eef2ff;color:#3730a3;padding:2px 8px;border-radius:10px;font-size:0.72rem;font-weight:600;">' + escapeHtml(provider) + '</span>';
+                const tpl      = findEmailTemplate(n.subject);
+                const tplBtn   = tpl
+                    ? '<button class="btn" style="background:#eef4ff;color:#001A55;padding:0.3rem 0.7rem;font-size:0.76rem;" onclick="showEmailTemplate(\'' + tpl.id + '\')"><i class="fas fa-eye"></i> Ver plantilla</button>'
+                    : '<span style="color:#bbb;font-size:0.76rem;">--</span>';
+                return '<tr>' +
+                    '<td style="white-space:nowrap;">' + formatCorreoFecha(n) + '</td>' +
+                    '<td>' + escapeHtml(n.email || '--') + '</td>' +
+                    '<td>' + escapeHtml(n.subject || '--') + '</td>' +
+                    '<td>' + provBadge + '</td>' +
+                    '<td>' + badge + '</td>' +
+                    '<td>' + tplBtn + '</td>' +
+                    '</tr>';
+            }).join('');
+
+            container.innerHTML =
+                '<div style="overflow-x:auto;"><table class="users-table">' +
+                '<thead><tr><th>Fecha</th><th>Destinatario</th><th>Asunto</th><th>Proveedor</th><th>Estado</th><th>Plantilla</th></tr></thead>' +
+                '<tbody>' + rows + '</tbody></table></div>';
+        }
+
+        function showEmailTemplate(tplId) {
+            const tpl = EMAIL_TEMPLATES.find(t => t.id === tplId);
+            if (!tpl) return;
+            document.getElementById('plantillaModalTitle').textContent = tpl.label;
+            const ejemplo = correosData.find(n => { const t = findEmailTemplate(n.subject); return t && t.id === tplId; });
+            document.getElementById('plantillaModalSubject').textContent = ejemplo ? ejemplo.subject : tpl.label;
+            document.getElementById('plantillaModalBody').innerHTML = tpl.html();
+            document.getElementById('modalPlantillaCorreo').style.display = 'block';
         }
 
         // ── Dashboard ───────────────────────────────────────────────────────

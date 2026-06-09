@@ -409,6 +409,7 @@ function doPost(e) {
       case 'resendWelcomeEmail':   return handleResendWelcomeEmail(data);
       case 'verifyAdminToken':     return handleVerifyAdminToken(data);
       case 'getDashboardData':     return handleGetDashboardData();
+      case 'getNotifications':     return handleGetNotifications(data);
       case 'sendEmailManual':      return handleSendEmailManual(data);
       case 'addToBrevoListManual': return handleAddToBrevoListManual(data);
       case 'markAsIncomplete':          return handleMarkAsIncomplete(data);
@@ -857,6 +858,21 @@ function handleExamSubmit(data) {
     addTimelineEvent(candidate_id, 'TEST_' + exam + '_COMPLETADO', {
       puntaje: score, veredicto: verdict, flags: flags
     });
+
+    // Auto-avance E2 → E3: si el candidato aprueba E2 con calificación aprobatoria,
+    // se genera y envía el token E3 de inmediato, sin esperar aprobación manual del admin.
+    // Solo aplica a E2 — E1 y E3 conservan la revisión manual.
+    if (exam === 'E2' && verdict === 'pass') {
+      const e3Token        = generateToken(candidate_id, 'E3');
+      const scheduled_date = new Date().toISOString().split('T')[0];
+      saveToken(e3Token, candidate_id, 'E3', candidate_email, candidate_name, scheduled_date);
+      updateCandidateStatus(candidate_id, 'pending_review_E3');
+      sendEmailE3(candidate_email, candidate_name, e3Token, candidate_id);
+      addTimelineEvent(candidate_id, 'EXAMEN_E2_APROBADO_AUTO', {
+        puntaje: score, token_E3_enviado: true
+      });
+    }
+
     notifyAdminExamCompleted(candidate_name, candidate_email, exam, score, verdict, flags);
     markTokenAsUsed(token);
 
@@ -939,6 +955,37 @@ function handleGetDashboardData() {
     });
   } catch (error) {
     Logger.log('[ERROR handleGetDashboardData] ' + error.message);
+    return jsonResponse(false, 'Error: ' + error.message);
+  }
+}
+
+/**
+ * POST action=getNotifications
+ * Devuelve el log de correos enviados (hoja Notificaciones) para el panel admin.
+ * Body: { limit } — máximo de registros a devolver (default 300, tope 1000)
+ */
+function handleGetNotifications(data) {
+  try {
+    const sheet = SS.getSheetByName('Notificaciones');
+    if (!sheet) return jsonResponse(false, 'Hoja Notificaciones no encontrada');
+    const limit = Math.min(parseInt((data && data.limit) || 300, 10) || 300, 1000);
+    const rows  = sheet.getDataRange().getValues();
+    const notifications = [];
+    // insertNewRow inserta en fila 2: los registros más recientes están arriba
+    for (let i = 1; i < rows.length && notifications.length < limit; i++) {
+      if (!rows[i][0] && !rows[i][1]) continue;
+      notifications.push({
+        timestamp:     rows[i][0],
+        email:         rows[i][1],
+        subject:       rows[i][2],
+        provider:      rows[i][3],
+        status:        rows[i][4],
+        iso_timestamp: rows[i][5]
+      });
+    }
+    return jsonResponse(true, 'OK', { notifications: notifications, total: rows.length - 1 });
+  } catch (error) {
+    Logger.log('[ERROR handleGetNotifications] ' + error.message);
     return jsonResponse(false, 'Error: ' + error.message);
   }
 }

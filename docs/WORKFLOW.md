@@ -21,9 +21,14 @@
 [5] EXAMEN E2 ──── (único intento, 120 min)
      │
      ▼
-[6] ADMIN revisa E2
-     ├─── Rechazar → email de rechazo → FIN
-     └─── Aprobar  → GAS genera token E3 → envía email
+[6] CALIFICACIÓN E2 (automática)
+     ├─── Aprueba (score ≥ mínimo, sin flags de IA)
+     │      → GAS genera token E3 y envía email AUTOMÁTICAMENTE
+     │        (sin esperar aprobación manual del admin)
+     └─── No aprueba o veredicto `review`
+            → queda en `pending_review_E2` para revisión manual del admin
+              ├─── Rechazar → email de rechazo → FIN
+              └─── Aprobar  → GAS genera token E3 → envía email
      │
      ▼
 [7] EXAMEN E3 ──── (único intento, 120 min, examen final)
@@ -57,7 +62,7 @@
 | `pending_review_E1`       | Completó E1, esperando revisión admin           |
 | `approved_E1`             | E1 aprobado, esperando aceptación de T&C        |
 | `terms_accepted`          | T&C aceptados, token E2 enviado                 |
-| `pending_review_E2`       | Completó E2, esperando revisión admin           |
+| `pending_review_E2`       | Completó E2 sin aprobar automáticamente, esperando revisión admin |
 | `approved_E2`             | E2 aprobado, token E3 enviado                   |
 | `pending_review_E3`       | Completó E3, esperando revisión admin           |
 | `approved_E3`             | E3 aprobado, esperando entrevista               |
