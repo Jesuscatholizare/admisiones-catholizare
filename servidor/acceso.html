@@ -46,18 +46,12 @@
       text-align: center;
       position: relative;
     }
-    .logo-mark {
-      width: 56px; height: 56px;
-      background: rgba(255,255,255,0.10);
-      border: 2px solid rgba(201,168,76,0.5);
-      border-radius: 16px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 26px;
-      margin: 0 auto 16px;
-    }
-    .card-header h1 {
-      font-size: 22px; font-weight: 800;
-      color: var(--white); letter-spacing: -0.3px;
+    .logo-img {
+      width: 78%;
+      max-width: 280px;
+      height: auto;
+      display: block;
+      margin: 0 auto 12px;
     }
     .card-header p {
       font-size: 13px; color: rgba(255,255,255,0.55);
@@ -122,6 +116,19 @@
       display: none; align-items: center; gap: 5px;
     }
     .error-msg.show { display: flex; }
+
+    /* ─── Remember checkbox ─────────────────────────── */
+    .remember-row {
+      display: flex; align-items: center; gap: 8px;
+      margin: -6px 0 18px;
+      font-size: 12.5px; font-weight: 500; color: var(--gray-4);
+      cursor: pointer; user-select: none;
+    }
+    .remember-row input[type="checkbox"] {
+      width: 16px; height: 16px;
+      accent-color: var(--navy);
+      cursor: pointer;
+    }
 
     /* ─── Button ────────────────────────────────────── */
     .btn {
@@ -195,8 +202,7 @@
 <div class="card">
   <!-- Header -->
   <div class="card-header">
-    <div class="logo-mark">✝</div>
-    <h1>Catholizare Pro</h1>
+    <img class="logo-img" src="https://profesionales.catholizare.com/wp-content/uploads/2024/03/logo-Pro-2024-bco-1-1536x251.png" alt="Catholizare Pro">
     <p>Sistema de admisiones y evaluación</p>
   </div>
 
@@ -257,6 +263,10 @@
         <div class="hint">🔐 PIN configurado por coordinación</div>
         <div class="error-msg" id="errAdmin">PIN inválido o sin permisos.</div>
       </div>
+      <label class="remember-row" for="rememberAdmin">
+        <input type="checkbox" id="rememberAdmin">
+        Recordar mi contraseña en este equipo
+      </label>
       <button class="btn btn-gold" id="btnAdmin" onclick="enterAdmin()">
         Entrar como admin <span>→</span>
       </button>
@@ -344,6 +354,12 @@
 
       if (data.success) {
         sessionStorage.setItem('adminToken', token);
+        // Recordar (o olvidar) el PIN en este navegador según el checkbox
+        if (document.getElementById('rememberAdmin').checked) {
+          localStorage.setItem('rememberedAdminPin', token);
+        } else {
+          localStorage.removeItem('rememberedAdminPin');
+        }
         btn.innerHTML = '✓ Acceso concedido';
         setTimeout(() => {
           window.location.href = 'admin-dashboard.html?adminToken=' + encodeURIComponent(token);
@@ -401,6 +417,14 @@
       } else {
         document.getElementById('tokenProf').value = t;
       }
+      return;
+    }
+    // ── PIN recordado en este navegador ──────────────
+    const remembered = localStorage.getItem('rememberedAdminPin');
+    if (remembered) {
+      setTab('admin');
+      document.getElementById('tokenAdmin').value = remembered;
+      document.getElementById('rememberAdmin').checked = true;
     }
   })();
 </script>
