@@ -401,7 +401,6 @@ function doPost(e) {
       case 'acceptTerms':          return handleAcceptTerms(data);
       case 'declineTerms':         return handleDeclineTerms(data);
       case 'approveExam':          return handleApproveExam(data);
-      case 'approveE1Access':      return handleApproveE1Access(data);
       case 'autoApproveE1':        return handleAutoApproveE1(data);
       case 'rejectExam':           return handleRejectExam(data);
       case 'assignCategory':       return handleAssignCategory(data);
@@ -497,7 +496,7 @@ function handleRegistration(data) {
       candidate.phone || '', candidate.country || '',
       candidate.birthday || '', candidate.professional_type || '',
       candidate.therapeutic_approach || '', candidate.about || '',
-      'awaiting_E1_approval'
+      'registered'
     ]);
 
     // Si viene CV adjunto, subir a Drive y guardar URL en col 25 del candidato.
@@ -526,9 +525,9 @@ function handleRegistration(data) {
       }
     }
 
-    // El token E1 NO se genera aquí: el admin debe aprobar manualmente el
-    // acceso al E1 (action=approveE1Access), que genera el token y envía
-    // el correo de bienvenida.
+    const token = generateToken(candidate_id, 'E1');
+    saveToken(token, candidate_id, 'E1', candidate.email, candidate.name, '');
+
     addTimelineEvent(candidate_id, 'CANDIDATO_REGISTRADO', {
       nombre: candidate.name, email: candidate.email, cv_url: cv_url
     });
@@ -540,11 +539,12 @@ function handleRegistration(data) {
       CONFIG.brevo_list_interesados
     );
 
-    sendEmailRegistrationReceived(candidate.email, candidate.name, candidate_id);
+    sendWelcomeEmail(candidate.email, candidate.name, token, candidate_id);
     notifyAdminNewCandidate(candidate.name, candidate.email, candidate_id);
 
-    return jsonResponse(true, 'Registro exitoso. Tu acceso al Examen E1 será habilitado tras la revisión de tu solicitud.', {
+    return jsonResponse(true, 'Registro exitoso. Revisa tu email.', {
       candidate_id: candidate_id,
+      token: token,
       cv_url: cv_url
     });
   } catch (error) {
@@ -955,47 +955,6 @@ function handleGetDashboardData() {
     });
   } catch (error) {
     Logger.log('[ERROR handleGetDashboardData] ' + error.message);
-    return jsonResponse(false, 'Error: ' + error.message);
-  }
-}
-
-/**
- * POST action=approveE1Access
- * Paso previo al E1: el admin aprueba manualmente el acceso del candidato
- * recién registrado. Genera el token E1, envía el correo de bienvenida y
- * mueve el estado a 'registered'.
- * Body: { candidateId }
- */
-function handleApproveE1Access(data) {
-  try {
-    const candidateId = data.candidateId;
-    if (!candidateId) return jsonResponse(false, 'candidateId requerido');
-
-    const sheet = SS.getSheetByName('Candidatos');
-    if (!sheet) return jsonResponse(false, 'Hoja Candidatos no encontrada');
-    const rows = sheet.getDataRange().getValues();
-    for (let i = 1; i < rows.length; i++) {
-      if (rows[i][0] === candidateId) {
-        const email  = rows[i][3];
-        const name   = rows[i][2];
-        const status = rows[i][10];
-        if (status !== 'awaiting_E1_approval')
-          return jsonResponse(false, 'El candidato no está esperando aprobación de acceso (estado actual: ' + status + ')');
-
-        const token = generateToken(candidateId, 'E1');
-        saveToken(token, candidateId, 'E1', email, name, '');
-        sheet.getRange(i + 1, 11).setValue('registered');
-        sendWelcomeEmail(email, name, token, candidateId);
-        addTimelineEvent(candidateId, 'ACCESO_E1_APROBADO_ADMIN', {
-          email: email, token_e1_generado: token
-        });
-        updateLastInteraction(candidateId);
-        return jsonResponse(true, 'Acceso al E1 aprobado. Token enviado a ' + email);
-      }
-    }
-    return jsonResponse(false, 'Candidato no encontrado');
-  } catch (error) {
-    Logger.log('[ERROR handleApproveE1Access] ' + error.message);
     return jsonResponse(false, 'Error: ' + error.message);
   }
 }
@@ -1991,21 +1950,6 @@ function logNotificationEvent(email, subject, provider, status) {
 // ================================
 // EMAILS ESPECÍFICOS
 // ================================
-// Confirmación de registro: se envía al registrarse, ANTES de que el admin
-// apruebe el acceso al E1. No incluye token.
-function sendEmailRegistrationReceived(email, name, candidate_id) {
-  const html =
-    '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">' +
-    '<div style="background:linear-gradient(135deg,#001A55,#0966FF);color:white;padding:20px;text-align:center;border-radius:8px 8px 0 0;">' +
-    '<h1>Hola ' + name + '</h1><p>Catholizare.com</p></div>' +
-    '<div style="background:#f9f9f9;padding:20px;">' +
-    '<p>Hemos recibido tu solicitud de registro correctamente. ¡Gracias por tu interés en unirte a la red de profesionales de <strong>Catholizare.com</strong>!</p>' +
-    '<p>Nuestro equipo revisará tu solicitud y, una vez aprobada, recibirás un correo con tu <strong>acceso al Examen E1</strong>.</p>' +
-    '<p style="font-size:12px;color:#666;">No necesitas hacer nada más por ahora. Si en unos días no recibes noticias, revisa tu carpeta de spam.</p>' +
-    '</div></div>';
-  return sendEmail(email, 'Hemos recibido tu solicitud — Catholizare.com', html);
-}
-
 function sendWelcomeEmail(email, name, token, candidate_id) {
   const exam_url = 'https://profesionales.catholizare.com/catholizare_sistem/examen/?token=' + token + '&exam=E1';
   const html =
@@ -2193,7 +2137,7 @@ function notifyAdminNewCandidate(name, email, candidate_id) {
       '<div style="padding:20px;">' +
       '<p><strong>Nombre:</strong> ' + name + '</p><p><strong>Email:</strong> ' + email + '</p>' +
       '<p><strong>ID:</strong> ' + candidate_id + '</p>' +
-      '<p style="color:#666;font-size:13px;">Requiere tu aprobación en el panel admin para habilitar su acceso al Examen E1.</p>' +
+      '<p style="color:#666;font-size:13px;">El candidato puede iniciar el Examen E1 cuando lo desee (un solo intento).</p>' +
       '</div></div>';
     return sendEmail(adminEmail, 'Nuevo Candidato: ' + name, html);
   } catch (error) { Logger.log('[notifyAdminNewCandidate Error] ' + error.message); }
