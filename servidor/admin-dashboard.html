@@ -765,6 +765,7 @@
             </div>
             <select class="filter-select" id="statusFilter" onchange="filterTable()">
                 <option value="">Todos los estados</option>
+                <option value="awaiting_E1_approval">Acceso E1 por aprobar</option>
                 <option value="registered">Registrado</option>
                 <option value="pending_review">En Revisión</option>
                 <option value="awaiting_terms">Información general</option>
@@ -1394,6 +1395,7 @@
 
         function getStatusBadge(status) {
             const map = {
+                'awaiting_E1_approval':     ['badge-pending',    'Aprobar Acceso E1'],
                 'registered':               ['badge-registered', 'Registrado'],
                 'pending_review_E1':         ['badge-pending',   'Revisión E1'],
                 'pending_review_E2':         ['badge-pending',   'Revisión E2'],
@@ -1417,10 +1419,19 @@
         // ─── Timeline Modal ───────────────────────────────────────────────
         const TL_PHASES = [
             {
-                key:'registro', label:'Registro Inicial', icon:'fa-user-plus',
+                key:'acceso_e1', label:'Aprobación de Acceso — E1', icon:'fa-user-check',
+                statuses:['awaiting_E1_approval'],
+                desc:'El candidato completó su registro. Revisa su perfil y aprueba manualmente su acceso para enviarle el correo de bienvenida con el token del Examen E1.',
+                emails:[],
+                actions:[
+                    { label:'Aprobar acceso → Enviar Token E1', btn:'✓ Aprobar acceso', fn:"doApproveE1Access()", cls:'green', info:'Genera el token E1 y envía el correo de bienvenida al candidato' }
+                ], hasNotes:false
+            },
+            {
+                key:'registro', label:'Acceso E1 Habilitado', icon:'fa-user-plus',
                 statuses:['registered'],
-                desc:'El candidato completó su registro. Envía el correo de bienvenida con el token de acceso al Examen E1.',
-                emails:[{ label:'Bienvenida + Token E1', desc:'Envía acceso al primer examen', type:'welcome' }],
+                desc:'El acceso fue aprobado y el candidato recibió el correo de bienvenida con el token del Examen E1. Puede tomarlo cuando lo desee (un solo intento).',
+                emails:[{ label:'Reenviar Bienvenida + Token E1', desc:'Si el candidato no recibió el acceso al primer examen', type:'welcome' }],
                 actions:[], hasNotes:false
             },
             {
@@ -1792,6 +1803,7 @@
             if (!c) return;
             if (c.status === 'awaiting_category') { showToast('Selecciona una categoría en el Timeline', 'error'); return; }
             const map = {
+                'awaiting_E1_approval':     { action:'approveE1Access',        msg:'Acceso E1 aprobado — token enviado' },
                 'registered':               { action:'autoApproveE1',          msg:'E1 aprobado con 70%' },
                 'pending_review_E1':        { action:'sendEmailManual',        emailType:'terms',       msg:'Correo de Información general enviado' },
                 'awaiting_terms_acceptance':{ action:'sendEmailManual',        emailType:'e2',          msg:'Token E2 enviado' },
@@ -1867,6 +1879,10 @@
             } catch (e) {
                 if (msg) msg.textContent = 'Error de red.';
             }
+        }
+        async function doApproveE1Access() {
+            if (!confirm('¿Aprobar el acceso al Examen E1? Se generará el token y se enviará el correo de bienvenida al candidato.')) return;
+            await callApi({ action:'approveE1Access', candidateId:currentCandidateId, adminToken:ADMIN_TOKEN }, '✅ Acceso E1 aprobado — token enviado', true);
         }
         async function doApproveExamTL(exam) {
             if (!confirm(`¿Aprobar examen ${exam}?`)) return;
@@ -1965,6 +1981,19 @@
         // match() identifica la plantilla a partir del asunto registrado en Notificaciones.
         const EMAIL_TEMPLATES = [
             {
+                id: 'received', label: 'Registro recibido (pendiente de aprobación)',
+                match: s => s === 'Hemos recibido tu solicitud — Catholizare.com',
+                html: () =>
+                    '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">' +
+                    '<div style="background:linear-gradient(135deg,#001A55,#0966FF);color:white;padding:20px;text-align:center;border-radius:8px 8px 0 0;">' +
+                    '<h1 style="margin:0;">Hola ' + PH('Nombre') + '</h1><p>Catholizare.com</p></div>' +
+                    '<div style="background:#f9f9f9;padding:20px;">' +
+                    '<p>Hemos recibido tu solicitud de registro correctamente. ¡Gracias por tu interés en unirte a la red de profesionales de <strong>Catholizare.com</strong>!</p>' +
+                    '<p>Nuestro equipo revisará tu solicitud y, una vez aprobada, recibirás un correo con tu <strong>acceso al Examen E1</strong>.</p>' +
+                    '<p style="font-size:12px;color:#666;">No necesitas hacer nada más por ahora. Si en unos días no recibes noticias, revisa tu carpeta de spam.</p>' +
+                    '</div></div>'
+            },
+            {
                 id: 'welcome', label: 'Bienvenida + Examen E1',
                 match: s => s.startsWith('Bienvenido a '),
                 html: () =>
@@ -2052,7 +2081,7 @@
                     '<div style="padding:20px;">' +
                     '<p><strong>Nombre:</strong> ' + PH('Nombre') + '</p><p><strong>Email:</strong> ' + PH('Email') + '</p>' +
                     '<p><strong>ID:</strong> ' + PH('CANDIDATO_AAAAMMDD_NNNN') + '</p>' +
-                    '<p style="color:#666;font-size:13px;">El candidato puede iniciar el Examen E1 cuando lo desee (un solo intento).</p></div></div>'
+                    '<p style="color:#666;font-size:13px;">Requiere tu aprobación en el panel admin para habilitar su acceso al Examen E1.</p></div></div>'
             },
             {
                 id: 'adminExam', label: 'Aviso interno: examen completado (admin)',
@@ -2200,8 +2229,9 @@
         }
 
         // ── Dashboard ───────────────────────────────────────────────────────
-        const PENDING_STATUSES = ['registered','pending_review_E1','awaiting_terms_acceptance','pending_review_E2','pending_review_E3','awaiting_interview','awaiting_category'];
+        const PENDING_STATUSES = ['awaiting_E1_approval','registered','pending_review_E1','awaiting_terms_acceptance','pending_review_E2','pending_review_E3','awaiting_interview','awaiting_category'];
         const STATUS_LABEL = {
+            'awaiting_E1_approval':     'Acceso E1 por aprobar',
             'registered':               'Revisión E1 pendiente',
             'pending_review_E1':        'Revisión E1 pendiente',
             'awaiting_terms_acceptance':'Firma de términos pendiente',
@@ -2215,6 +2245,7 @@
             'rejected':                 'Rechazado',
         };
         const STATUS_ICON = {
+            'awaiting_E1_approval':'fa-user-check',
             'registered':'fa-user-plus', 'pending_review_E1':'fa-file-alt',
             'awaiting_terms_acceptance':'fa-file-signature', 'pending_review_E2':'fa-file-alt',
             'pending_review_E3':'fa-file-alt', 'awaiting_interview':'fa-handshake',

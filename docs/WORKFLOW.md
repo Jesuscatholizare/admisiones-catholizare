@@ -4,7 +4,10 @@
 
 ```
 [1] REGISTRO
-     │
+     │  Se envía correo "Hemos recibido tu solicitud" (sin token)
+     ▼
+[1b] ADMIN aprueba acceso al E1 (manual)
+     │  → GAS genera token E1 → envía email de bienvenida
      ▼
 [2] EXAMEN E1 ──── (único intento, 120 min)
      │
@@ -58,7 +61,8 @@
 
 | Status                    | Descripción                                     |
 |---------------------------|-------------------------------------------------|
-| `registered`              | Recién registrado, token E1 enviado             |
+| `awaiting_E1_approval`    | Recién registrado, esperando que admin apruebe el acceso al E1 |
+| `registered`              | Acceso E1 aprobado por admin, token E1 enviado  |
 | `pending_review_E1`       | Completó E1, esperando revisión admin           |
 | `approved_E1`             | E1 aprobado, esperando aceptación de T&C        |
 | `terms_accepted`          | T&C aceptados, token E2 enviado                 |
@@ -92,10 +96,10 @@
 **No se pide:** fecha/hora de examen — los exámenes son a demanda.
 
 **Resultado:** 
-- Se crea candidato en hoja `Candidatos`
-- Se genera token E1
-- Se envía email de bienvenida con link directo a E1
+- Se crea candidato en hoja `Candidatos` con estado `awaiting_E1_approval`
+- Se envía email "Hemos recibido tu solicitud" (sin token)
 - Se agrega a lista Brevo "Interesados"
+- El admin debe aprobar el acceso (`approveE1Access`) → recién entonces se genera el token E1 y se envía el email de bienvenida
 
 ---
 
