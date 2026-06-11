@@ -1429,7 +1429,7 @@
                 desc:'El candidato completó el Examen E1. Revisa los resultados y aprueba para enviar la Información general sobre la Red Catholizare.',
                 emails:[{ label:'Reenviar Token E1', desc:'Si el candidato no recibió el acceso al E1', type:'welcome' }],
                 actions:[
-                    { label:'Aprobar E1 → Enviar Información general', btn:'✓ Aprobar', fn:"approveExamWithPin('E1')", cls:'green', info:'Aprueba E1 y envía automáticamente el correo con la Información general sobre la Red Catholizare' }
+                    { label:'Aprobar E1 → Enviar Información general', btn:'✓ Aprobar', fn:"doApproveExamTL('E1')", cls:'green', info:'Aprueba E1 y envía automáticamente el correo con la Información general sobre la Red Catholizare (disponible para admin, no requiere PIN)' }
                 ], hasNotes:false
             },
             {

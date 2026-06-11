@@ -165,10 +165,11 @@ El admin ejecuta handoff desde el dashboard:
 ## Acciones del Admin (Dashboard)
 
 ### Requerir PIN
-- Aprobar E1, E2, E3
+- Aprobar E2, E3
 - Rechazar E1, E2, E3
 
 ### No requieren PIN
+- Aprobar E1 (envía la Información general) — disponible para rol `admin`
 - Ver datos de candidatos
 - Ver respuestas de exámenes
 - Registrar resultado de entrevista
