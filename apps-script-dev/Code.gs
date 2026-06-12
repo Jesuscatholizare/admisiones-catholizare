@@ -2036,16 +2036,16 @@ function sendEmailRejectedInterview(email, name, interviewNotes) {
     '<div style="padding:24px;background:#f9f9f9;">' +
     '<p>Hola <strong>' + name + '</strong>,</p>' +
     '<p>Agradecemos sinceramente el tiempo, la apertura y el esfuerzo que dedicaste a nuestro proceso de selección, incluyendo tu entrevista personal. Conocer tu perfil ha sido un placer para nuestro equipo.</p>' +
-    '<p>Tras una cuidadosa evaluación, en esta convocatoria no has superado el filtro inicial del proceso. No obstante, esto no cierra definitivamente la puerta: <strong>tu candidatura podrá ser elevada a nuestro comité</strong>, que valorará tu perfil de manera integral y considerará el contexto de tu evaluación.</p>' +
+    '<p>Tras una cuidadosa evaluación, en esta convocatoria no has superado el filtro inicial del proceso. Consideramos que <strong>tu perfil es valioso y puede aportar mucho al bienestar de las personas</strong>; es por eso que te animamos a que el próximo año lo intentes nuevamente. Aquí te damos nuestra retroalimentación con la intención de aportar en tu carrera profesional.</p>' +
     (interviewNotes
       ? '<div style="background:white;border-left:4px solid #0966FF;padding:12px 16px;margin:16px 0;border-radius:0 6px 6px 0;">' +
         '<p style="font-size:0.85em;font-weight:700;color:#001A55;margin:0 0 6px 0;">RETROALIMENTACIÓN DE TU ENTREVISTA</p>' +
         '<p style="font-size:0.9em;color:#444;margin:0;">' + interviewNotes + '</p></div>'
       : '') +
-    '<p>Además, <strong>este intento quedará registrado en tu expediente</strong> y se tendrá en cuenta en futuras evaluaciones. El año que viene podrás volver a iniciar el proceso, y tu participación de hoy sumará positivamente en la calificación de esa nueva convocatoria.</p>' +
+    '<p>Además, <strong>este intento quedará registrado en tu expediente</strong> y se tendrá en cuenta en futuras evaluaciones, donde tu participación de hoy sumará positivamente.</p>' +
     '<p>Te invitamos a aprovechar este tiempo para seguir profundizando en la <strong>ciencia y la fe</strong>, los dos pilares sobre los que se construye el trabajo en Catholizare.com. Ese crecimiento será el mejor punto de partida para incorporarte a nuestro equipo de profesionales.</p>' +
-    '<p>Que Dios te bendiga y te acompañe en este camino.</p>' +
-    '<p style="font-size:0.85em;color:#999;margin-top:20px;">— Equipo Catholizare.com</p>' +
+    '<p>Te esperamos para que juntos construyamos el Reino de Dios.</p>' +
+    '<p style="font-size:0.85em;color:#999;margin-top:20px;">Catholizare "Seamos luz para el mundo"</p>' +
     '</div></div>';
   return sendEmail(email, 'Resultado de tu evaluación — Catholizare.com', html);
 }
