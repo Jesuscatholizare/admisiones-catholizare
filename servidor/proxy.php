@@ -87,6 +87,7 @@ $allowed_actions = [
     'resetTokenAttempt',
     // Vistas admin
     'getExamResponses',
+    'getNotifications',
     'getAdminUsers',
     'generateAdminToken',
     'health',
