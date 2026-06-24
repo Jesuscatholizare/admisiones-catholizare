@@ -2264,13 +2264,16 @@
                 });
                 const data = await res.json();
                 if (data.success) {
-                    const token = data.data?.token || data.token || data.data || '';
-                    const url   = token ? `${window.location.origin}${window.location.pathname}?adminToken=${token}` : '';
+                    const token    = data.data?.token || data.token || data.data || '';
+                    const loginUrl = token ? `${window.location.origin}${window.location.pathname.replace('admin-dashboard.html', '')}acceso.html` : '';
                     result.innerHTML = `
                         <div style="margin-top:0.75rem;">
-                            ${token ? `<div class="token-box" onclick="copyText('${token}', this)">${token}</div>` : ''}
-                            ${url   ? `<div style="margin-top:0.5rem;font-size:0.78rem;color:#888;">URL completa:</div>
-                                       <div class="token-box" onclick="copyText('${url}', this)" style="margin-top:3px;">${url}</div>` : ''}
+                            ${token ? `
+                            <div style="font-size:0.78rem;color:#888;margin-bottom:4px;">PIN / Token de acceso (comparte solo con la persona):</div>
+                            <div class="token-box" onclick="copyText('${token}', this)" title="Clic para copiar">${token}</div>
+                            <div style="margin-top:0.75rem;font-size:0.78rem;color:#888;">Enlace de inicio de sesión (sin token):</div>
+                            <div class="token-box" onclick="copyText('${loginUrl}', this)" style="margin-top:3px;" title="Clic para copiar">${loginUrl}</div>
+                            <div style="font-size:0.76rem;color:#6c757d;margin-top:6px;"><i class="fas fa-info-circle"></i> El admin debe abrir el enlace y pegar su PIN manualmente.</div>` : ''}
                             <div style="font-size:0.78rem;color:#198754;margin-top:0.5rem;"><i class="fas fa-check-circle"></i> ${data.message || 'Token generado exitosamente'}</div>
                         </div>`;
                 } else {
@@ -2514,9 +2517,15 @@
                     msg.style.background='#f0fff4'; msg.style.color='#15803d';
                     msg.textContent='✓ Admin creado correctamente.';
                     if (data.data && data.data.token) {
-                        const link = window.location.origin + window.location.pathname.replace('admin-dashboard.html','') + 'admin-dashboard.html?adminToken=' + data.data.token;
+                        const tok      = data.data.token;
+                        const loginUrl = window.location.origin + window.location.pathname.replace('admin-dashboard.html','') + 'acceso.html';
                         res2.style.display='block';
-                        res2.innerHTML=`<strong>Token de acceso:</strong><br><code style="word-break:break-all;font-size:0.78rem;">${data.data.token}</code><br><small style="color:#555;">Envía este link al nuevo admin:</small><br><a href="${link}" target="_blank" style="font-size:0.78rem;word-break:break-all;">${link}</a>`;
+                        res2.innerHTML=`
+                            <div style="margin-bottom:6px;font-size:0.78rem;color:#555;"><strong>PIN / Token de acceso</strong> (comparte solo con el nuevo admin):</div>
+                            <code style="display:block;word-break:break-all;font-size:0.8rem;background:#f8f9fa;padding:8px 12px;border-radius:8px;border:1px solid #dee2e6;cursor:pointer;" onclick="copyText('${tok}',this)" title="Clic para copiar">${tok}</code>
+                            <div style="margin:10px 0 4px;font-size:0.78rem;color:#555;">Enlace de inicio de sesión (no contiene el token):</div>
+                            <code style="display:block;word-break:break-all;font-size:0.78rem;background:#f8f9fa;padding:6px 12px;border-radius:8px;border:1px solid #dee2e6;cursor:pointer;" onclick="copyText('${loginUrl}',this)" title="Clic para copiar">${loginUrl}</code>
+                            <div style="font-size:0.75rem;color:#6c757d;margin-top:8px;"><i class="fas fa-info-circle"></i> El admin abre el enlace y pega su PIN manualmente en acceso.html.</div>`;
                     }
                     loadAdminUsers();
                     btn.innerHTML='<i class="fas fa-check"></i> Creado';
