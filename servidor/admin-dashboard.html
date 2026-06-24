@@ -639,6 +639,9 @@
             <button class="nav-item" onclick="showView('respuestas')" id="nav-respuestas">
                 <i class="fas fa-clipboard-list"></i> Ver Respuestas
             </button>
+            <button class="nav-item" onclick="showView('acceso-examen')" id="nav-acceso-examen">
+                <i class="fas fa-key"></i> Acceso a examen
+            </button>
         </div>
         <div class="sidebar-section">
             <div class="sidebar-section-label">Admin</div>
@@ -824,6 +827,33 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vista: Acceso a examen (abrir un examen con su token) -->
+    <div id="view-acceso-examen" class="view">
+        <div class="container">
+            <div class="header-section">
+                <div>
+                    <h1><i class="fas fa-key" style="color:var(--primary);font-size:1.3rem;vertical-align:middle;margin-right:0.5rem;"></i>Acceso a examen</h1>
+                    <small>Abre un examen a partir de su token (E1, E2 o E3). Útil para revisión o soporte.</small>
+                </div>
+            </div>
+            <div style="max-width:560px;background:#fff;border:1px solid #e8ecf4;border-radius:14px;padding:1.75rem;">
+                <p style="font-size:0.85rem;color:#5a6275;margin-bottom:1.25rem;line-height:1.6;">
+                    Los candidatos acceden directamente desde el enlace de su correo, por lo que normalmente
+                    no necesitan escribir un token. Usa este acceso solo para abrir manualmente un examen.
+                </p>
+                <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#001A55;margin-bottom:0.5rem;">Token del examen</label>
+                <input id="examTokenInput" type="text" placeholder="Ej: E1_CANDIDAT_123456_abc1de" autocomplete="off" spellcheck="false" maxlength="60"
+                    onkeydown="if(event.key==='Enter')openExamByToken()"
+                    style="width:100%;padding:0.85rem 1rem;border:2px solid #e8ecf4;border-radius:10px;font-size:0.95rem;font-family:monospace;color:#001A55;box-sizing:border-box;">
+                <div id="examTokenError" style="display:none;margin-top:0.5rem;font-size:0.8rem;color:#D93025;font-weight:500;"></div>
+                <div style="font-size:0.75rem;color:#9CA3B4;margin-top:0.5rem;">🔑 El examen (E1/E2/E3) se detecta automáticamente por el prefijo del token.</div>
+                <button class="btn" style="margin-top:1.25rem;background:#001A55;color:#fff;" onclick="openExamByToken()">
+                    <i class="fas fa-external-link-alt"></i> Abrir examen en una pestaña nueva
+                </button>
             </div>
         </div>
     </div>
@@ -1149,12 +1179,17 @@
             const params = new URLSearchParams(window.location.search);
             const urlToken = params.get('adminToken');
             const ssToken  = sessionStorage.getItem('adminToken');
-            ADMIN_TOKEN = urlToken || ssToken || '';
+            ADMIN_TOKEN = ssToken || urlToken || '';
             if (!ADMIN_TOKEN) {
                 window.location.href = 'acceso.html';
                 return;
             }
             sessionStorage.setItem('adminToken', ADMIN_TOKEN);
+            // No exponer el token en la URL del navegador (historial, capturas, hombro).
+            // Si llegó por ?adminToken=, lo movemos a sessionStorage y limpiamos la URL.
+            if (urlToken) {
+                history.replaceState(null, '', window.location.pathname);
+            }
 
             // Obtener rol del usuario
             getUserRoleAndInit();
@@ -1868,6 +1903,32 @@
             if (view === 'usuarios')   loadAdminUsers();
             if (view === 'superadmin') initSuperAdmin();
             if (view === 'health')     loadHealth();
+            if (view === 'acceso-examen') {
+                const el = document.getElementById('examTokenInput');
+                if (el) { el.value = ''; el.focus(); }
+                const err = document.getElementById('examTokenError');
+                if (err) err.style.display = 'none';
+            }
+        }
+
+        // ── Acceso a examen por token (movido desde el login) ───────────────
+        function openExamByToken() {
+            const input = document.getElementById('examTokenInput');
+            const err   = document.getElementById('examTokenError');
+            const raw   = input.value.trim();
+            if (raw.length < 8) {
+                err.textContent = 'Token inválido. Revisa el token e intenta de nuevo.';
+                err.style.display = 'block';
+                input.focus();
+                return;
+            }
+            err.style.display = 'none';
+            // Detectar examen desde el prefijo del token (E1_, E2_, E3_)
+            const up = raw.toUpperCase();
+            let exam = 'E1';
+            if (up.startsWith('E2_'))      exam = 'E2';
+            else if (up.startsWith('E3_')) exam = 'E3';
+            window.open('examen/?token=' + encodeURIComponent(raw) + '&exam=' + exam, '_blank');
         }
 
         // ── Dashboard ───────────────────────────────────────────────────────

@@ -1035,14 +1035,72 @@ function handleAssignCategory(data) {
  */
 function handleAdminLogin(data) {
   try {
-    const pin = data.pin || data.password || '';
+    const pin = String(data.pin || data.password || '').trim();
+    if (!pin) return jsonResponse(false, 'Ingresa tu PIN o contraseña');
+
+    // 1) PIN global de administrador (compatibilidad histórica)
     if (validateAdminPin(pin)) {
-      return jsonResponse(true, 'Acceso concedido', { requiresOTP: false });
+      return jsonResponse(true, 'Acceso concedido', { requiresOTP: false, role: 'admin' });
     }
+
+    // 2) Credencial individual desde la hoja Usuarios
+    //    (admins y superadmins creados en "Gestión de Usuarios")
+    const user = findAdminUserByToken(pin);
+    if (user) {
+      if (String(user.status).toLowerCase() !== 'active') {
+        return jsonResponse(false, 'Tu cuenta está inactiva. Contacta a coordinación.');
+      }
+      touchUserLastLogin(user.rowIndex);
+      return jsonResponse(true, 'Acceso concedido', {
+        requiresOTP: false, role: user.role, email: user.email
+      });
+    }
+
     return jsonResponse(false, 'Credenciales inválidas');
   } catch (error) {
     Logger.log('[ERROR handleAdminLogin] ' + error.message);
     return jsonResponse(false, 'Error: ' + error.message);
+  }
+}
+
+/**
+ * Busca un usuario admin/superadmin en la hoja Usuarios por su token de acceso.
+ * El token se guarda en la columna 2 (password_hash).
+ * Devuelve { email, role, status, rowIndex } o null si no existe.
+ */
+function findAdminUserByToken(token) {
+  const sheet = SS.getSheetByName('Usuarios');
+  if (!sheet) return null;
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][1] && String(data[i][1]).trim() === String(token).trim()) {
+      return {
+        email:    data[i][0],
+        role:     normalizeRole(data[i][2]),
+        status:   data[i][5] || 'active',
+        rowIndex: i + 1
+      };
+    }
+  }
+  return null;
+}
+
+/**
+ * Normaliza el rol a un valor canónico: 'superadmin' o 'admin'.
+ * Acepta variantes como 'super_admin', 'super admin', 'SUPERADMIN'.
+ */
+function normalizeRole(role) {
+  const r = String(role || 'admin').toLowerCase().replace(/[_\s-]/g, '');
+  return r === 'superadmin' ? 'superadmin' : 'admin';
+}
+
+/** Actualiza la columna last_login (col 5) del usuario indicado. Best-effort. */
+function touchUserLastLogin(rowIndex) {
+  try {
+    const sheet = SS.getSheetByName('Usuarios');
+    if (sheet) sheet.getRange(rowIndex, 5).setValue(new Date());
+  } catch (e) {
+    Logger.log('[touchUserLastLogin] ' + e.message);
   }
 }
 
@@ -2412,9 +2470,9 @@ function handleGetUserRole(data) {
 
     const data_users = sheet.getDataRange().getValues();
     for (let i = 1; i < data_users.length; i++) {
-      if (data_users[i][1] === adminToken) { // columna 1 = token (password_hash almacena el token)
+      if (String(data_users[i][1]).trim() === String(adminToken).trim()) { // columna 1 = token (password_hash almacena el token)
         const email = data_users[i][0];
-        const role  = data_users[i][2] || 'admin';  // columna 2 = role
+        const role  = normalizeRole(data_users[i][2]);  // columna 2 = role (canónico)
         Logger.log('[getUserRole] Email: ' + email + ', Role: ' + role);
         return jsonResponse(true, 'OK', { email, role });
       }

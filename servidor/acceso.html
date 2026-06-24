@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Catholizare Pro — Acceso</title>
+  <title>Catholizare Pro — Sistema de admisiones y evaluación</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -35,24 +35,23 @@
       border-radius: 20px;
       box-shadow: 0 8px 40px rgba(0,26,85,0.10);
       width: 100%;
-      max-width: 420px;
+      max-width: 400px;
       overflow: hidden;
     }
 
     /* ─── Header ────────────────────────────────────── */
     .card-header {
       background: linear-gradient(135deg, var(--navy) 0%, #003399 100%);
-      padding: 32px 32px 28px;
+      padding: 36px 32px 30px;
       text-align: center;
-      position: relative;
     }
     .logo-mark {
-      width: 56px; height: 56px;
+      width: 60px; height: 60px;
       background: rgba(255,255,255,0.10);
       border: 2px solid rgba(201,168,76,0.5);
       border-radius: 16px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 26px;
+      font-size: 28px;
       margin: 0 auto 16px;
     }
     .card-header h1 {
@@ -60,40 +59,22 @@
       color: var(--white); letter-spacing: -0.3px;
     }
     .card-header p {
-      font-size: 13px; color: rgba(255,255,255,0.55);
-      margin-top: 4px; font-weight: 400;
-    }
-
-    /* ─── Tabs ──────────────────────────────────────── */
-    .tabs {
-      display: grid; grid-template-columns: 1fr 1fr;
-      background: var(--gray-1);
-      border-bottom: 1px solid var(--gray-2);
-    }
-    .tab {
-      padding: 14px; border: none; background: transparent;
-      font-family: 'Inter', sans-serif; font-size: 13px;
-      font-weight: 600; color: var(--gray-3);
-      cursor: pointer; transition: all 0.2s;
-      display: flex; align-items: center; justify-content: center; gap: 6px;
-    }
-    .tab:hover { color: var(--navy); }
-    .tab.active {
-      background: var(--white); color: var(--navy);
-      border-bottom: 2px solid var(--navy);
+      font-size: 13px; color: rgba(255,255,255,0.65);
+      margin-top: 6px; font-weight: 500;
     }
 
     /* ─── Body ──────────────────────────────────────── */
-    .card-body { padding: 28px 32px 32px; }
+    .card-body { padding: 30px 32px 32px; }
 
-    .field { margin-bottom: 20px; }
+    .field { margin-bottom: 18px; }
     .field label {
       display: block; font-size: 12px; font-weight: 700;
       color: var(--navy); letter-spacing: 0.5px;
       text-transform: uppercase; margin-bottom: 8px;
     }
+    .input-wrap { position: relative; display: flex; align-items: center; }
     .field input {
-      width: 100%; padding: 14px 16px;
+      width: 100%; padding: 14px 44px 14px 16px;
       border: 2px solid var(--gray-2); border-radius: 12px;
       font-family: 'Inter', monospace; font-size: 15px;
       font-weight: 500; color: var(--navy);
@@ -111,6 +92,12 @@
       box-shadow: 0 0 0 4px rgba(217,48,37,0.08);
     }
     .field input::placeholder { color: var(--gray-3); font-weight: 400; letter-spacing: 0; }
+    .eye-btn {
+      position: absolute; right: 8px;
+      background: none; border: none; cursor: pointer;
+      font-size: 1.2rem; color: #666; padding: 6px;
+      line-height: 1;
+    }
 
     .hint {
       margin-top: 6px; font-size: 11.5px;
@@ -122,6 +109,14 @@
       display: none; align-items: center; gap: 5px;
     }
     .error-msg.show { display: flex; }
+
+    /* ─── Remember me ───────────────────────────────── */
+    .remember {
+      display: flex; align-items: center; gap: 8px;
+      margin: 4px 0 20px; font-size: 13px; color: var(--gray-4);
+      cursor: pointer; user-select: none;
+    }
+    .remember input { width: 16px; height: 16px; cursor: pointer; accent-color: var(--blue); }
 
     /* ─── Button ────────────────────────────────────── */
     .btn {
@@ -142,15 +137,6 @@
       box-shadow: 0 6px 20px rgba(0,26,85,0.28);
       transform: translateY(-1px);
     }
-    .btn-gold {
-      background: var(--gold); color: var(--navy);
-      box-shadow: 0 4px 14px rgba(201,168,76,0.25);
-    }
-    .btn-gold:hover:not(:disabled) {
-      background: #B8943F;
-      box-shadow: 0 6px 20px rgba(201,168,76,0.35);
-      transform: translateY(-1px);
-    }
 
     /* ─── Spinner ───────────────────────────────────── */
     .spin {
@@ -160,34 +146,22 @@
       border-radius: 50%;
       animation: rotate 0.7s linear infinite;
     }
-    .spin-dark { border-color: rgba(0,26,85,0.2); border-top-color: var(--navy); }
     @keyframes rotate { to { transform: rotate(360deg); } }
 
     /* ─── Help ──────────────────────────────────────── */
     .help {
-      margin-top: 24px; padding-top: 20px;
+      margin-top: 22px; padding-top: 18px;
       border-top: 1px solid var(--gray-2);
       text-align: center;
     }
     .help p { font-size: 12px; color: var(--gray-3); line-height: 1.7; }
-    .help a { color: var(--blue); font-weight: 600; text-decoration: none; }
-    .wa-btn {
-      display: flex; align-items: center; justify-content: center; gap: 8px;
-      margin-top: 12px; padding: 11px 16px;
-      background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 10px;
-      color: var(--green); font-size: 13px; font-weight: 600;
-      text-decoration: none; transition: background 0.2s;
-    }
-    .wa-btn:hover { background: #DCFCE7; }
+    .help a { color: var(--green); font-weight: 600; text-decoration: none; }
 
     /* ─── Footer ────────────────────────────────────── */
     .card-footer {
-      text-align: center; padding: 0 32px 24px;
+      text-align: center; padding: 0 32px 22px;
       font-size: 11px; color: var(--gray-3);
     }
-
-    /* ─── Hidden ────────────────────────────────────── */
-    .hidden { display: none !important; }
   </style>
 </head>
 <body>
@@ -200,74 +174,38 @@
     <p>Sistema de admisiones y evaluación</p>
   </div>
 
-  <!-- Tabs -->
-  <div class="tabs">
-    <button class="tab active" id="tabProf" onclick="setTab('prof')">
-      👤 Profesional
-    </button>
-    <button class="tab" id="tabAdmin" onclick="setTab('admin')">
-      🛡️ Administrador
-    </button>
-  </div>
-
   <!-- Body -->
   <div class="card-body">
-
-    <!-- FORM: Profesional -->
-    <div id="formProf">
-      <div class="field">
-        <label>Token de acceso</label>
+    <div class="field">
+      <label for="tokenAdmin">PIN de acceso</label>
+      <div class="input-wrap">
         <input
-          id="tokenProf"
-          type="text"
-          placeholder="Ej: E1_CANDIDAT_123456_abc1de"
+          id="tokenAdmin"
+          type="password"
+          placeholder="••••••••••••"
           autocomplete="off"
-          spellcheck="false"
-          maxlength="50"
+          maxlength="60"
         >
-        <div class="hint">🔑 Lo encontrarás en tu correo de bienvenida</div>
-        <div class="error-msg" id="errProf">Token inválido. Revisa tu correo.</div>
+        <button type="button" class="eye-btn" id="eyeBtn" onclick="togglePassword()" title="Mostrar / ocultar">👁</button>
       </div>
-      <button class="btn btn-navy" id="btnProf" onclick="enterProf()">
-        Acceder al examen <span>→</span>
-      </button>
+      <div class="hint">🔐 PIN configurado por coordinación</div>
+      <div class="error-msg" id="errAdmin">PIN inválido o sin permisos.</div>
     </div>
 
-    <!-- FORM: Admin -->
-    <div id="formAdmin" class="hidden">
-      <div class="field">
-        <label>PIN de administrador</label>
-        <div style="position:relative; display:flex; align-items:center;">
-          <input
-            id="tokenAdmin"
-            type="password"
-            placeholder="••••••••••••"
-            autocomplete="off"
-            maxlength="60"
-            style="flex:1; padding-right:2.5rem;"
-          >
-          <button
-            type="button"
-            onclick="toggleAdminPassword()"
-            style="position:absolute; right:0.6rem; background:none; border:none; cursor:pointer; font-size:1.2rem; color:#666; padding:0.2rem;"
-            title="Mostrar/ocultar"
-            id="eyeBtn"
-          >👁</button>
-        </div>
-        <div class="hint">🔐 PIN configurado por coordinación</div>
-        <div class="error-msg" id="errAdmin">PIN inválido o sin permisos.</div>
-      </div>
-      <button class="btn btn-gold" id="btnAdmin" onclick="enterAdmin()">
-        Entrar como admin <span>→</span>
-      </button>
-    </div>
+    <label class="remember">
+      <input type="checkbox" id="rememberPin">
+      Recordar mi contraseña en este equipo
+    </label>
+
+    <button class="btn btn-navy" id="btnAdmin" onclick="enterAdmin()">
+      Entrar al sistema <span>→</span>
+    </button>
 
     <!-- Help -->
     <div class="help">
-      <p>¿Problemas para acceder? Revisa tu bandeja de entrada<br>o contacta al equipo de coordinación.</p>
-      <a class="wa-btn" href="https://wa.me/5215510223883?text=Hola%2C+necesito+ayuda+para+acceder+al+sistema+de+Catholizare+Pro" target="_blank">
-        💬 Ayuda por WhatsApp
-      </a>
+      <p>¿Problemas para acceder?
+        <a href="https://wa.me/5215510223883?text=Hola%2C+necesito+ayuda+para+acceder+al+sistema+de+Catholizare+Pro" target="_blank">Ayuda por WhatsApp</a>
+      </p>
     </div>
   </div>
 
@@ -276,63 +214,25 @@
 
 <script>
   const API_BASE = 'https://profesionales.catholizare.com/catholizare_sistem/proxy.php';
+  const REMEMBER_KEY = 'rememberedAdminPin';
 
-  // ── Tabs ──────────────────────────────────────────
-  function setTab(tab) {
-    const isProf = tab === 'prof';
-    document.getElementById('tabProf').classList.toggle('active', isProf);
-    document.getElementById('tabAdmin').classList.toggle('active', !isProf);
-    document.getElementById('formProf').classList.toggle('hidden', !isProf);
-    document.getElementById('formAdmin').classList.toggle('hidden', isProf);
-    clearErrors();
-    setTimeout(() => document.getElementById(isProf ? 'tokenProf' : 'tokenAdmin').focus(), 80);
-  }
+  const inp = document.getElementById('tokenAdmin');
 
-  function clearErrors() {
-    document.querySelectorAll('.error-msg').forEach(el => el.classList.remove('show'));
-    document.querySelectorAll('input').forEach(el => el.classList.remove('is-error'));
-  }
-
-  // ── Profesional ───────────────────────────────────
-  function enterProf() {
-    clearErrors();
-    const raw   = document.getElementById('tokenProf').value.trim();
-    const token = raw.toUpperCase();
-
-    if (token.length < 8) {
-      document.getElementById('tokenProf').classList.add('is-error');
-      document.getElementById('errProf').classList.add('show');
-      return;
-    }
-
-    // Detectar examen desde prefijo del token (E1_, E2_, E3_)
-    let exam = 'E1';
-    if (token.startsWith('E2_')) exam = 'E2';
-    else if (token.startsWith('E3_')) exam = 'E3';
-
-    const btn = document.getElementById('btnProf');
-    btn.disabled = true;
-    btn.innerHTML = '<div class="spin"></div> Cargando...';
-
-    setTimeout(() => {
-      window.location.href = 'examen/?token=' + encodeURIComponent(raw) + '&exam=' + exam;
-    }, 300);
-  }
-
-  // ── Admin ─────────────────────────────────────────
+  // ── Admin login ───────────────────────────────────
   async function enterAdmin() {
-    clearErrors();
-    const token = document.getElementById('tokenAdmin').value.trim();
+    clearError();
+    const token = inp.value.trim();
 
     if (!token || token.length < 6) {
-      document.getElementById('tokenAdmin').classList.add('is-error');
+      inp.classList.add('is-error');
+      document.getElementById('errAdmin').textContent = 'Ingresa un PIN válido.';
       document.getElementById('errAdmin').classList.add('show');
       return;
     }
 
     const btn = document.getElementById('btnAdmin');
     btn.disabled = true;
-    btn.innerHTML = '<div class="spin spin-dark"></div> Verificando...';
+    btn.innerHTML = '<div class="spin"></div> Verificando...';
 
     try {
       const resp = await fetch(API_BASE, {
@@ -343,65 +243,59 @@
       const data = await resp.json();
 
       if (data.success) {
+        // Guardar "recordar contraseña" si corresponde
+        if (document.getElementById('rememberPin').checked) {
+          try { localStorage.setItem(REMEMBER_KEY, btoa(token)); } catch (e) {}
+        } else {
+          localStorage.removeItem(REMEMBER_KEY);
+        }
+        // El token NO se expone en la URL: viaja por sessionStorage (misma pestaña).
         sessionStorage.setItem('adminToken', token);
         btn.innerHTML = '✓ Acceso concedido';
-        setTimeout(() => {
-          window.location.href = 'admin-dashboard.html?adminToken=' + encodeURIComponent(token);
-        }, 400);
+        setTimeout(() => { window.location.href = 'admin-dashboard.html'; }, 350);
       } else {
-        showAdminError(data.message || 'Token inválido');
+        showError(data.message || 'PIN inválido');
         btn.disabled = false;
-        btn.innerHTML = 'Entrar como admin <span>→</span>';
+        btn.innerHTML = 'Entrar al sistema <span>→</span>';
       }
     } catch (e) {
-      showAdminError('Error de conexión. Intenta de nuevo.');
+      showError('Error de conexión. Intenta de nuevo.');
       btn.disabled = false;
-      btn.innerHTML = 'Entrar como admin <span>→</span>';
+      btn.innerHTML = 'Entrar al sistema <span>→</span>';
     }
   }
 
-  function toggleAdminPassword() {
-    const inp = document.getElementById('tokenAdmin');
+  function togglePassword() {
     const btn = document.getElementById('eyeBtn');
-    if (inp.type === 'password') {
-      inp.type = 'text';
-      btn.textContent = '🙈';
-    } else {
-      inp.type = 'password';
-      btn.textContent = '👁';
-    }
+    if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; }
+    else                        { inp.type = 'password'; btn.textContent = '👁'; }
   }
 
-  function showAdminError(msg) {
-    document.getElementById('tokenAdmin').classList.add('is-error');
-    document.getElementById('errAdmin').textContent = msg;
-    document.getElementById('errAdmin').classList.add('show');
+  function showError(msg) {
+    inp.classList.add('is-error');
+    const el = document.getElementById('errAdmin');
+    el.textContent = msg;
+    el.classList.add('show');
+  }
+  function clearError() {
+    inp.classList.remove('is-error');
+    document.getElementById('errAdmin').classList.remove('show');
   }
 
-  // ── Keyboard shortcuts ────────────────────────────
-  document.getElementById('tokenProf').addEventListener('keydown',  e => { if (e.key === 'Enter') enterProf(); });
-  document.getElementById('tokenAdmin').addEventListener('keydown', e => { if (e.key === 'Enter') enterAdmin(); });
+  // Enter para enviar; limpiar error al escribir
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') enterAdmin(); });
+  inp.addEventListener('input', clearError);
 
-  // Limpiar errores al escribir
-  document.querySelectorAll('input').forEach(inp => {
-    inp.addEventListener('input', () => {
-      inp.classList.remove('is-error');
-      clearErrors();
-    });
-  });
-
-  // ── Auto-fill desde URL ───────────────────────────
+  // ── Prefill "recordar contraseña" ─────────────────
   (function () {
-    const p = new URLSearchParams(window.location.search);
-    const t = p.get('token');
-    if (t) {
-      if (t.toUpperCase().startsWith('ADMIN')) {
-        setTab('admin');
-        document.getElementById('tokenAdmin').value = t;
-      } else {
-        document.getElementById('tokenProf').value = t;
+    try {
+      const saved = localStorage.getItem(REMEMBER_KEY);
+      if (saved) {
+        inp.value = atob(saved);
+        document.getElementById('rememberPin').checked = true;
       }
-    }
+    } catch (e) {}
+    inp.focus();
   })();
 </script>
 </body>
