@@ -801,7 +801,15 @@ function handleExamSubmit(data) {
     const copy_count = data.copy_count || 0;
 
     const tokenData = verifyToken(token, exam);
-    if (!tokenData.valid) return jsonResponse(false, tokenData.message);
+    if (!tokenData.valid) {
+      // Si el token ya fue usado, el examen fue registrado en un envío anterior
+      // (por auto-envío al cambio de pestaña o por un reintento tras error de red).
+      // Es idempotente: se responde con éxito para no mostrar un error engañoso.
+      if (/ya fue usado|solo se permite un intento/i.test(tokenData.message)) {
+        return jsonResponse(true, 'Tu examen ya fue enviado y registrado correctamente.');
+      }
+      return jsonResponse(false, tokenData.message);
+    }
 
     const candidate_id    = tokenData.candidate_id;
     const candidate_email = tokenData.email;
