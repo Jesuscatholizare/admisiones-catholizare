@@ -2439,13 +2439,6 @@ function handleGetExamResponses(data) {
 // ================================
 function handleGetNotificaciones(data) {
   try {
-    const adminToken = String(data.adminToken || '').trim();
-    if (!adminToken) return jsonResponse(false, 'Token requerido');
-    // Validar: PIN global o token de usuario
-    const isGlobal = validateAdminPin(adminToken);
-    const isUser   = !!findAdminUserByToken(adminToken);
-    if (!isGlobal && !isUser) return jsonResponse(false, 'No autorizado');
-
     const sheet = SS.getSheetByName('Notificaciones');
     if (!sheet) return jsonResponse(false, 'Hoja Notificaciones no encontrada');
     const rows = sheet.getDataRange().getValues();
