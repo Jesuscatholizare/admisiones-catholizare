@@ -2442,25 +2442,25 @@ function handleGetNotificaciones(data) {
     const sheet = SS.getSheetByName('Notificaciones');
     if (!sheet) return jsonResponse(false, 'Hoja Notificaciones no encontrada');
     const rows = sheet.getDataRange().getValues();
-    if (rows.length <= 1) return jsonResponse(true, 'OK', []);
+    if (rows.length <= 1) return jsonResponse(true, 'OK', { rows: [], total: 0 });
 
-    const tz   = CONFIG.timezone || 'America/Mexico_City';
-    const opts = { timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit',
-                   hour:'2-digit', minute:'2-digit', hour12: true };
-    const result = [];
-    for (let i = rows.length - 1; i >= 1; i--) {
-      const row = rows[i];
-      if (!row[0] && !row[1]) continue;
-      const ts = row[0] ? new Date(row[0]).toLocaleString('es-MX', opts) : '';
-      result.push({
-        timestamp : ts,
-        email     : String(row[1] || ''),
-        subject   : String(row[2] || ''),
-        provider  : String(row[3] || 'MAILAPP').toUpperCase(),
-        status    : String(row[4] || 'ENVIADO').toUpperCase()
-      });
-    }
-    return jsonResponse(true, 'OK', result);
+    const PAGE   = 30;
+    const offset = parseInt(data.offset || 0, 10);
+    const tz     = CONFIG.timezone || 'America/Mexico_City';
+    const opts   = { timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit',
+                     hour:'2-digit', minute:'2-digit', hour12: true };
+    // La hoja ya tiene el más reciente en la fila 2 (índice 1); respetamos ese orden.
+    const dataRows = rows.slice(1); // excluir cabecera
+    const total    = dataRows.length;
+    const page     = dataRows.slice(offset, offset + PAGE);
+    const result   = page.map(row => ({
+      timestamp : row[0] ? new Date(row[0]).toLocaleString('es-MX', opts) : '',
+      email     : String(row[1] || ''),
+      subject   : String(row[2] || ''),
+      provider  : String(row[3] || 'MAILAPP').toUpperCase(),
+      status    : String(row[4] || 'ENVIADO').toUpperCase()
+    }));
+    return jsonResponse(true, 'OK', { rows: result, total: total, offset: offset });
   } catch (e) {
     Logger.log('[handleGetNotificaciones Error] ' + e.message);
     return jsonResponse(false, 'Error: ' + e.message);

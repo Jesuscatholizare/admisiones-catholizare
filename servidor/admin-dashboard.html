@@ -344,7 +344,7 @@
         }
         .sidebar-logo { padding: 1.4rem 1.25rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .sidebar-logo-title { font-size: 1rem; font-weight: 700; }
-        .sidebar-logo-sub { font-size: 0.68rem; opacity: 0.55; text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; }
+        .sidebar-logo-sub { font-size: 0.68rem; opacity: 1; color: #ffffff; text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; }
         .sidebar-module { padding: 1rem 1.25rem 0.3rem; font-size: 0.63rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; opacity: 0.4; }
         .sidebar-section { padding: 0 0.5rem 0.5rem; }
         .sidebar-section-label { padding: 0.6rem 0.75rem 0.2rem; font-size: 0.62rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; opacity: 0.45; }
@@ -626,7 +626,7 @@
             <img src="https://profesionales.catholizare.com/wp-content/uploads/2024/03/logo-Pro-2024-bco-1-1536x251.png"
                  alt="Catholizare Pro"
                  style="width:140px;max-width:100%;display:block;margin-bottom:6px;">
-            <div class="sidebar-logo-sub">Panel de Selección</div>
+            <div class="sidebar-logo-sub">Panel de Admisión</div>
         </div>
 
         <div class="sidebar-module">Selección</div>
@@ -879,7 +879,7 @@
                 <span id="notifCount" style="font-size:0.78rem;color:#9ca3b4;"></span>
             </div>
             <div style="overflow-x:auto;">
-                <table style="width:100%;border-collapse:collapse;font-size:0.8rem;">
+                <table style="width:100%;border-collapse:collapse;font-size:0.8rem;" id="notifTable">
                     <thead>
                         <tr style="background:#f8fafc;">
                             <th style="padding:0.7rem 1rem;text-align:left;font-size:0.7rem;font-weight:700;letter-spacing:0.5px;color:#5a6275;text-transform:uppercase;border-bottom:1px solid #e8ecf4;white-space:nowrap;">Fecha</th>
@@ -897,6 +897,13 @@
                     </tbody>
                 </table>
             </div>
+        </div>
+        <!-- Cargar más -->
+        <div style="text-align:center;margin-top:1rem;">
+            <button id="notifLoadMore" onclick="loadNotificaciones(true)"
+                style="display:none;background:#001A55;color:white;border:none;border-radius:10px;padding:10px 24px;font-size:0.85rem;font-weight:600;cursor:pointer;gap:7px;align-items:center;">
+                <i class="fas fa-chevron-down"></i> Cargar más
+            </button>
         </div>
     </div>
     </div>
@@ -1983,19 +1990,31 @@
         }
 
         // ── Correos Enviados ────────────────────────────────────────────────
-        let _notifAll = [];
+        let _notifAll    = [];   // acumulado de todas las páginas cargadas
+        let _notifOffset = 0;
+        let _notifTotal  = 0;
 
-        async function loadNotificaciones() {
-            const tbody = document.getElementById('notifTableBody');
-            if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:#9ca3b4;"><i class="fas fa-spinner fa-spin"></i> Cargando...</td></tr>';
+        async function loadNotificaciones(append = false) {
+            const tbody   = document.getElementById('notifTableBody');
+            const loadBtn = document.getElementById('notifLoadMore');
+            if (!append) {
+                _notifAll    = [];
+                _notifOffset = 0;
+                if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:#9ca3b4;"><i class="fas fa-spinner fa-spin"></i> Cargando...</td></tr>';
+            } else {
+                if (loadBtn) { loadBtn.disabled = true; loadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cargando...'; }
+            }
             try {
                 const res  = await fetch(API_BASE, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'getNotificaciones', adminToken: ADMIN_TOKEN })
+                    body: JSON.stringify({ action: 'getNotificaciones', adminToken: ADMIN_TOKEN, offset: _notifOffset })
                 });
                 const data = await res.json();
                 if (data.success) {
-                    _notifAll = data.data || [];
+                    const payload = data.data || {};
+                    _notifTotal   = payload.total  || 0;
+                    _notifOffset += (payload.rows || []).length;
+                    _notifAll     = _notifAll.concat(payload.rows || []);
                     filterNotificaciones();
                 } else {
                     if (tbody) tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:2rem;color:#dc3545;">${data.message || 'Error al cargar'}</td></tr>`;
@@ -2019,9 +2038,17 @@
         }
 
         function renderNotificaciones(rows) {
-            const tbody = document.getElementById('notifTableBody');
-            const count = document.getElementById('notifCount');
-            if (count) count.textContent = `${rows.length} de ${_notifAll.length} registros`;
+            const tbody   = document.getElementById('notifTableBody');
+            const count   = document.getElementById('notifCount');
+            const loadBtn = document.getElementById('notifLoadMore');
+            if (count) count.textContent = `${_notifOffset} de ${_notifTotal} registros`;
+            // Mostrar/ocultar "Cargar más"
+            if (loadBtn) {
+                const hayMas = _notifOffset < _notifTotal;
+                loadBtn.style.display  = hayMas ? 'inline-flex' : 'none';
+                loadBtn.disabled       = false;
+                loadBtn.innerHTML      = `<i class="fas fa-chevron-down"></i> Cargar más (${_notifTotal - _notifOffset} restantes)`;
+            }
             if (!tbody) return;
             if (!rows.length) {
                 tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:#9ca3b4;">Sin resultados</td></tr>';
@@ -2031,7 +2058,6 @@
                 const provBadge = `<span style="background:#dbeafe;color:#1d4ed8;font-size:0.7rem;font-weight:700;padding:3px 8px;border-radius:20px;letter-spacing:0.3px;">${n.provider || 'MAILAPP'}</span>`;
                 const isError   = n.status === 'ERROR' || n.status === 'FAILED';
                 const estBadge  = `<span style="background:${isError ? '#fee2e2' : '#dcfce7'};color:${isError ? '#b91c1c' : '#15803d'};font-size:0.7rem;font-weight:700;padding:3px 8px;border-radius:20px;letter-spacing:0.3px;">${n.status || 'ENVIADO'}</span>`;
-                const plantilla = deriveTemplateName(n.subject);
                 return `<tr style="border-bottom:1px solid #f1f5f9;${i%2===0?'background:#fff;':'background:#fafbfe;'}">
                     <td style="padding:0.65rem 1rem;white-space:nowrap;color:#5a6275;">${n.timestamp}</td>
                     <td style="padding:0.65rem 1rem;color:#001A55;font-weight:500;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${n.email}</td>
@@ -2045,7 +2071,6 @@
                     </td>
                 </tr>`;
             }).join('');
-            // guardar referencia filtrada para el modal
             window._notifFiltered = rows;
         }
 
