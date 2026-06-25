@@ -1239,6 +1239,21 @@
     </div>
     <!-- Toast Container -->
     <div id="toastContainer"></div>
+
+    <!-- Modal: aviso de inactividad -->
+    <div id="inactivityModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:99999;align-items:center;justify-content:center;">
+        <div style="background:#fff;border-radius:16px;padding:36px 32px;max-width:380px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+            <div style="font-size:2.5rem;margin-bottom:12px;">⏱️</div>
+            <h3 style="font-size:1.1rem;font-weight:800;color:#001A55;margin-bottom:8px;">Sesión a punto de cerrarse</h3>
+            <p style="font-size:0.88rem;color:#5a6275;line-height:1.6;margin-bottom:20px;">
+                Por seguridad, la sesión se cerrará en <strong id="inactivityCountdown">5:00</strong> por inactividad.<br>
+                ¿Deseas continuar?
+            </p>
+            <button onclick="resetInactivityTimer()" style="background:#001A55;color:#fff;border:none;border-radius:10px;padding:12px 28px;font-size:0.9rem;font-weight:700;cursor:pointer;width:100%;">
+                Sí, continuar
+            </button>
+        </div>
+    </div>
     <script>
         const API_BASE = 'https://profesionales.catholizare.com/catholizare_sistem/proxy.php';
         const REFRESH_INTERVAL = 30000; // 30 segundos
@@ -2836,12 +2851,65 @@
         // ───────────────────────────────────────────────────────────────────
         function refreshData() { loadData(); showToast('Datos actualizados', 'success'); }
         function startAutoRefresh() { autoRefreshInterval = setInterval(loadData, REFRESH_INTERVAL); }
-        function logout() {
-            if (confirm('¿Cerrar sesión?')) {
+        function logout(skipConfirm = false) {
+            if (skipConfirm || confirm('¿Cerrar sesión?')) {
+                clearInactivityTimer();
                 sessionStorage.removeItem('adminToken');
                 window.location.href = 'acceso.html';
             }
         }
+
+        // ── Timer de inactividad (30 min) ───────────────────────────────────
+        const INACTIVITY_LIMIT   = 30 * 60 * 1000; // 30 min
+        const INACTIVITY_WARNING =  5 * 60 * 1000; //  5 min antes → aviso
+        let _inactivityTimer     = null;
+        let _warningTimer        = null;
+        let _countdownInterval   = null;
+
+        function resetInactivityTimer() {
+            // Ocultar modal si estaba visible
+            const modal = document.getElementById('inactivityModal');
+            if (modal) modal.style.display = 'none';
+            clearInactivityTimer();
+
+            // Programar aviso a los 25 min
+            _warningTimer = setTimeout(() => {
+                const modal = document.getElementById('inactivityModal');
+                if (modal) modal.style.display = 'flex';
+                // Cuenta regresiva de 5 min en el modal
+                let secsLeft = INACTIVITY_WARNING / 1000;
+                const el = document.getElementById('inactivityCountdown');
+                _countdownInterval = setInterval(() => {
+                    secsLeft--;
+                    if (el) {
+                        const m = Math.floor(secsLeft / 60);
+                        const s = secsLeft % 60;
+                        el.textContent = `${m}:${String(s).padStart(2,'0')}`;
+                    }
+                    if (secsLeft <= 0) clearInterval(_countdownInterval);
+                }, 1000);
+            }, INACTIVITY_LIMIT - INACTIVITY_WARNING);
+
+            // Logout automático a los 30 min
+            _inactivityTimer = setTimeout(() => {
+                clearInterval(_countdownInterval);
+                logout(true);
+            }, INACTIVITY_LIMIT);
+        }
+
+        function clearInactivityTimer() {
+            clearTimeout(_inactivityTimer);
+            clearTimeout(_warningTimer);
+            clearInterval(_countdownInterval);
+        }
+
+        // Reiniciar al detectar actividad del usuario
+        ['mousemove','mousedown','keydown','touchstart','scroll','click'].forEach(evt => {
+            document.addEventListener(evt, resetInactivityTimer, { passive: true });
+        });
+
+        // Arrancar el timer al cargar
+        resetInactivityTimer();
 
         function showToast(message, type = 'info') {
             const container = document.getElementById('toastContainer');
