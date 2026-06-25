@@ -422,6 +422,7 @@ function doPost(e) {
       case 'gasDiagnostic':             return handleGasDiagnostic();
       case 'handoff':                   return handleHandoff(data);
       case 'uploadCandidateCV':         return handleUploadCandidateCV(data);
+      case 'getNotificaciones':         return handleGetNotificaciones(data);
       default:
         return jsonResponse(false, 'Accion no valida: ' + action);
     }
@@ -2436,6 +2437,43 @@ function handleGetExamResponses(data) {
 // ================================
 // MODULO: USUARIOS ADMIN
 // ================================
+function handleGetNotificaciones(data) {
+  try {
+    const adminToken = String(data.adminToken || '').trim();
+    if (!adminToken) return jsonResponse(false, 'Token requerido');
+    // Validar: PIN global o token de usuario
+    const isGlobal = validateAdminPin(adminToken);
+    const isUser   = !!findAdminUserByToken(adminToken);
+    if (!isGlobal && !isUser) return jsonResponse(false, 'No autorizado');
+
+    const sheet = SS.getSheetByName('Notificaciones');
+    if (!sheet) return jsonResponse(false, 'Hoja Notificaciones no encontrada');
+    const rows = sheet.getDataRange().getValues();
+    if (rows.length <= 1) return jsonResponse(true, 'OK', []);
+
+    const tz   = CONFIG.timezone || 'America/Mexico_City';
+    const opts = { timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit',
+                   hour:'2-digit', minute:'2-digit', hour12: true };
+    const result = [];
+    for (let i = rows.length - 1; i >= 1; i--) {
+      const row = rows[i];
+      if (!row[0] && !row[1]) continue;
+      const ts = row[0] ? new Date(row[0]).toLocaleString('es-MX', opts) : '';
+      result.push({
+        timestamp : ts,
+        email     : String(row[1] || ''),
+        subject   : String(row[2] || ''),
+        provider  : String(row[3] || 'MAILAPP').toUpperCase(),
+        status    : String(row[4] || 'ENVIADO').toUpperCase()
+      });
+    }
+    return jsonResponse(true, 'OK', result);
+  } catch (e) {
+    Logger.log('[handleGetNotificaciones Error] ' + e.message);
+    return jsonResponse(false, 'Error: ' + e.message);
+  }
+}
+
 function handleGetAdminUsers() {
   try {
     const sheet = SS.getSheetByName('Usuarios');

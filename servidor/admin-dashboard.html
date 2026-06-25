@@ -623,7 +623,9 @@
     <!-- Sidebar -->
     <aside class="sidebar">
         <div class="sidebar-logo">
-            <div class="sidebar-logo-title">Catholizare</div>
+            <img src="https://profesionales.catholizare.com/wp-content/uploads/2024/03/logo-Pro-2024-bco-1-1536x251.png"
+                 alt="Catholizare Pro"
+                 style="width:140px;max-width:100%;display:block;margin-bottom:6px;">
             <div class="sidebar-logo-sub">Panel de Selección</div>
         </div>
 
@@ -638,6 +640,9 @@
             </button>
             <button class="nav-item" onclick="showView('respuestas')" id="nav-respuestas">
                 <i class="fas fa-clipboard-list"></i> Ver Respuestas
+            </button>
+            <button class="nav-item" onclick="showView('notificaciones')" id="nav-notificaciones">
+                <i class="fas fa-envelope-open-text"></i> Correos Enviados
             </button>
             <button class="nav-item" onclick="showView('acceso-examen')" id="nav-acceso-examen">
                 <i class="fas fa-key"></i> Acceso a examen
@@ -666,7 +671,7 @@
     <!-- Top Navbar -->
     <div class="top-navbar">
         <div class="top-nav-brand">
-            <i class="fas fa-shield-alt"></i> Catholizare
+            <i class="fas fa-shield-alt"></i>
         </div>
         <nav class="top-nav-tabs">
             <button class="top-tab active"><i class="fas fa-border-all"></i> Selección</button>
@@ -829,6 +834,71 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Vista: Correos Enviados -->
+    <div id="view-notificaciones" class="view">
+    <div class="container">
+        <div class="header-section">
+            <div>
+                <h1><i class="fas fa-envelope" style="font-size:1.1rem;margin-right:8px;color:#0052CC;"></i>Correos Enviados</h1>
+                <small>Registro de notificaciones enviadas por el sistema (hoja Notificaciones)</small>
+            </div>
+            <button class="btn" style="background:#001A55;color:white;display:flex;align-items:center;gap:6px;" onclick="loadNotificaciones()">
+                <i class="fas fa-sync-alt"></i> Actualizar
+            </button>
+        </div>
+
+        <!-- Filtros -->
+        <div class="admin-card" style="padding:1rem 1.25rem;margin-bottom:1rem;">
+            <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;">
+                <div style="position:relative;flex:1;min-width:220px;">
+                    <i class="fas fa-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#9ca3b4;font-size:0.82rem;"></i>
+                    <input id="notifSearch" type="text" placeholder="Buscar por destinatario, asunto o proveedor..."
+                           style="width:100%;padding:9px 12px 9px 34px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:0.85rem;color:#001A55;"
+                           oninput="filterNotificaciones()">
+                </div>
+                <select id="notifEstado" onchange="filterNotificaciones()"
+                        style="padding:9px 14px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:0.85rem;color:#001A55;background:white;cursor:pointer;">
+                    <option value="">Todos los estados</option>
+                    <option value="ENVIADO">Enviado</option>
+                    <option value="ERROR">Error</option>
+                </select>
+                <select id="notifProveedor" onchange="filterNotificaciones()"
+                        style="padding:9px 14px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:0.85rem;color:#001A55;background:white;cursor:pointer;">
+                    <option value="">Todos los proveedores</option>
+                    <option value="MAILAPP">MailApp</option>
+                    <option value="RESEND">Resend</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="admin-card" style="overflow:hidden;padding:0;">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:1rem 1.25rem;border-bottom:1px solid #f1f5f9;">
+                <strong style="font-size:0.9rem;color:#001A55;">Notificaciones</strong>
+                <span id="notifCount" style="font-size:0.78rem;color:#9ca3b4;"></span>
+            </div>
+            <div style="overflow-x:auto;">
+                <table style="width:100%;border-collapse:collapse;font-size:0.8rem;">
+                    <thead>
+                        <tr style="background:#f8fafc;">
+                            <th style="padding:0.7rem 1rem;text-align:left;font-size:0.7rem;font-weight:700;letter-spacing:0.5px;color:#5a6275;text-transform:uppercase;border-bottom:1px solid #e8ecf4;white-space:nowrap;">Fecha</th>
+                            <th style="padding:0.7rem 1rem;text-align:left;font-size:0.7rem;font-weight:700;letter-spacing:0.5px;color:#5a6275;text-transform:uppercase;border-bottom:1px solid #e8ecf4;">Destinatario</th>
+                            <th style="padding:0.7rem 1rem;text-align:left;font-size:0.7rem;font-weight:700;letter-spacing:0.5px;color:#5a6275;text-transform:uppercase;border-bottom:1px solid #e8ecf4;">Asunto</th>
+                            <th style="padding:0.7rem 1rem;text-align:center;font-size:0.7rem;font-weight:700;letter-spacing:0.5px;color:#5a6275;text-transform:uppercase;border-bottom:1px solid #e8ecf4;">Proveedor</th>
+                            <th style="padding:0.7rem 1rem;text-align:center;font-size:0.7rem;font-weight:700;letter-spacing:0.5px;color:#5a6275;text-transform:uppercase;border-bottom:1px solid #e8ecf4;">Estado</th>
+                            <th style="padding:0.7rem 1rem;text-align:center;font-size:0.7rem;font-weight:700;letter-spacing:0.5px;color:#5a6275;text-transform:uppercase;border-bottom:1px solid #e8ecf4;">Plantilla</th>
+                        </tr>
+                    </thead>
+                    <tbody id="notifTableBody">
+                        <tr><td colspan="6" style="text-align:center;padding:2rem;color:#9ca3b4;">
+                            <i class="fas fa-spinner fa-spin"></i> Cargando...
+                        </td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
     </div>
 
     <!-- Vista: Acceso a examen (abrir un examen con su token) -->
@@ -1902,13 +1972,101 @@
             if (view === 'respuestas') renderRespCandidates('');
             if (view === 'usuarios')   loadAdminUsers();
             if (view === 'superadmin') initSuperAdmin();
-            if (view === 'health')     loadHealth();
+            if (view === 'health')          loadHealth();
+            if (view === 'notificaciones') loadNotificaciones();
             if (view === 'acceso-examen') {
                 const el = document.getElementById('examTokenInput');
                 if (el) { el.value = ''; el.focus(); }
                 const err = document.getElementById('examTokenError');
                 if (err) err.style.display = 'none';
             }
+        }
+
+        // ── Correos Enviados ────────────────────────────────────────────────
+        let _notifAll = [];
+
+        async function loadNotificaciones() {
+            const tbody = document.getElementById('notifTableBody');
+            if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:#9ca3b4;"><i class="fas fa-spinner fa-spin"></i> Cargando...</td></tr>';
+            try {
+                const res  = await fetch(API_BASE, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'getNotificaciones', adminToken: ADMIN_TOKEN })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    _notifAll = data.data || [];
+                    filterNotificaciones();
+                } else {
+                    if (tbody) tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:2rem;color:#dc3545;">${data.message || 'Error al cargar'}</td></tr>`;
+                }
+            } catch (e) {
+                if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:#dc3545;"><i class="fas fa-exclamation-triangle"></i> Error de conexión</td></tr>';
+            }
+        }
+
+        function filterNotificaciones() {
+            const q    = (document.getElementById('notifSearch')?.value    || '').toLowerCase();
+            const est  = (document.getElementById('notifEstado')?.value    || '').toUpperCase();
+            const prov = (document.getElementById('notifProveedor')?.value || '').toUpperCase();
+            const rows = _notifAll.filter(n => {
+                if (est  && n.status   !== est)  return false;
+                if (prov && n.provider !== prov) return false;
+                if (q && !(n.email.toLowerCase().includes(q) || n.subject.toLowerCase().includes(q) || n.provider.toLowerCase().includes(q))) return false;
+                return true;
+            });
+            renderNotificaciones(rows);
+        }
+
+        function renderNotificaciones(rows) {
+            const tbody = document.getElementById('notifTableBody');
+            const count = document.getElementById('notifCount');
+            if (count) count.textContent = `${rows.length} de ${_notifAll.length} registros`;
+            if (!tbody) return;
+            if (!rows.length) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:#9ca3b4;">Sin resultados</td></tr>';
+                return;
+            }
+            tbody.innerHTML = rows.map((n, i) => {
+                const provBadge = `<span style="background:#dbeafe;color:#1d4ed8;font-size:0.7rem;font-weight:700;padding:3px 8px;border-radius:20px;letter-spacing:0.3px;">${n.provider || 'MAILAPP'}</span>`;
+                const isError   = n.status === 'ERROR' || n.status === 'FAILED';
+                const estBadge  = `<span style="background:${isError ? '#fee2e2' : '#dcfce7'};color:${isError ? '#b91c1c' : '#15803d'};font-size:0.7rem;font-weight:700;padding:3px 8px;border-radius:20px;letter-spacing:0.3px;">${n.status || 'ENVIADO'}</span>`;
+                const plantilla = deriveTemplateName(n.subject);
+                return `<tr style="border-bottom:1px solid #f1f5f9;${i%2===0?'background:#fff;':'background:#fafbfe;'}">
+                    <td style="padding:0.65rem 1rem;white-space:nowrap;color:#5a6275;">${n.timestamp}</td>
+                    <td style="padding:0.65rem 1rem;color:#001A55;font-weight:500;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${n.email}</td>
+                    <td style="padding:0.65rem 1rem;color:#374151;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${n.subject}">${n.subject}</td>
+                    <td style="padding:0.65rem 1rem;text-align:center;">${provBadge}</td>
+                    <td style="padding:0.65rem 1rem;text-align:center;">${estBadge}</td>
+                    <td style="padding:0.65rem 1rem;text-align:center;">
+                        <button onclick="showNotifDetail(${i})" style="background:none;border:none;cursor:pointer;color:#0052CC;font-size:0.78rem;font-weight:600;display:inline-flex;align-items:center;gap:4px;">
+                            <i class="fas fa-eye"></i> Ver plantilla
+                        </button>
+                    </td>
+                </tr>`;
+            }).join('');
+            // guardar referencia filtrada para el modal
+            window._notifFiltered = rows;
+        }
+
+        function deriveTemplateName(subject) {
+            if (/bienvenid/i.test(subject))        return 'Bienvenida';
+            if (/examen e1/i.test(subject))        return 'Examen E1';
+            if (/examen e2/i.test(subject))        return 'Examen E2';
+            if (/examen e3/i.test(subject))        return 'Examen E3';
+            if (/información general/i.test(subject)) return 'Info General';
+            if (/entrevista/i.test(subject))       return 'Entrevista';
+            if (/aprobad/i.test(subject))          return 'Aprobación';
+            if (/rechazad/i.test(subject))         return 'Rechazo';
+            if (/candidato/i.test(subject))        return 'Nuevo Candidato';
+            return 'General';
+        }
+
+        function showNotifDetail(idx) {
+            const n = (window._notifFiltered || _notifAll)[idx];
+            if (!n) return;
+            const tpl = deriveTemplateName(n.subject);
+            showToast(`${tpl} · ${n.email}`, 'info');
         }
 
         // ── Acceso a examen por token (movido desde el login) ───────────────

@@ -94,6 +94,7 @@ $allowed_actions = [
     'registerInterviewResult',
     'handoff',
     'uploadCandidateCV',
+    'getNotificaciones',
 ];
 
 if (!in_array($action, $allowed_actions)) {
