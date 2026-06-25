@@ -8,133 +8,130 @@
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
-      --navy:   #001A55;
-      --blue:   #0052CC;
-      --gold:   #C9A84C;
-      --white:  #FFFFFF;
-      --gray-1: #F4F6FB;
-      --gray-2: #E8ECF4;
-      --gray-3: #9CA3B4;
-      --gray-4: #5A6275;
-      --red:    #D93025;
-      --green:  #1A7F3C;
+      --navy:    #001A55;
+      --navy-2:  #002E8A;
+      --blue:    #0052CC;
+      --white:   #FFFFFF;
+      --ink:     #001A55;
+      --field:   #EEF2F9;
+      --field-b: #E2E8F4;
+      --gray-3:  #9AA3B5;
+      --gray-4:  #5A6275;
+      --red:     #D93025;
+      --green:   #1A7F3C;
     }
+    html, body { min-height: 100%; }
     body {
       font-family: 'Inter', system-ui, sans-serif;
-      background: var(--gray-1);
+      background:
+        radial-gradient(120% 90% at 50% 0%, #04246b 0%, #001a55 45%, #00103a 100%);
       min-height: 100vh;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 24px;
+      padding: 40px 24px;
     }
 
-    /* ─── Card ─────────────────────────────────────── */
+    /* ─── Logo (sobre la tarjeta) ───────────────────── */
+    .brand {
+      text-align: center;
+      margin-bottom: 26px;
+    }
+    .brand img {
+      width: 230px; max-width: 70vw;
+      height: auto; display: inline-block;
+    }
+
+    /* ─── Card ──────────────────────────────────────── */
     .card {
       background: var(--white);
-      border-radius: 20px;
-      box-shadow: 0 8px 40px rgba(0,26,85,0.10);
+      border-radius: 22px;
+      box-shadow: 0 24px 60px rgba(0,8,40,0.45);
       width: 100%;
-      max-width: 400px;
-      overflow: hidden;
+      max-width: 430px;
+      padding: 40px 38px 34px;
     }
 
-    /* ─── Header ────────────────────────────────────── */
-    .card-header {
-      background: linear-gradient(135deg, var(--navy) 0%, #003399 100%);
-      padding: 36px 32px 30px;
+    .card-title {
       text-align: center;
+      font-size: 23px; font-weight: 800;
+      color: var(--ink); line-height: 1.25;
+      letter-spacing: -0.3px;
     }
-    .logo-mark {
-      width: 60px; height: 60px;
-      background: rgba(255,255,255,0.10);
-      border: 2px solid rgba(201,168,76,0.5);
-      border-radius: 16px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 28px;
-      margin: 0 auto 16px;
-    }
-    .card-header h1 {
-      font-size: 22px; font-weight: 800;
-      color: var(--white); letter-spacing: -0.3px;
-    }
-    .card-header p {
-      font-size: 13px; color: rgba(255,255,255,0.65);
+    .card-sub {
+      text-align: center;
+      font-size: 13.5px; color: var(--gray-3);
       margin-top: 6px; font-weight: 500;
+      margin-bottom: 28px;
     }
 
-    /* ─── Body ──────────────────────────────────────── */
-    .card-body { padding: 30px 32px 32px; }
-
+    /* ─── Fields ────────────────────────────────────── */
     .field { margin-bottom: 18px; }
     .field label {
-      display: block; font-size: 12px; font-weight: 700;
-      color: var(--navy); letter-spacing: 0.5px;
-      text-transform: uppercase; margin-bottom: 8px;
+      display: block; font-size: 13px; font-weight: 700;
+      color: var(--ink); margin-bottom: 8px;
     }
     .input-wrap { position: relative; display: flex; align-items: center; }
     .field input {
-      width: 100%; padding: 14px 44px 14px 16px;
-      border: 2px solid var(--gray-2); border-radius: 12px;
-      font-family: 'Inter', monospace; font-size: 15px;
-      font-weight: 500; color: var(--navy);
-      background: var(--gray-1);
-      letter-spacing: 0.5px;
+      width: 100%; padding: 14px 46px 14px 16px;
+      border: 1.5px solid transparent; border-radius: 11px;
+      font-family: 'Inter', sans-serif; font-size: 15px;
+      font-weight: 500; color: var(--ink);
+      background: var(--field);
       transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
     }
     .field input:focus {
       outline: none; border-color: var(--blue);
       background: var(--white);
-      box-shadow: 0 0 0 4px rgba(0,82,204,0.08);
+      box-shadow: 0 0 0 4px rgba(0,82,204,0.10);
     }
     .field input.is-error {
       border-color: var(--red);
-      box-shadow: 0 0 0 4px rgba(217,48,37,0.08);
+      box-shadow: 0 0 0 4px rgba(217,48,37,0.10);
     }
-    .field input::placeholder { color: var(--gray-3); font-weight: 400; letter-spacing: 0; }
+    .field input::placeholder { color: var(--gray-3); font-weight: 400; }
     .eye-btn {
-      position: absolute; right: 8px;
+      position: absolute; right: 10px;
       background: none; border: none; cursor: pointer;
-      font-size: 1.2rem; color: #666; padding: 6px;
-      line-height: 1;
+      color: #7a8190; padding: 6px; line-height: 0;
+      display: flex; align-items: center;
     }
+    .eye-btn:hover { color: var(--blue); }
+    .eye-btn svg { width: 20px; height: 20px; }
 
-    .hint {
-      margin-top: 6px; font-size: 11.5px;
-      color: var(--gray-3); display: flex; align-items: center; gap: 5px;
-    }
     .error-msg {
-      margin-top: 6px; font-size: 12.5px;
+      margin-top: 7px; font-size: 12.5px;
       color: var(--red); font-weight: 500;
       display: none; align-items: center; gap: 5px;
     }
     .error-msg.show { display: flex; }
 
-    /* ─── Remember me ───────────────────────────────── */
+    /* ─── Remember ──────────────────────────────────── */
     .remember {
-      display: flex; align-items: center; gap: 8px;
-      margin: 4px 0 20px; font-size: 13px; color: var(--gray-4);
+      display: flex; align-items: center; gap: 9px;
+      margin: 6px 0 22px; font-size: 13.5px; color: var(--gray-4);
       cursor: pointer; user-select: none;
     }
-    .remember input { width: 16px; height: 16px; cursor: pointer; accent-color: var(--blue); }
+    .remember input { width: 17px; height: 17px; cursor: pointer; accent-color: var(--blue); }
 
     /* ─── Button ────────────────────────────────────── */
     .btn {
       width: 100%; padding: 15px;
-      border: none; border-radius: 12px;
+      border: none; border-radius: 11px;
       font-family: 'Inter', sans-serif;
-      font-size: 14px; font-weight: 700;
+      font-size: 15px; font-weight: 700;
       cursor: pointer; transition: all 0.25s;
       display: flex; align-items: center; justify-content: center; gap: 8px;
     }
-    .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important; }
-    .btn-navy {
-      background: var(--navy); color: var(--white);
-      box-shadow: 0 4px 14px rgba(0,26,85,0.2);
+    .btn:disabled { opacity: 0.65; cursor: not-allowed; transform: none !important; }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--navy) 0%, var(--blue) 100%);
+      color: var(--white);
+      box-shadow: 0 8px 22px rgba(0,40,138,0.28);
     }
-    .btn-navy:hover:not(:disabled) {
-      background: #002580;
-      box-shadow: 0 6px 20px rgba(0,26,85,0.28);
+    .btn-primary:hover:not(:disabled) {
+      box-shadow: 0 10px 28px rgba(0,40,138,0.38);
       transform: translateY(-1px);
     }
 
@@ -150,34 +147,43 @@
 
     /* ─── Help ──────────────────────────────────────── */
     .help {
-      margin-top: 22px; padding-top: 18px;
-      border-top: 1px solid var(--gray-2);
+      margin-top: 24px; padding-top: 20px;
+      border-top: 1px solid var(--field-b);
       text-align: center;
     }
-    .help p { font-size: 12px; color: var(--gray-3); line-height: 1.7; }
-    .help a { color: var(--green); font-weight: 600; text-decoration: none; }
+    .help p { font-size: 12.5px; color: var(--gray-3); line-height: 1.7; }
+    .btn-wa {
+      display: inline-flex; align-items: center; gap: 8px;
+      margin-top: 14px; padding: 11px 20px;
+      background: var(--white); color: var(--green);
+      border: 1.6px solid var(--green); border-radius: 10px;
+      font-size: 13.5px; font-weight: 700; cursor: pointer;
+      text-decoration: none; transition: all 0.2s;
+    }
+    .btn-wa:hover { background: #f0fbf3; }
+    .btn-wa svg { width: 17px; height: 17px; }
 
     /* ─── Footer ────────────────────────────────────── */
     .card-footer {
-      text-align: center; padding: 0 32px 22px;
-      font-size: 11px; color: var(--gray-3);
+      text-align: center; margin-top: 24px;
+      font-size: 11.5px; color: var(--gray-3);
     }
   </style>
 </head>
 <body>
 
-<div class="card">
-  <!-- Header -->
-  <div class="card-header">
-    <div class="logo-mark">✝</div>
-    <h1>Catholizare Pro</h1>
-    <p>Sistema de admisiones y evaluación</p>
+  <!-- Logo blanco sobre la tarjeta -->
+  <div class="brand">
+    <img src="https://profesionales.catholizare.com/wp-content/uploads/2024/03/logo-Pro-2024-bco-1-1536x251.png"
+         alt="Catholizare Pro">
   </div>
 
-  <!-- Body -->
-  <div class="card-body">
+  <div class="card">
+    <div class="card-title">Sistema de admisiones<br>y evaluación</div>
+    <div class="card-sub">Catholizare Pro</div>
+
     <div class="field">
-      <label for="tokenAdmin">PIN de acceso</label>
+      <label for="tokenAdmin">Clave de acceso</label>
       <div class="input-wrap">
         <input
           id="tokenAdmin"
@@ -186,31 +192,35 @@
           autocomplete="off"
           maxlength="60"
         >
-        <button type="button" class="eye-btn" id="eyeBtn" onclick="togglePassword()" title="Mostrar / ocultar">👁</button>
+        <button type="button" class="eye-btn" id="eyeBtn" onclick="togglePassword()" title="Mostrar / ocultar" aria-label="Mostrar u ocultar">
+          <svg id="eyeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
       </div>
-      <div class="hint">🔐 PIN configurado por coordinación</div>
-      <div class="error-msg" id="errAdmin">PIN inválido o sin permisos.</div>
+      <div class="error-msg" id="errAdmin">Clave inválida o sin permisos.</div>
     </div>
 
     <label class="remember">
       <input type="checkbox" id="rememberPin">
-      Recordar mi contraseña en este equipo
+      Recordar mi acceso en este equipo
     </label>
 
-    <button class="btn btn-navy" id="btnAdmin" onclick="enterAdmin()">
-      Entrar al sistema <span>→</span>
+    <button class="btn btn-primary" id="btnAdmin" onclick="enterAdmin()">
+      Ingresar
     </button>
 
-    <!-- Help -->
     <div class="help">
-      <p>¿Problemas para acceder?
-        <a href="https://wa.me/5215510223883?text=Hola%2C+necesito+ayuda+para+acceder+al+sistema+de+Catholizare+Pro" target="_blank">Ayuda por WhatsApp</a>
-      </p>
+      <p>Ingresa con la clave de acceso que te asignó coordinación.<br>
+         Si no la encuentras, contacta al equipo de coordinación.</p>
+      <a class="btn-wa" href="https://wa.me/5215510223883?text=Hola%2C+necesito+ayuda+para+acceder+al+sistema+de+Catholizare+Pro" target="_blank">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163a11.867 11.867 0 0 1-1.587-5.946C.16 5.335 5.495 0 12.05 0a11.82 11.82 0 0 1 8.413 3.488 11.824 11.824 0 0 1 3.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 0 1-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 0 0 1.51 5.26l-.999 3.648 3.978-1.207zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413z"/></svg>
+        Contactar por WhatsApp
+      </a>
     </div>
   </div>
 
   <div class="card-footer">© 2026 Catholizare Pro · Todos los derechos reservados</div>
-</div>
 
 <script>
   const API_BASE = 'https://profesionales.catholizare.com/catholizare_sistem/proxy.php';
@@ -225,8 +235,9 @@
 
     if (!token || token.length < 6) {
       inp.classList.add('is-error');
-      document.getElementById('errAdmin').textContent = 'Ingresa un PIN válido.';
-      document.getElementById('errAdmin').classList.add('show');
+      const el = document.getElementById('errAdmin');
+      el.textContent = 'Ingresa una clave de acceso válida.';
+      el.classList.add('show');
       return;
     }
 
@@ -243,7 +254,7 @@
       const data = await resp.json();
 
       if (data.success) {
-        // Guardar "recordar contraseña" si corresponde
+        // Guardar "recordar acceso" si corresponde
         if (document.getElementById('rememberPin').checked) {
           try { localStorage.setItem(REMEMBER_KEY, btoa(token)); } catch (e) {}
         } else {
@@ -254,21 +265,26 @@
         btn.innerHTML = '✓ Acceso concedido';
         setTimeout(() => { window.location.href = 'admin-dashboard.html'; }, 350);
       } else {
-        showError(data.message || 'PIN inválido');
+        showError(data.message || 'Clave inválida');
         btn.disabled = false;
-        btn.innerHTML = 'Entrar al sistema <span>→</span>';
+        btn.innerHTML = 'Ingresar';
       }
     } catch (e) {
       showError('Error de conexión. Intenta de nuevo.');
       btn.disabled = false;
-      btn.innerHTML = 'Entrar al sistema <span>→</span>';
+      btn.innerHTML = 'Ingresar';
     }
   }
 
   function togglePassword() {
-    const btn = document.getElementById('eyeBtn');
-    if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; }
-    else                        { inp.type = 'password'; btn.textContent = '👁'; }
+    const icon = document.getElementById('eyeIcon');
+    if (inp.type === 'password') {
+      inp.type = 'text';
+      icon.innerHTML = '<path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c6.5 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3.5 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/>';
+    } else {
+      inp.type = 'password';
+      icon.innerHTML = '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>';
+    }
   }
 
   function showError(msg) {
@@ -286,7 +302,7 @@
   inp.addEventListener('keydown', e => { if (e.key === 'Enter') enterAdmin(); });
   inp.addEventListener('input', clearError);
 
-  // ── Prefill "recordar contraseña" ─────────────────
+  // ── Prefill "recordar acceso" ─────────────────────
   (function () {
     try {
       const saved = localStorage.getItem(REMEMBER_KEY);
