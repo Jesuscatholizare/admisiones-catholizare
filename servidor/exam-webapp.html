@@ -484,6 +484,16 @@
             </div>
         </div>
     </div>
+    <!-- Warning Modal (acciones prohibidas — bloqueante, requiere Aceptar) -->
+    <div class="confirmation-modal" id="warningModal" style="z-index:1100;">
+        <div class="modal-content">
+            <div class="modal-header" id="warningModalTitle" style="color:#dc2626;">Aviso</div>
+            <div class="modal-body" id="warningModalMessage"></div>
+            <div class="modal-footer">
+                <button class="btn-submit" id="warningModalAccept">Aceptar</button>
+            </div>
+        </div>
+    </div>
     <script>
         // TODO: Reemplazar con la URL real de tu servidor
         const API_BASE = 'https://profesionales.catholizare.com/catholizare_sistem/proxy.php';
@@ -501,6 +511,11 @@
         let blurCount    = 0;
         let copyAttempts = 0;
         let submitted    = false;
+
+        // Anti-fraude: cambios de página permitidos antes del envío automático
+        const MAX_PAGE_CHANGES = 3;
+        let warningModalOpen = false;
+        const warningQueue   = [];
 
         // Inicializar
         document.addEventListener('DOMContentLoaded', function() {
@@ -641,28 +656,77 @@
 
         // Medidas de seguridad (anti-fraude)
         function setupSecurityMeasures() {
+            const ACTION_LABELS = { copy: 'Copiar', paste: 'Pegar', cut: 'Cortar' };
             ['copy', 'paste', 'cut'].forEach(evt => {
                 document.addEventListener(evt, e => {
                     e.preventDefault();
+                    if (submitted) return;
                     copyAttempts++;
-                    showAlert(`${evt.charAt(0).toUpperCase() + evt.slice(1)} no está permitido.`);
+                    enqueueWarning({
+                        title: 'Acción no permitida',
+                        message: `La acción «<strong>${ACTION_LABELS[evt]}</strong>» no está permitida durante el examen.<br><br>Tus respuestas deben escribirse de forma manual y personal.`
+                    });
                 });
             });
             document.addEventListener('contextmenu', e => { e.preventDefault(); });
-            window.addEventListener('blur', () => {
-                blurCount++;
-                if (blurCount === 1) {
-                    showAlert(`⚠️ Cambio de ventana 1/3. Se detectaron cambios de pestaña.`);
-                    autoSaveResponses();
-                } else if (blurCount === 2) {
-                    showAlert(`⚠️ Cambio de ventana 2/3. En el siguiente cambio, se enviará el examen con tus respuestas actuales.`);
-                    autoSaveResponses();
-                } else if (blurCount >= 3) {
-                    showAlert(`🚨 Cambio de ventana 3/3. El examen será enviado automáticamente con tus respuestas actuales.`);
-                    autoSaveResponses();
-                    setTimeout(confirmSubmit, 3000);
+            window.addEventListener('blur', handlePageChange);
+        }
+
+        // Cada cambio de pestaña/ventana muestra un aviso bloqueante con contador.
+        // Al alcanzar el límite, se informa que el examen será enviado y el envío
+        // ocurre al pulsar "Aceptar" (nunca de forma silenciosa).
+        function handlePageChange() {
+            if (submitted) return;
+            // Evitar conteo múltiple mientras hay un aviso pendiente de aceptar
+            if (warningModalOpen) return;
+
+            blurCount++;
+            autoSaveResponses(); // guardar respuestas parciales para el admin
+
+            const veces = blurCount === 1 ? 'vez' : 'veces';
+
+            if (blurCount < MAX_PAGE_CHANGES) {
+                let aviso;
+                if (blurCount === MAX_PAGE_CHANGES - 1) {
+                    aviso = `⚠️ Si cambias de página una vez más, tu examen se enviará automáticamente con las respuestas que tengas hasta ese momento.`;
+                } else {
+                    aviso = `Cambiar de pestaña o salir de la ventana del examen no está permitido. Al llegar a ${MAX_PAGE_CHANGES} cambios, tu examen se enviará automáticamente.`;
                 }
-            });
+                enqueueWarning({
+                    title: 'Cambio de página detectado',
+                    message: `Has cambiado de página <strong>${blurCount} ${veces}</strong> de ${MAX_PAGE_CHANGES} permitidas.<br><br>${aviso}`
+                });
+            } else {
+                // Se alcanzó el límite → informar y enviar al aceptar
+                enqueueWarning({
+                    title: 'Límite de cambios alcanzado',
+                    message: `Has alcanzado el límite de <strong>${MAX_PAGE_CHANGES} cambios de página</strong>.<br><br>Por seguridad, este examen será enviado ahora con las respuestas registradas hasta este momento. No podrás seguir respondiendo.`,
+                    onAccept: confirmSubmit
+                });
+            }
+        }
+
+        // Cola de avisos bloqueantes — se muestran de uno en uno y exigen "Aceptar"
+        function enqueueWarning(opts) {
+            warningQueue.push(opts);
+            if (!warningModalOpen) showNextWarning();
+        }
+
+        function showNextWarning() {
+            if (warningQueue.length === 0) { warningModalOpen = false; return; }
+            warningModalOpen = true;
+            const opts  = warningQueue.shift();
+            const modal = document.getElementById('warningModal');
+            document.getElementById('warningModalTitle').textContent   = opts.title || 'Aviso';
+            document.getElementById('warningModalMessage').innerHTML   = opts.message || '';
+            modal.style.display = 'block';
+            const btn = document.getElementById('warningModalAccept');
+            btn.onclick = function () {
+                modal.style.display = 'none';
+                warningModalOpen = false;
+                if (typeof opts.onAccept === 'function') opts.onAccept();
+                showNextWarning();
+            };
         }
 
         async function autoSaveResponses() {
@@ -744,14 +808,13 @@
                 });
                 const result = await response.json();
                 if (result.success) {
-                    document.body.innerHTML = `
-                        <div style="display:flex;align-items:center;justify-content:center;height:100vh;text-align:center;background:var(--light);">
-                            <div style="padding:2rem;background:white;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.1);">
-                                <h2 style="color:#4CAF50;margin-bottom:1rem;">✓ Examen Enviado</h2>
-                                <p style="color:#666;margin-bottom:1rem;">${result.message || 'Tu examen ha sido recibido correctamente.'}</p>
-                                <p style="color:#999;font-size:0.9em;">Por favor espera a que el equipo administrativo revise tu examen.</p>
-                            </div>
-                        </div>`;
+                    showSuccessScreen(result.message || 'Tu examen ha sido recibido correctamente.');
+                } else if (/ya fue usado|ya fue enviado|un intento/i.test(result.message || '')) {
+                    // El token ya estaba marcado como usado: el examen YA se registró
+                    // (p. ej. por el envío automático o un envío previo que el backend
+                    // procesó aunque el cliente no recibiera la confirmación).
+                    // No es un error: mostramos la pantalla de éxito.
+                    showSuccessScreen('Tu examen ya había sido enviado y registrado correctamente. No es necesario enviarlo de nuevo.');
                 } else {
                     showError('Error al enviar el examen: ' + result.message);
                     document.getElementById('submitButton').disabled    = false;
@@ -764,6 +827,18 @@
                 document.getElementById('submitButton').textContent = 'Enviar Examen';
                 submitted = false;
             }
+        }
+
+        function showSuccessScreen(message) {
+            clearInterval(timerInterval);
+            document.body.innerHTML = `
+                <div style="display:flex;align-items:center;justify-content:center;height:100vh;text-align:center;background:var(--light);">
+                    <div style="padding:2rem;background:white;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.1);max-width:480px;">
+                        <h2 style="color:#4CAF50;margin-bottom:1rem;">✓ Examen Enviado</h2>
+                        <p style="color:#666;margin-bottom:1rem;">${message}</p>
+                        <p style="color:#999;font-size:0.9em;">Por favor espera a que el equipo administrativo revise tu examen.</p>
+                    </div>
+                </div>`;
         }
 
         window.onclick = function(event) {

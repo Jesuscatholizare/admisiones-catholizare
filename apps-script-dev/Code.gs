@@ -422,6 +422,7 @@ function doPost(e) {
       case 'gasDiagnostic':             return handleGasDiagnostic();
       case 'handoff':                   return handleHandoff(data);
       case 'uploadCandidateCV':         return handleUploadCandidateCV(data);
+      case 'getNotificaciones':         return handleGetNotificaciones(data);
       default:
         return jsonResponse(false, 'Accion no valida: ' + action);
     }
@@ -801,7 +802,15 @@ function handleExamSubmit(data) {
     const copy_count = data.copy_count || 0;
 
     const tokenData = verifyToken(token, exam);
-    if (!tokenData.valid) return jsonResponse(false, tokenData.message);
+    if (!tokenData.valid) {
+      // Si el token ya fue usado, el examen fue registrado en un envío anterior
+      // (por auto-envío al cambio de pestaña o por un reintento tras error de red).
+      // Es idempotente: se responde con éxito para no mostrar un error engañoso.
+      if (/ya fue usado|solo se permite un intento/i.test(tokenData.message)) {
+        return jsonResponse(true, 'Tu examen ya fue enviado y registrado correctamente.');
+      }
+      return jsonResponse(false, tokenData.message);
+    }
 
     const candidate_id    = tokenData.candidate_id;
     const candidate_email = tokenData.email;
@@ -1027,14 +1036,72 @@ function handleAssignCategory(data) {
  */
 function handleAdminLogin(data) {
   try {
-    const pin = data.pin || data.password || '';
+    const pin = String(data.pin || data.password || '').trim();
+    if (!pin) return jsonResponse(false, 'Ingresa tu PIN o contraseña');
+
+    // 1) PIN global de administrador (compatibilidad histórica)
     if (validateAdminPin(pin)) {
-      return jsonResponse(true, 'Acceso concedido', { requiresOTP: false });
+      return jsonResponse(true, 'Acceso concedido', { requiresOTP: false, role: 'admin' });
     }
+
+    // 2) Credencial individual desde la hoja Usuarios
+    //    (admins y superadmins creados en "Gestión de Usuarios")
+    const user = findAdminUserByToken(pin);
+    if (user) {
+      if (String(user.status).toLowerCase() !== 'active') {
+        return jsonResponse(false, 'Tu cuenta está inactiva. Contacta a coordinación.');
+      }
+      touchUserLastLogin(user.rowIndex);
+      return jsonResponse(true, 'Acceso concedido', {
+        requiresOTP: false, role: user.role, email: user.email
+      });
+    }
+
     return jsonResponse(false, 'Credenciales inválidas');
   } catch (error) {
     Logger.log('[ERROR handleAdminLogin] ' + error.message);
     return jsonResponse(false, 'Error: ' + error.message);
+  }
+}
+
+/**
+ * Busca un usuario admin/superadmin en la hoja Usuarios por su token de acceso.
+ * El token se guarda en la columna 2 (password_hash).
+ * Devuelve { email, role, status, rowIndex } o null si no existe.
+ */
+function findAdminUserByToken(token) {
+  const sheet = SS.getSheetByName('Usuarios');
+  if (!sheet) return null;
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][1] && String(data[i][1]).trim() === String(token).trim()) {
+      return {
+        email:    data[i][0],
+        role:     normalizeRole(data[i][2]),
+        status:   data[i][5] || 'active',
+        rowIndex: i + 1
+      };
+    }
+  }
+  return null;
+}
+
+/**
+ * Normaliza el rol a un valor canónico: 'superadmin' o 'admin'.
+ * Acepta variantes como 'super_admin', 'super admin', 'SUPERADMIN'.
+ */
+function normalizeRole(role) {
+  const r = String(role || 'admin').toLowerCase().replace(/[_\s-]/g, '');
+  return r === 'superadmin' ? 'superadmin' : 'admin';
+}
+
+/** Actualiza la columna last_login (col 5) del usuario indicado. Best-effort. */
+function touchUserLastLogin(rowIndex) {
+  try {
+    const sheet = SS.getSheetByName('Usuarios');
+    if (sheet) sheet.getRange(rowIndex, 5).setValue(new Date());
+  } catch (e) {
+    Logger.log('[touchUserLastLogin] ' + e.message);
   }
 }
 
@@ -2370,6 +2437,43 @@ function handleGetExamResponses(data) {
 // ================================
 // MODULO: USUARIOS ADMIN
 // ================================
+function handleGetNotificaciones(data) {
+  try {
+    const adminToken = String(data.adminToken || '').trim();
+    if (!adminToken) return jsonResponse(false, 'Token requerido');
+    // Validar: PIN global o token de usuario
+    const isGlobal = validateAdminPin(adminToken);
+    const isUser   = !!findAdminUserByToken(adminToken);
+    if (!isGlobal && !isUser) return jsonResponse(false, 'No autorizado');
+
+    const sheet = SS.getSheetByName('Notificaciones');
+    if (!sheet) return jsonResponse(false, 'Hoja Notificaciones no encontrada');
+    const rows = sheet.getDataRange().getValues();
+    if (rows.length <= 1) return jsonResponse(true, 'OK', []);
+
+    const tz   = CONFIG.timezone || 'America/Mexico_City';
+    const opts = { timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit',
+                   hour:'2-digit', minute:'2-digit', hour12: true };
+    const result = [];
+    for (let i = rows.length - 1; i >= 1; i--) {
+      const row = rows[i];
+      if (!row[0] && !row[1]) continue;
+      const ts = row[0] ? new Date(row[0]).toLocaleString('es-MX', opts) : '';
+      result.push({
+        timestamp : ts,
+        email     : String(row[1] || ''),
+        subject   : String(row[2] || ''),
+        provider  : String(row[3] || 'MAILAPP').toUpperCase(),
+        status    : String(row[4] || 'ENVIADO').toUpperCase()
+      });
+    }
+    return jsonResponse(true, 'OK', result);
+  } catch (e) {
+    Logger.log('[handleGetNotificaciones Error] ' + e.message);
+    return jsonResponse(false, 'Error: ' + e.message);
+  }
+}
+
 function handleGetAdminUsers() {
   try {
     const sheet = SS.getSheetByName('Usuarios');
@@ -2404,9 +2508,9 @@ function handleGetUserRole(data) {
 
     const data_users = sheet.getDataRange().getValues();
     for (let i = 1; i < data_users.length; i++) {
-      if (data_users[i][1] === adminToken) { // columna 1 = token (password_hash almacena el token)
+      if (String(data_users[i][1]).trim() === String(adminToken).trim()) { // columna 1 = token (password_hash almacena el token)
         const email = data_users[i][0];
-        const role  = data_users[i][2] || 'admin';  // columna 2 = role
+        const role  = normalizeRole(data_users[i][2]);  // columna 2 = role (canónico)
         Logger.log('[getUserRole] Email: ' + email + ', Role: ' + role);
         return jsonResponse(true, 'OK', { email, role });
       }
