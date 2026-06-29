@@ -413,6 +413,9 @@ function doPost(e) {
       case 'addToBrevoListManual': return handleAddToBrevoListManual(data);
       case 'markAsIncomplete':          return handleMarkAsIncomplete(data);
       case 'registerInterviewResult':   return handleRegisterInterviewResult(data);
+      case 'getInterviewQuestions':     return handleGetInterviewQuestions(data);
+      case 'submitFinalInterview':      return handleSubmitFinalInterview(data);
+      case 'saveInterviewQuestions':    return handleSaveInterviewQuestions(data);
       case 'getExamResponses':          return handleGetExamResponses(data);
       case 'getAdminUsers':             return handleGetAdminUsers();
       case 'generateAdminToken':        return handleGenerateAdminToken(data);
@@ -1370,6 +1373,243 @@ function interviewResultAdmin(candidateId, result, interviewNotes) {
 }
 
 // ================================
+// MODULO: ENTREVISTA FINAL
+// ================================
+// Hoja de preguntas: "entrevista_final"
+//   A grupo | B n | C id | D type | E categoria | F texto |
+//   G-K option_1..5 | L correct
+// Hoja de respuestas: "Entrevista_Final_Respuestas"
+//   A candidate_id | B grupo | C evaluator_email | D submitted_at |
+//   E responses_json | F avg_score | G overall_notes
+// Columnas en "Candidatos": 30 grupo | 31 avg_score | 32 notes | 33 date
+
+const EF_QUESTIONS_SHEET = 'entrevista_final';
+const EF_RESPONSES_SHEET = 'Entrevista_Final_Respuestas';
+
+/** Devuelve la hoja indicada, creándola con cabeceras si no existe. */
+function getOrCreateSheet(name, headers) {
+  let sheet = SS.getSheetByName(name);
+  if (!sheet) {
+    sheet = SS.insertSheet(name);
+    if (headers && headers.length) {
+      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    }
+  }
+  return sheet;
+}
+
+/** Lee las preguntas de la hoja entrevista_final (opcionalmente filtradas por grupo). */
+function readInterviewQuestions(grupo) {
+  const sheet = getOrCreateSheet(EF_QUESTIONS_SHEET,
+    ['grupo','n','id','type','categoria','texto',
+     'option_1','option_2','option_3','option_4','option_5','correct']);
+  const data = sheet.getDataRange().getValues();
+  const wanted = grupo ? normalizeGrupo(grupo) : null;
+  const questions = [];
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if (!row[2] && !row[5]) continue; // sin id ni texto → fila vacía
+    const g = normalizeGrupo(row[0]);
+    if (wanted && g !== wanted) continue;
+    questions.push({
+      grupo:     g,
+      n:         row[1] || (i),
+      id:        String(row[2] || '').trim() || ('EF_' + i),
+      type:      String(row[3] || 'open').toLowerCase(),
+      categoria: row[4] || '',
+      texto:     row[5] || '',
+      options:   [row[6], row[7], row[8], row[9], row[10]].filter(o => o !== '' && o !== null && o !== undefined),
+      correct:   String(row[11] || '').trim()
+    });
+  }
+  questions.sort((a, b) => (a.n || 0) - (b.n || 0));
+  return questions;
+}
+
+/** Normaliza el grupo a 'psicologo' o 'consultor'. */
+function normalizeGrupo(grupo) {
+  const g = String(grupo || '').toLowerCase().replace(/[_\s-]/g, '');
+  if (g.indexOf('consult') !== -1) return 'consultor';
+  return 'psicologo';
+}
+
+/**
+ * POST action=getInterviewQuestions
+ * Body: { grupo? }  — sin grupo devuelve todas (editor superadmin)
+ */
+function handleGetInterviewQuestions(data) {
+  try {
+    const grupo = data.grupo ? normalizeGrupo(data.grupo) : null;
+    const questions = readInterviewQuestions(grupo);
+    return jsonResponse(true, 'OK', { grupo: grupo, questions: questions });
+  } catch (e) {
+    Logger.log('[handleGetInterviewQuestions Error] ' + e.message);
+    return jsonResponse(false, 'Error: ' + e.message);
+  }
+}
+
+/**
+ * POST action=submitFinalInterview
+ * Body: { candidateId, grupo, responses:{ qId:{answer,score,note} }, overallNotes, adminToken }
+ * Calcula el promedio 1-10, guarda en Entrevista_Final_Respuestas y en Candidatos (cols 30-33).
+ */
+function handleSubmitFinalInterview(data) {
+  try {
+    const candidateId = data.candidateId;
+    if (!candidateId) return jsonResponse(false, 'candidateId requerido');
+    const grupo     = normalizeGrupo(data.grupo);
+    const responses = data.responses || {};
+    const overall   = data.overallNotes || '';
+
+    const user = data.adminToken ? findAdminUserByToken(data.adminToken) : null;
+    const evaluatorEmail = user ? user.email : '';
+
+    // Promedio de los puntajes 1-10 (solo cuenta los puntajes válidos)
+    let sum = 0, count = 0;
+    Object.keys(responses).forEach(qId => {
+      const s = parseFloat(responses[qId] && responses[qId].score);
+      if (!isNaN(s) && s > 0) { sum += s; count++; }
+    });
+    const avg = count > 0 ? Math.round((sum / count) * 10) / 10 : '';
+
+    // Upsert en la hoja de respuestas
+    const respSheet = getOrCreateSheet(EF_RESPONSES_SHEET,
+      ['candidate_id','grupo','evaluator_email','submitted_at','responses_json','avg_score','overall_notes']);
+    const rData = respSheet.getDataRange().getValues();
+    const rowValues = [candidateId, grupo, evaluatorEmail, new Date(),
+                       JSON.stringify(responses), avg, overall];
+    let found = false;
+    for (let i = 1; i < rData.length; i++) {
+      if (String(rData[i][0]) === String(candidateId)) {
+        respSheet.getRange(i + 1, 1, 1, rowValues.length).setValues([rowValues]);
+        found = true;
+        break;
+      }
+    }
+    if (!found) insertNewRow(respSheet, rowValues);
+
+    // Guardar resumen en Candidatos (cols 30-33)
+    const candSheet = SS.getSheetByName('Candidatos');
+    if (candSheet) {
+      const cData = candSheet.getDataRange().getValues();
+      for (let i = 1; i < cData.length; i++) {
+        if (cData[i][0] === candidateId) {
+          candSheet.getRange(i + 1, 30).setValue(grupo);
+          candSheet.getRange(i + 1, 31).setValue(avg);
+          candSheet.getRange(i + 1, 32).setValue(overall);
+          candSheet.getRange(i + 1, 33).setValue(new Date());
+          break;
+        }
+      }
+    }
+
+    addTimelineEvent(candidateId, 'ENTREVISTA_FINAL_REGISTRADA', {
+      grupo: grupo, avg_score: avg, evaluador: evaluatorEmail
+    });
+    updateLastInteraction(candidateId);
+
+    return jsonResponse(true, 'Entrevista final registrada', { avg_score: avg, grupo: grupo });
+  } catch (e) {
+    Logger.log('[handleSubmitFinalInterview Error] ' + e.message);
+    return jsonResponse(false, 'Error: ' + e.message);
+  }
+}
+
+/**
+ * Devuelve las respuestas de la entrevista final de un candidato para "Ver Respuestas".
+ * Estructura compatible con renderRespQuestions del frontend.
+ */
+function getFinalInterviewResponses(candidate_id) {
+  try {
+    const respSheet = SS.getSheetByName(EF_RESPONSES_SHEET);
+    if (!respSheet) return jsonResponse(false, 'Aún no hay entrevistas finales registradas');
+    const rData = respSheet.getDataRange().getValues();
+    let record = null;
+    for (let i = 1; i < rData.length; i++) {
+      if (String(rData[i][0]) === String(candidate_id)) {
+        record = {
+          grupo: rData[i][1], evaluator: rData[i][2], submitted_at: rData[i][3],
+          responses_json: rData[i][4], avg_score: rData[i][5], overall_notes: rData[i][6]
+        };
+        break;
+      }
+    }
+    if (!record) return jsonResponse(false, 'Este candidato no tiene entrevista final registrada');
+
+    let responses = {};
+    try { responses = JSON.parse(record.responses_json || '{}'); } catch (e) {}
+
+    const grupo = normalizeGrupo(record.grupo);
+    const questions = readInterviewQuestions(grupo).map(q => {
+      const r = responses[q.id] || {};
+      const isCorrect = q.type === 'multiple'
+        ? (r.answer !== undefined && r.answer !== null && r.answer !== '' && String(r.answer).trim() === q.correct)
+        : null;
+      return {
+        n: q.n, id: q.id, type: q.type, categoria: q.categoria,
+        text: q.texto, options: q.options, correct: q.correct,
+        answer: r.answer !== undefined ? r.answer : null,
+        is_correct: isCorrect,
+        score: (r.score !== undefined && r.score !== '') ? r.score : null,
+        note: r.note || ''
+      };
+    });
+
+    return jsonResponse(true, 'OK', {
+      candidate_id: candidate_id, exam: 'EF', grupo: grupo,
+      avg_score: record.avg_score, overall_notes: record.overall_notes,
+      evaluator: record.evaluator, questions: questions
+    });
+  } catch (e) {
+    Logger.log('[getFinalInterviewResponses Error] ' + e.message);
+    return jsonResponse(false, 'Error: ' + e.message);
+  }
+}
+
+/**
+ * POST action=saveInterviewQuestions  (solo superadmin)
+ * Body: { questions:[{grupo,n,id,type,categoria,texto,options:[],correct}], adminToken }
+ * Reescribe por completo la hoja entrevista_final.
+ */
+function handleSaveInterviewQuestions(data) {
+  try {
+    const user = data.adminToken ? findAdminUserByToken(data.adminToken) : null;
+    if (!user || user.role !== 'superadmin') {
+      return jsonResponse(false, 'Solo el superadministrador puede modificar las preguntas');
+    }
+    const questions = Array.isArray(data.questions) ? data.questions : [];
+
+    const headers = ['grupo','n','id','type','categoria','texto',
+                     'option_1','option_2','option_3','option_4','option_5','correct'];
+    const sheet = getOrCreateSheet(EF_QUESTIONS_SHEET, headers);
+
+    // Limpiar contenido (conservando la cabecera) y reescribir
+    const lastRow = sheet.getLastRow();
+    if (lastRow > 1) sheet.getRange(2, 1, lastRow - 1, headers.length).clearContent();
+
+    const rows = questions.map((q, idx) => {
+      const opts = Array.isArray(q.options) ? q.options : [];
+      return [
+        normalizeGrupo(q.grupo),
+        q.n || (idx + 1),
+        String(q.id || '').trim() || ('EF_' + Date.now() + '_' + idx),
+        String(q.type || 'open').toLowerCase() === 'multiple' ? 'multiple' : 'open',
+        q.categoria || '',
+        q.texto || '',
+        opts[0] || '', opts[1] || '', opts[2] || '', opts[3] || '', opts[4] || '',
+        q.correct || ''
+      ];
+    });
+    if (rows.length) sheet.getRange(2, 1, rows.length, headers.length).setValues(rows);
+
+    return jsonResponse(true, 'Preguntas guardadas', { total: rows.length });
+  } catch (e) {
+    Logger.log('[handleSaveInterviewQuestions Error] ' + e.message);
+    return jsonResponse(false, 'Error: ' + e.message);
+  }
+}
+
+// ================================
 // MODULO: FLUJO DE ADMIN (helpers)
 // ================================
 function getCandidatesForAdmin() {
@@ -1402,7 +1642,11 @@ function getCandidatesForAdmin() {
           notes:            data[i][20],
           cv_url:           data[i][24] || '',
           declined_at:      data[i][27] || '',
-          declined_comment: data[i][28] || ''
+          declined_comment: data[i][28] || '',
+          ef_grupo:         data[i][29] || '',
+          ef_score:         data[i][30] !== undefined ? data[i][30] : '',
+          ef_notes:         data[i][31] || '',
+          ef_date:          data[i][32] || ''
         });
       }
     }
@@ -2374,6 +2618,12 @@ function handleGetExamResponses(data) {
     const candidate_id = data.candidate_id;
     const exam = (data.exam || 'E1').toUpperCase();
     if (!candidate_id) return jsonResponse(false, 'candidate_id requerido');
+
+    // La "Entrevista final" se almacena con un formato distinto (puntaje 1-10 y
+    // nota por pregunta). Se delega a un helper dedicado.
+    if (exam === 'EF' || exam === 'ENTREVISTA_FINAL') {
+      return getFinalInterviewResponses(candidate_id);
+    }
 
     const pregSheet = SS.getSheetByName('Preguntas');
     if (!pregSheet) return jsonResponse(false, 'Hoja Preguntas no encontrada');

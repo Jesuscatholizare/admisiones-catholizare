@@ -641,6 +641,9 @@
             <button class="nav-item" onclick="showView('respuestas')" id="nav-respuestas">
                 <i class="fas fa-clipboard-list"></i> Ver Respuestas
             </button>
+            <button class="nav-item" onclick="showView('entrevista-final')" id="nav-entrevista-final">
+                <i class="fas fa-comments"></i> Entrevista final
+            </button>
             <button class="nav-item" onclick="showView('notificaciones')" id="nav-notificaciones">
                 <i class="fas fa-envelope-open-text"></i> Correos Enviados
             </button>
@@ -655,6 +658,9 @@
             </button>
             <button class="nav-item" onclick="showView('superadmin')" id="nav-superadmin">
                 <i class="fas fa-crown"></i> Super Admin
+            </button>
+            <button class="nav-item" onclick="showView('editar-entrevista')" id="nav-editar-entrevista">
+                <i class="fas fa-list-check"></i> Editar Entrevista Final
             </button>
             <button class="nav-item" onclick="showView('health')" id="nav-health">
                 <i class="fas fa-heartbeat"></i> System Health
@@ -823,6 +829,7 @@
                             <button class="resp-tab active" data-exam="E1" onclick="switchRespTab('E1')">E1</button>
                             <button class="resp-tab"        data-exam="E2" onclick="switchRespTab('E2')">E2</button>
                             <button class="resp-tab"        data-exam="E3" onclick="switchRespTab('E3')">E3</button>
+                            <button class="resp-tab"        data-exam="EF" onclick="switchRespTab('EF')">Entrevista final</button>
                         </div>
                     </div>
                     <div id="respQuestions" class="resp-questions-panel">
@@ -831,6 +838,82 @@
                             Selecciona un candidato para ver sus respuestas
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vista: Entrevista final -->
+    <div id="view-entrevista-final" class="view">
+        <div class="container">
+            <div class="header-section">
+                <div>
+                    <h1><i class="fas fa-comments" style="color:var(--primary);font-size:1.4rem;vertical-align:middle;margin-right:0.5rem;"></i>Entrevista final</h1>
+                    <small>Cuestionario estructurado de la entrevista personal — evalúa enfoque y técnicas de intervención</small>
+                </div>
+            </div>
+            <div id="efAdminNotice" style="display:none;background:#fff8e1;border:1px solid #ffc107;border-radius:10px;padding:0.85rem 1.1rem;margin-top:1rem;font-size:0.85rem;color:#6b4d00;line-height:1.5;">
+                <i class="fas fa-info-circle" style="margin-right:6px;"></i>
+                Para <strong>modificar las preguntas</strong> de la entrevista, solicita el cambio al <strong>superadministrador</strong>.
+            </div>
+            <div class="resp-layout">
+                <!-- Panel izquierdo: lista de candidatos -->
+                <div class="resp-left">
+                    <div class="resp-search-box">
+                        <i class="fas fa-search" style="color:#ccc;font-size:0.85rem;"></i>
+                        <input type="text" id="efSearch" placeholder="Buscar candidato..." oninput="renderEfCandidates(this.value)">
+                    </div>
+                    <div id="efCandidateList" class="resp-candidate-list">
+                        <div class="resp-empty"><i class="fas fa-user-friends"></i>Cargando candidatos...</div>
+                    </div>
+                </div>
+                <!-- Panel derecho: formulario de entrevista -->
+                <div class="resp-right">
+                    <div class="resp-panel-header">
+                        <div id="efCandidateName" style="font-size:1rem;font-weight:700;color:#001A55;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                            Selecciona un candidato
+                        </div>
+                        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+                            <label style="font-size:0.72rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;">Cuestionario</label>
+                            <select id="efGrupo" onchange="onEfGrupoChange()" disabled
+                                    style="padding:0.35rem 0.6rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.82rem;color:#001A55;background:white;cursor:pointer;">
+                                <option value="psicologo">Psicólogo</option>
+                                <option value="consultor">Consultor</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="efForm" class="resp-questions-panel">
+                        <div class="resp-empty">
+                            <i class="fas fa-hand-pointer"></i>
+                            Selecciona un candidato para iniciar la entrevista final
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vista: Editar Entrevista Final (superadmin) -->
+    <div id="view-editar-entrevista" class="view">
+        <div class="container">
+            <div class="header-section">
+                <div>
+                    <h1><i class="fas fa-list-check" style="color:#f0a500;font-size:1.3rem;vertical-align:middle;margin-right:0.5rem;"></i>Editar Entrevista Final</h1>
+                    <small>Gestiona las preguntas de los cuestionarios de psicólogo y consultor (hoja <code>entrevista_final</code>)</small>
+                </div>
+                <div style="display:flex;gap:0.6rem;">
+                    <button class="btn" style="background:#198754;color:white;" onclick="addEfQuestionRow()">
+                        <i class="fas fa-plus"></i> Añadir pregunta
+                    </button>
+                    <button class="btn" style="background:#001A55;color:white;" onclick="saveEfQuestions()">
+                        <i class="fas fa-save"></i> Guardar cambios
+                    </button>
+                </div>
+            </div>
+            <div id="efEditorMsg" style="display:none;margin-bottom:1rem;padding:0.75rem 1rem;border-radius:8px;font-size:0.85rem;"></div>
+            <div class="admin-card" style="padding:1rem;">
+                <div id="efEditorList">
+                    <div class="resp-empty"><i class="fas fa-spinner fa-spin"></i>Cargando preguntas...</div>
                 </div>
             </div>
         </div>
@@ -1327,19 +1410,26 @@
 
         function configureAccessLevel() {
             // Si es admin, ocultar todas las secciones de superadmin
+            const efNotice = document.getElementById('efAdminNotice');
             if (USER_ROLE !== 'superadmin') {
                 const elementsToHide = [
-                    'nav-usuarios',      // Gestión de Usuarios
-                    'nav-superadmin',    // Super Admin
-                    'nav-health',        // System Health
-                    'view-usuarios',     // Vista Gestión de Usuarios
-                    'view-superadmin',   // Vista Super Admin
-                    'view-health'        // Vista System Health
+                    'nav-usuarios',          // Gestión de Usuarios
+                    'nav-superadmin',        // Super Admin
+                    'nav-health',            // System Health
+                    'nav-editar-entrevista', // Editar Entrevista Final
+                    'view-usuarios',         // Vista Gestión de Usuarios
+                    'view-superadmin',       // Vista Super Admin
+                    'view-health',           // Vista System Health
+                    'view-editar-entrevista' // Vista Editar Entrevista Final
                 ];
                 elementsToHide.forEach(id => {
                     const el = document.getElementById(id);
                     if (el) el.style.display = 'none';
                 });
+                // El admin (no superadmin) ve la leyenda para solicitar cambios de preguntas
+                if (efNotice) efNotice.style.display = 'block';
+            } else if (efNotice) {
+                efNotice.style.display = 'none';
             }
         }
 
@@ -1626,6 +1716,27 @@
                 </div>`;
             }).join('');
 
+            // Resultado de la Entrevista final (puntaje 1-10)
+            const efHasScore = c.ef_score !== null && c.ef_score !== undefined && c.ef_score !== '';
+            const efScoreNum = parseFloat(c.ef_score);
+            const efColor = efHasScore && !isNaN(efScoreNum) ? (efScoreNum >= 7 ? '#198754' : efScoreNum >= 5 ? '#ff9800' : '#dc3545') : '';
+            const efGrupoLabel = c.ef_grupo ? (String(c.ef_grupo).indexOf('consult') !== -1 ? 'Consultor' : 'Psicólogo') : '';
+            const efScoreHTML = efHasScore
+                ? `<strong style="${efColor ? 'color:'+efColor : ''}">${c.ef_score} / 10</strong>`
+                : '<span style="color:#aaa;font-style:italic">Pendiente</span>';
+            const efMetaParts = [];
+            if (c.ef_date)  efMetaParts.push(fmtDate(c.ef_date));
+            if (efGrupoLabel) efMetaParts.push(efGrupoLabel);
+            const efDateHTML = efMetaParts.length ? `<span style="color:#888;font-size:.8em">${efMetaParts.join(' · ')}</span>` : '';
+            const efRow = `<div class="tl-field-row" style="border-top:1px dashed #e0e0e0;margin-top:4px;padding-top:6px;">
+                <span class="tl-field-label">Entrevista final</span>
+                <span class="tl-field-value" style="display:flex;flex-direction:column;gap:2px">${efScoreHTML}${efDateHTML}</span>
+            </div>`;
+            const efNotesHTML = c.ef_notes
+                ? `<div style="margin-top:.6rem;padding:.6rem .75rem;background:#f9f9f9;border-radius:6px;font-size:.82em;line-height:1.5;color:#444;">
+                    <strong style="font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:#888;display:block;margin-bottom:3px;">Notas entrevista final</strong>${c.ef_notes}
+                   </div>` : '';
+
             // Notas de entrevista
             const notesHTML = c.interview_notes
                 ? `<div class="tl-card-block" style="margin-top:.5rem">
@@ -1647,7 +1758,7 @@
                 <!-- Superior Izquierda: Datos del Candidato -->
                 <div class="tl-card-block"><div class="tl-card-title"><i class="fas fa-user"></i> Datos del Candidato</div><div class="tl-fields">${rows}</div></div>
                 <!-- Superior Derecha: Resultados de Exámenes -->
-                <div class="tl-card-block"><div class="tl-card-title"><i class="fas fa-chart-bar"></i> Resultados de Exámenes</div><div class="tl-fields">${examRows}</div></div>
+                <div class="tl-card-block"><div class="tl-card-title"><i class="fas fa-chart-bar"></i> Resultados de Exámenes</div><div class="tl-fields">${examRows}${efRow}</div>${efNotesHTML}</div>
                 <!-- Inferior Izquierda: Curriculum Vitae -->
                 ${cvHTML}
                 <!-- Inferior Derecha: Reseña Profesional -->
@@ -1992,6 +2103,8 @@
             // hooks por vista
             if (view === 'dashboard')  buildDashboard();
             if (view === 'respuestas') renderRespCandidates('');
+            if (view === 'entrevista-final') renderEfCandidates('');
+            if (view === 'editar-entrevista') loadEfEditor();
             if (view === 'usuarios')   loadAdminUsers();
             if (view === 'superadmin') initSuperAdmin();
             if (view === 'health')          loadHealth();
@@ -2293,6 +2406,22 @@
                 </div>`;
             }
 
+            // Entrevista final: promedio 1-10 + notas generales
+            if (data.avg_score !== undefined && data.avg_score !== null && data.avg_score !== '') {
+                const avgN = parseFloat(data.avg_score);
+                const avgPass = !isNaN(avgN) && avgN >= 6;
+                const grupoLabel = data.grupo ? (String(data.grupo).indexOf('consult') !== -1 ? 'CONSULTOR' : 'PSICÓLOGO') : '';
+                html += `<div class="resp-score-bar ${avgPass ? 'pass' : 'fail'}">
+                    <span><i class="fas fa-comments"></i> Promedio entrevista: <strong>${data.avg_score} / 10</strong></span>
+                    <span class="resp-score-badge">${grupoLabel}</span>
+                </div>`;
+                if (data.overall_notes) {
+                    html += `<div style="padding:0.6rem 1rem;background:#f9f9f9;border-radius:8px;font-size:0.85rem;color:#444;line-height:1.5;margin-bottom:0.25rem;">
+                        <strong style="color:#888;font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:3px;">Notas generales</strong>${data.overall_notes}
+                    </div>`;
+                }
+            }
+
             questions.forEach((q, i) => {
                 const tipo     = q.type || q.tipo || 'open';
                 const texto    = q.text || q.texto || q.pregunta || q.question || q.n || '';
@@ -2378,10 +2507,302 @@
                     }
                 }
 
+                // Calificación del evaluador en la Entrevista final (1-10 + nota)
+                if (q.score !== undefined && q.score !== null && q.score !== '') {
+                    html += `<div style="margin-top:0.5rem;padding:0.5rem 0.85rem;background:#eef6ff;border-left:4px solid #001A55;border-radius:0 6px 6px 0;font-size:0.86em;">
+                        <span style="font-weight:700;color:#001A55;"><i class="fas fa-star" style="color:#f0a500;margin-right:5px;"></i>Puntaje evaluador: ${q.score} / 10</span>
+                        ${q.note ? `<div style="color:#444;margin-top:0.25rem;"><strong>Nota:</strong> ${q.note}</div>` : ''}
+                    </div>`;
+                }
+
                 html += '</div>';
             });
 
             panel.innerHTML = html;
+        }
+        // ───────────────────────────────────────────────────────────────────
+
+        // ── Entrevista final (cuestionario de la entrevista personal) ───────
+        function efEscape(s) {
+            return String(s == null ? '' : s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+        function efGrupoFromProfesion(c) {
+            const p = (c && c.profesion ? c.profesion : '').toLowerCase();
+            return /psic/.test(p) ? 'psicologo' : 'consultor';
+        }
+
+        let efSelectedId   = null;
+        let efGrupo        = 'psicologo';
+        let efQuestions    = [];
+        let efExisting     = {};   // { qId: { answer, score, note } }
+        let efOverallNotes = '';
+
+        function renderEfCandidates(filter) {
+            const list = document.getElementById('efCandidateList');
+            if (!list) return;
+            const filtered = [...candidates]
+                .sort((a, b) => new Date(b.registration_date || 0) - new Date(a.registration_date || 0))
+                .filter(c =>
+                    !filter ||
+                    (c.nombre || '').toLowerCase().includes(filter.toLowerCase()) ||
+                    (c.email  || '').toLowerCase().includes(filter.toLowerCase())
+                );
+            if (!filtered.length) {
+                list.innerHTML = '<div class="resp-empty" style="padding:2rem;"><i class="fas fa-search"></i>Sin resultados</div>';
+                return;
+            }
+            list.innerHTML = filtered.map(c => `
+                <button class="resp-candidate-item${c.candidato_id === efSelectedId ? ' active' : ''}"
+                        onclick="selectEfCandidate('${c.candidato_id}')">
+                    <div class="resp-cand-name">${c.nombre || 'Sin nombre'}</div>
+                    <div class="resp-cand-email">${c.email || ''}</div>
+                    ${getStatusBadge(c.status)}
+                </button>`).join('');
+        }
+
+        async function selectEfCandidate(id) {
+            efSelectedId = id;
+            const c = candidates.find(x => x.candidato_id === id);
+            document.getElementById('efCandidateName').textContent = c ? c.nombre : id;
+            renderEfCandidates(document.getElementById('efSearch').value);
+
+            // Cargar respuestas previas (si existen) para prellenar
+            efExisting = {}; efOverallNotes = '';
+            let savedGrupo = null;
+            try {
+                const res = await fetch(API_BASE, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'getExamResponses', candidate_id: id, exam: 'EF', adminToken: ADMIN_TOKEN })
+                });
+                const data = await res.json();
+                if (data.success && data.data) {
+                    savedGrupo     = data.data.grupo || null;
+                    efOverallNotes = data.data.overall_notes || '';
+                    (data.data.questions || []).forEach(q => {
+                        efExisting[q.id] = { answer: q.answer, score: q.score, note: q.note };
+                    });
+                }
+            } catch (e) { /* sin respuestas previas */ }
+
+            efGrupo = savedGrupo || efGrupoFromProfesion(c);
+            const sel = document.getElementById('efGrupo');
+            sel.disabled = false; sel.value = efGrupo;
+            await loadEfQuestions();
+        }
+
+        async function onEfGrupoChange() {
+            efGrupo = document.getElementById('efGrupo').value;
+            await loadEfQuestions();
+        }
+
+        async function loadEfQuestions() {
+            const form = document.getElementById('efForm');
+            form.innerHTML = '<div class="resp-empty"><i class="fas fa-spinner fa-spin"></i>Cargando preguntas...</div>';
+            try {
+                const res = await fetch(API_BASE, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'getInterviewQuestions', grupo: efGrupo, adminToken: ADMIN_TOKEN })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    efQuestions = (data.data && data.data.questions) || [];
+                    renderEfForm();
+                } else {
+                    form.innerHTML = `<div class="resp-empty"><i class="fas fa-inbox"></i>${data.message || 'Sin preguntas'}</div>`;
+                }
+            } catch (e) {
+                form.innerHTML = '<div class="resp-empty" style="color:#dc3545;"><i class="fas fa-exclamation-triangle"></i>Error al cargar preguntas</div>';
+            }
+        }
+
+        function renderEfForm() {
+            const form = document.getElementById('efForm');
+            if (!efQuestions.length) {
+                form.innerHTML = '<div class="resp-empty"><i class="fas fa-inbox"></i>No hay preguntas configuradas para este cuestionario.<br>Pide al superadministrador que las agregue.</div>';
+                return;
+            }
+            const inputStyle = 'width:100%;padding:.55rem;border:1.5px solid #e2e8f0;border-radius:7px;font-size:.86rem;box-sizing:border-box;';
+            let html = '';
+            efQuestions.forEach((q, i) => {
+                const ex = efExisting[q.id] || {};
+                const catBadge = q.categoria
+                    ? `<span style="background:#eef;color:#445;font-size:.66rem;font-weight:700;padding:2px 7px;border-radius:10px;text-transform:uppercase;letter-spacing:.4px;margin-left:6px;">${efEscape(q.categoria)}</span>`
+                    : '';
+                html += `<div class="resp-question">
+                    <div class="resp-q-header">
+                        <span class="resp-q-num">P${i + 1}</span>
+                        <div class="resp-q-texto">${efEscape(q.texto)}${catBadge}</div>
+                    </div>`;
+                if (q.type === 'multiple' && q.options && q.options.length) {
+                    html += '<div class="resp-options">';
+                    q.options.forEach((op, idx) => {
+                        const key = 'option_' + (idx + 1);
+                        const checked = ex.answer === key ? 'checked' : '';
+                        html += `<label class="resp-option" style="cursor:pointer;">
+                            <input type="radio" name="ef_ans_${q.id}" value="${key}" ${checked} style="margin-right:8px;">${efEscape(op)}
+                        </label>`;
+                    });
+                    html += '</div>';
+                } else {
+                    html += `<textarea id="ef_ans_${q.id}" placeholder="Respuesta del candidato..."
+                        style="${inputStyle}margin-top:.5rem;min-height:70px;resize:vertical;">${ex.answer ? efEscape(ex.answer) : ''}</textarea>`;
+                }
+                html += `<div style="display:flex;gap:.75rem;margin-top:.6rem;align-items:flex-start;flex-wrap:wrap;">
+                    <div style="flex-shrink:0;">
+                        <label style="font-size:.68rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:3px;">Puntaje 1-10</label>
+                        <input type="number" id="ef_score_${q.id}" min="1" max="10" step="0.5"
+                            value="${ex.score != null && ex.score !== '' ? ex.score : ''}"
+                            style="width:95px;padding:.5rem;border:1.5px solid #e2e8f0;border-radius:7px;font-size:.86rem;box-sizing:border-box;">
+                    </div>
+                    <div style="flex:1;min-width:170px;">
+                        <label style="font-size:.68rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:3px;">Nota</label>
+                        <input type="text" id="ef_note_${q.id}" value="${ex.note ? efEscape(ex.note) : ''}" placeholder="Observaciones..." style="${inputStyle}">
+                    </div>
+                </div></div>`;
+            });
+            html += `<div class="resp-question" style="background:#fafbff;">
+                <label style="font-size:.75rem;font-weight:700;color:#001A55;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;">Notas generales de la entrevista</label>
+                <textarea id="efOverall" placeholder="Conclusiones, recomendaciones..." style="${inputStyle}min-height:70px;resize:vertical;">${efOverallNotes ? efEscape(efOverallNotes) : ''}</textarea>
+                <button onclick="submitEfInterview(this)" style="margin-top:.85rem;width:100%;padding:.7rem;background:#198754;color:white;border:none;border-radius:8px;font-size:.9rem;font-weight:700;cursor:pointer;">
+                    <i class="fas fa-save"></i> Guardar entrevista final
+                </button>
+            </div>`;
+            form.innerHTML = html;
+        }
+
+        async function submitEfInterview(btn) {
+            if (!efSelectedId) return;
+            const responses = {};
+            efQuestions.forEach(q => {
+                let answer = '';
+                if (q.type === 'multiple') {
+                    const sel = document.querySelector(`input[name="ef_ans_${q.id}"]:checked`);
+                    answer = sel ? sel.value : '';
+                } else {
+                    const el = document.getElementById('ef_ans_' + q.id);
+                    answer = el ? el.value : '';
+                }
+                const sEl = document.getElementById('ef_score_' + q.id);
+                const nEl = document.getElementById('ef_note_' + q.id);
+                responses[q.id] = {
+                    answer: answer,
+                    score:  (sEl && sEl.value !== '') ? parseFloat(sEl.value) : '',
+                    note:   nEl ? nEl.value : ''
+                };
+            });
+            const overall = (document.getElementById('efOverall') || {}).value || '';
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...'; }
+            await callApi({ action: 'submitFinalInterview', candidateId: efSelectedId, grupo: efGrupo, responses, overallNotes: overall, adminToken: ADMIN_TOKEN },
+                '✅ Entrevista final guardada', false);
+            // Refrescar datos de candidatos (para que el modal de acciones muestre el puntaje)
+            efExisting = {}; Object.keys(responses).forEach(k => efExisting[k] = responses[k]);
+            efOverallNotes = overall;
+            await loadData();
+            renderEfForm();
+        }
+
+        // ── Editor de preguntas (superadmin) ────────────────────────────────
+        let efEditorQuestions = [];
+
+        async function loadEfEditor() {
+            const list = document.getElementById('efEditorList');
+            if (!list) return;
+            list.innerHTML = '<div class="resp-empty"><i class="fas fa-spinner fa-spin"></i>Cargando preguntas...</div>';
+            try {
+                const res = await fetch(API_BASE, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'getInterviewQuestions', adminToken: ADMIN_TOKEN })
+                });
+                const data = await res.json();
+                efEditorQuestions = (data.success && data.data && data.data.questions)
+                    ? data.data.questions.map(q => ({
+                        grupo: q.grupo, n: q.n, id: q.id, type: q.type,
+                        categoria: q.categoria, texto: q.texto,
+                        options: (q.options || []).slice(), correct: q.correct
+                      }))
+                    : [];
+                renderEfEditor();
+            } catch (e) {
+                list.innerHTML = '<div class="resp-empty" style="color:#dc3545;"><i class="fas fa-exclamation-triangle"></i>Error al cargar preguntas</div>';
+            }
+        }
+
+        function renderEfEditor() {
+            const list = document.getElementById('efEditorList');
+            if (!efEditorQuestions.length) {
+                list.innerHTML = '<div class="resp-empty"><i class="fas fa-inbox"></i>Sin preguntas. Usa "Añadir pregunta" para crear la primera.</div>';
+                return;
+            }
+            list.innerHTML = efEditorQuestions.map((q, i) => renderEfEditorRow(q, i)).join('');
+        }
+
+        function renderEfEditorRow(q, i) {
+            const ctrl = 'padding:.45rem;border:1.5px solid #e2e8f0;border-radius:7px;font-size:.83rem;box-sizing:border-box;';
+            const opt = (n) => `<input type="text" value="${q.options[n] ? efEscape(q.options[n]) : ''}" oninput="efEditOption(${i},${n},this.value)" placeholder="Opción ${n + 1}" style="${ctrl}width:100%;">`;
+            return `<div class="resp-question" style="margin-bottom:.75rem;">
+                <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-bottom:.6rem;">
+                    <span class="resp-q-num">#${i + 1}</span>
+                    <select onchange="efEditField(${i},'grupo',this.value)" style="${ctrl}background:white;cursor:pointer;">
+                        <option value="psicologo" ${q.grupo === 'psicologo' ? 'selected' : ''}>Psicólogo</option>
+                        <option value="consultor" ${q.grupo === 'consultor' ? 'selected' : ''}>Consultor</option>
+                    </select>
+                    <select onchange="efEditField(${i},'type',this.value)" style="${ctrl}background:white;cursor:pointer;">
+                        <option value="open" ${q.type !== 'multiple' ? 'selected' : ''}>Abierta</option>
+                        <option value="multiple" ${q.type === 'multiple' ? 'selected' : ''}>Opción múltiple</option>
+                    </select>
+                    <input type="text" value="${q.categoria ? efEscape(q.categoria) : ''}" oninput="efEditField(${i},'categoria',this.value)" placeholder="Categoría (enfoque, técnicas...)" style="${ctrl}flex:1;min-width:150px;">
+                    <button onclick="removeEfQuestionRow(${i})" title="Eliminar" style="background:#dc3545;color:white;border:none;border-radius:6px;padding:7px 11px;cursor:pointer;"><i class="fas fa-trash"></i></button>
+                </div>
+                <textarea oninput="efEditField(${i},'texto',this.value)" placeholder="Texto de la pregunta" style="${ctrl}width:100%;min-height:55px;resize:vertical;">${q.texto ? efEscape(q.texto) : ''}</textarea>
+                <div style="${q.type === 'multiple' ? '' : 'display:none;'}margin-top:.5rem;">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;">${[0,1,2,3,4].map(opt).join('')}</div>
+                    <input type="text" value="${q.correct ? efEscape(q.correct) : ''}" oninput="efEditField(${i},'correct',this.value)" placeholder="Respuesta correcta (option_1 … option_5)" style="${ctrl}width:100%;margin-top:.4rem;">
+                </div>
+            </div>`;
+        }
+
+        function efEditField(i, field, value) {
+            if (!efEditorQuestions[i]) return;
+            efEditorQuestions[i][field] = value;
+            if (field === 'type') renderEfEditor();   // re-render para mostrar/ocultar opciones
+        }
+        function efEditOption(i, n, value) {
+            if (!efEditorQuestions[i]) return;
+            if (!Array.isArray(efEditorQuestions[i].options)) efEditorQuestions[i].options = [];
+            efEditorQuestions[i].options[n] = value;
+        }
+        function addEfQuestionRow() {
+            efEditorQuestions.push({ grupo: 'psicologo', n: efEditorQuestions.length + 1, id: '', type: 'open', categoria: '', texto: '', options: [], correct: '' });
+            renderEfEditor();
+        }
+        function removeEfQuestionRow(i) {
+            efEditorQuestions.splice(i, 1);
+            renderEfEditor();
+        }
+        function saveEfQuestions() {
+            requireSuperAdminPin(async () => {
+                const msg = document.getElementById('efEditorMsg');
+                // Renumerar según orden actual
+                efEditorQuestions.forEach((q, idx) => { q.n = idx + 1; });
+                try {
+                    const res = await fetch(API_BASE, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'saveInterviewQuestions', questions: efEditorQuestions, adminToken: ADMIN_TOKEN })
+                    });
+                    const data = await res.json();
+                    msg.style.display = 'block';
+                    msg.style.background = data.success ? '#dcfce7' : '#fee2e2';
+                    msg.style.color = data.success ? '#15803d' : '#dc2626';
+                    msg.textContent = data.message || (data.success ? 'Preguntas guardadas' : 'Error');
+                    if (data.success) { showToast('✅ Preguntas guardadas', 'success'); loadEfEditor(); }
+                } catch (e) {
+                    msg.style.display = 'block';
+                    msg.style.background = '#fee2e2'; msg.style.color = '#dc2626';
+                    msg.textContent = 'Error de conexión';
+                }
+            });
         }
         // ───────────────────────────────────────────────────────────────────
 
@@ -2956,7 +3377,8 @@
                 <div class="help-section-title">Menú Lateral</div>
                 <div class="manual-row"><div class="manual-icon"><i class="fas fa-chart-bar"></i></div><div class="manual-text"><strong>Dashboard</strong>Resumen de acciones pendientes y actividad reciente.</div></div>
                 <div class="manual-row"><div class="manual-icon"><i class="fas fa-users"></i></div><div class="manual-text"><strong>Profesionales</strong>Listado completo con filtros de búsqueda y estado.</div></div>
-                <div class="manual-row"><div class="manual-icon"><i class="fas fa-clipboard-list"></i></div><div class="manual-text"><strong>Ver Respuestas</strong>Respuestas de E1, E2 y E3 con marcadores correcto/incorrecto.</div></div>
+                <div class="manual-row"><div class="manual-icon"><i class="fas fa-clipboard-list"></i></div><div class="manual-text"><strong>Ver Respuestas</strong>Respuestas de E1, E2, E3 y Entrevista final con marcadores correcto/incorrecto y puntajes.</div></div>
+                <div class="manual-row"><div class="manual-icon"><i class="fas fa-comments"></i></div><div class="manual-text"><strong>Entrevista final</strong>Cuestionario de la entrevista personal (psicólogo o consultor). Puntúa cada pregunta de 1 a 10; el promedio aparece en el modal de acciones del candidato.</div></div>
                 <div class="manual-row"><div class="manual-icon"><i class="fas fa-user-shield"></i></div><div class="manual-text"><strong>Gestión de Usuarios</strong>Administra los accesos al panel.</div></div>
                 <div class="manual-row"><div class="manual-icon"><i class="fas fa-heartbeat"></i></div><div class="manual-text"><strong>System Health</strong>Estado de los servicios del sistema en tiempo real.</div></div>
             </div>
@@ -2981,7 +3403,9 @@
                 ['¿Cómo agendo una entrevista?', 'Cuando el estado es "Entrevista por agendar": ⚙ Acciones → Reenviar Correos → "Agendar" para enviar el enlace de agendamiento.'],
                 ['¿Cómo asigno la categoría final?', 'Después de entrevista PASS, en el modal de Acciones aparece la sección "Asignar Categoría". Selecciona Junior, Senior o Expert.'],
                 ['¿Qué hago si no recibió un correo?', 'Ve a ⚙ Acciones → "Reenviar Correos" y selecciona el tipo correspondiente a la etapa actual del candidato.'],
-                ['¿Cómo veo las respuestas de un examen?', 'Ve a "Ver Respuestas" en el menú lateral. Selecciona el candidato y navega entre las tabs E1, E2 y E3.'],
+                ['¿Cómo veo las respuestas de un examen?', 'Ve a "Ver Respuestas" en el menú lateral. Selecciona el candidato y navega entre las tabs E1, E2, E3 y Entrevista final.'],
+                ['¿Cómo registro la entrevista final?', 'Ve a "Entrevista final", elige al candidato, confirma el cuestionario (psicólogo o consultor), registra las respuestas, puntúa cada pregunta de 1 a 10 y guarda. El promedio y las notas aparecen en el modal de acciones.'],
+                ['¿Cómo cambio las preguntas de la entrevista final?', 'Solo el superadministrador puede hacerlo desde "Editar Entrevista Final" en el menú lateral. Si eres admin, solicita el cambio al superadministrador.'],
             ];
             return '<div class="help-section"><div class="help-section-title">Preguntas Frecuentes</div>' +
                 faqs.map(([q, a]) => `
