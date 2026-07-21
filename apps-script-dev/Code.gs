@@ -2009,9 +2009,14 @@ function sendViaBrevo(to, subject, htmlBody, apiKey) {
       payload: JSON.stringify(payload), muteHttpExceptions: true
     };
     const response = UrlFetchApp.fetch('https://api.brevo.com/v3/smtp/email', options);
+    const code     = response.getResponseCode();
     const result   = JSON.parse(response.getContentText());
-    if (response.getResponseCode() === 201) return { success: true, messageId: result.messageId };
-    return { success: false, error: 'Brevo: ' + response.getResponseCode() };
+    if (code === 201) return { success: true, messageId: result.messageId };
+    if (code === 401 || code === 403) {
+      return { success: false, error: 'Brevo rechazo la BREVO_API_KEY (HTTP ' + code + '): la clave es invalida o fue revocada. ' +
+        'Genera una nueva en https://app.brevo.com/settings/keys/api y actualizala en las Propiedades del script (BREVO_API_KEY).' };
+    }
+    return { success: false, error: 'Brevo: HTTP ' + code + (result && result.message ? ' - ' + result.message : '') };
   } catch (error) { return { success: false, error: error.message }; }
 }
 
@@ -2027,9 +2032,14 @@ function sendViaResend(to, subject, htmlBody, apiKey) {
       payload: JSON.stringify(payload), muteHttpExceptions: true
     };
     const response = UrlFetchApp.fetch('https://api.resend.com/emails', options);
+    const code     = response.getResponseCode();
     const result   = JSON.parse(response.getContentText());
-    if (response.getResponseCode() === 200) return { success: true, messageId: result.id };
-    return { success: false, error: 'Resend: ' + response.getResponseCode() };
+    if (code === 200) return { success: true, messageId: result.id };
+    if (code === 401 || code === 403) {
+      return { success: false, error: 'Resend rechazo la RESEND_API_KEY (HTTP ' + code + '): la clave es invalida o fue revocada. ' +
+        'Genera una nueva en https://resend.com/api-keys y actualizala en las Propiedades del script (RESEND_API_KEY).' };
+    }
+    return { success: false, error: 'Resend: HTTP ' + code + (result && result.message ? ' - ' + result.message : '') };
   } catch (error) { return { success: false, error: error.message }; }
 }
 
