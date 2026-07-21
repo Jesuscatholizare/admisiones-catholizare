@@ -385,6 +385,61 @@ const CONFIG = {
 // ================================
 // ROUTER PRINCIPAL (doPost / doGet)
 // ================================
+
+/**
+ * CAPA 2 — Portero de seguridad.
+ * Acciones que SOLO puede ejecutar un administrador autenticado: mutaciones
+ * destructivas, listados de datos personales (PII), envio de correos, alta/baja
+ * de usuarios, logs y diagnostico. Las acciones publicas (registro, examenes,
+ * terminos, login) NO aparecen aqui para no romper los flujos de candidatos.
+ */
+const ACCIONES_SOLO_ADMIN = {
+  approveExam:            true,
+  autoApproveE1:         true,
+  rejectExam:            true,
+  assignCategory:        true,
+  getDashboardData:      true,
+  resendWelcomeEmail:    true,
+  sendEmailManual:       true,
+  addToBrevoListManual:  true,
+  markAsIncomplete:      true,
+  registerInterviewResult: true,
+  getExamResponses:      true,
+  getAdminUsers:         true,
+  generateAdminToken:    true,
+  getUserRole:           true,
+  resetTokenAttempt:     true,
+  gasDiagnostic:         true,
+  handoff:               true,
+  uploadCandidateCV:     true,
+  getNotificaciones:     true,
+  health:                true
+};
+
+/**
+ * Valida el token de administrador que el frontend guarda en
+ * sessionStorage('adminToken') tras el login y envia en data.adminToken.
+ * Acepta las dos credenciales validas del sistema:
+ *   1. El PIN global de administrador (ADMIN_PIN) — login por PIN compartido.
+ *   2. Un token individual (UUID) de un usuario ACTIVO de la hoja "Usuarios".
+ * Devuelve true solo si la credencial es valida; false en cualquier otro caso.
+ */
+function validateAdminToken(token) {
+  try {
+    const t = String(token || '').trim();
+    if (!t) return false;
+    // 1) PIN global de admin.
+    if (validateAdminPin(t)) return true;
+    // 2) Token individual de la hoja Usuarios (debe existir y estar activo).
+    const user = findAdminUserByToken(t);
+    if (user && String(user.status).toLowerCase() === 'active') return true;
+    return false;
+  } catch (err) {
+    Logger.log('[validateAdminToken] ' + err.message);
+    return false;
+  }
+}
+
 /**
  * POST: Recibe acciones desde proxy.php
  */
@@ -393,6 +448,18 @@ function doPost(e) {
     const data   = JSON.parse(e.postData.contents);
     const action = data.action;
     Logger.log('[doPost] Accion: ' + action);
+
+    // ── CAPA 2: portero de token admin (antes del switch) ────────────────────
+    // Para las acciones sensibles, exige un token de admin valido. Si falta o es
+    // invalido, responde en el MISMO formato JSON que el resto y NO ejecuta la
+    // accion. Las acciones publicas pasan de largo.
+    if (ACCIONES_SOLO_ADMIN[action]) {
+      const adminToken = data.adminToken || data.currentUserToken;
+      if (!validateAdminToken(adminToken)) {
+        Logger.log('[doPost] Acceso denegado (token admin invalido) en accion: ' + action);
+        return jsonResponse(false, 'No autorizado: se requiere una sesion de administrador valida');
+      }
+    }
 
     switch(action) {
       case 'initial_registration': return handleRegistration(data);
@@ -443,7 +510,13 @@ function doGet(e) {
     Logger.log('[doGet] Accion: ' + action + ', Exam: ' + exam);
 
     if (action === 'get_exam')          return getExamData(token, exam);
-    if (action === 'getDashboardData')  return handleGetDashboardData();
+    if (action === 'getDashboardData') {
+      // Capa 2: getDashboardData expone datos personales; tambien por GET exige token admin.
+      if (!validateAdminToken(e.parameter.adminToken)) {
+        return jsonResponse(false, 'No autorizado: se requiere una sesion de administrador valida');
+      }
+      return handleGetDashboardData();
+    }
     if (action === 'get_terms_content') return handleGetTermsContent();
     if (action === 'health')            return jsonResponse(true, 'OK', checkSystemHealth());
 
