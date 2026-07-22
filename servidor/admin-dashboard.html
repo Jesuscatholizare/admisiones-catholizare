@@ -1947,8 +1947,11 @@
             await callApi({ action:'rejectExam', candidateId:currentCandidateId, exam:'PROCESO', reason, adminToken:ADMIN_TOKEN }, '✉️ Evaluación registrada — correo enviado al candidato', true);
         }
         async function callApi(body, successMsg, reload) {
+            // Capa 2: inyecta siempre el token de admin de la sesion (autoritativo)
+            // en cada peticion, para que el portero del backend la autorice.
+            const _body = Object.assign({}, body || {}, { adminToken: sessionStorage.getItem('adminToken') || '' });
             try {
-                const resp = await fetch(API_BASE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                const resp = await fetch(API_BASE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(_body) });
                 const data = await resp.json();
                 showToast(data.message || (data.success ? successMsg : 'Error'), data.success ? 'success' : 'error');
                 if (data.success && reload) { closeModal('accionesModal'); loadData(); }
