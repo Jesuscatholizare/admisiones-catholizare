@@ -989,6 +989,35 @@
                 <div id="superTokenResult"></div>
             </div>
 
+            <!-- Puntaje mínimo para pasar -->
+            <div class="admin-card">
+                <div class="admin-section-title">Puntaje mínimo para pasar</div>
+                <h3>Configuración de aprobación automática</h3>
+                <p>Define el puntaje mínimo (0–100) que cada examen debe alcanzar para <strong>aprobarse automáticamente</strong> y avanzar a la siguiente fase. Los candidatos que no lleguen a este puntaje quedan en revisión manual.</p>
+                <div id="examConfigWrap" style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end;margin-top:1rem;">
+                    <div style="min-width:120px;">
+                        <label style="font-size:0.78rem;color:#888;display:block;margin-bottom:4px;">Examen E1</label>
+                        <input id="minScoreE1" type="number" min="0" max="100" step="1"
+                               style="width:100%;padding:0.5rem 0.75rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.95rem;outline:none;">
+                    </div>
+                    <div style="min-width:120px;">
+                        <label style="font-size:0.78rem;color:#888;display:block;margin-bottom:4px;">Examen E2</label>
+                        <input id="minScoreE2" type="number" min="0" max="100" step="1"
+                               style="width:100%;padding:0.5rem 0.75rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.95rem;outline:none;">
+                    </div>
+                    <div style="min-width:120px;">
+                        <label style="font-size:0.78rem;color:#888;display:block;margin-bottom:4px;">Examen E3</label>
+                        <input id="minScoreE3" type="number" min="0" max="100" step="1"
+                               style="width:100%;padding:0.5rem 0.75rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.95rem;outline:none;">
+                    </div>
+                    <button id="saveMinScoreBtn" class="btn" style="background:#001A55;color:white;white-space:nowrap;"
+                            onclick="saveExamConfig()">
+                        <i class="fas fa-save"></i> Guardar
+                    </button>
+                </div>
+                <div id="examConfigMsg" style="margin-top:0.85rem;font-size:0.83rem;display:none;"></div>
+            </div>
+
             <!-- Accesos rápidos -->
             <div class="admin-card">
                 <div class="admin-section-title">Accesos rápidos</div>
@@ -1204,9 +1233,9 @@
           <button onclick="document.getElementById('modalSuperAdminAuth').style.display='none'" style="background:none;border:none;color:white;font-size:1.4rem;cursor:pointer;line-height:1;">&times;</button>
         </div>
         <div style="padding:1.4rem;background:white;">
-          <p style="margin-bottom:1rem;color:#555;font-size:0.9rem;">Esta acción requiere autenticación de superadministrador. Ingresa el PIN:</p>
+          <p style="margin-bottom:1rem;color:#555;font-size:0.9rem;">Esta acción requiere tu PIN personal de autorización (asignado a tu usuario). Ingresa el PIN:</p>
           <div style="margin-bottom:1rem;">
-            <input id="superAdminPin" type="password" placeholder="PIN del superadministrador" style="width:100%;padding:0.7rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;" autocomplete="off">
+            <input id="superAdminPin" type="password" inputmode="numeric" placeholder="PIN personal de autorización" style="width:100%;padding:0.7rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;" autocomplete="off">
           </div>
           <div style="display:flex;gap:0.75rem;">
             <button onclick="document.getElementById('modalSuperAdminAuth').style.display='none'" style="flex:1;padding:0.65rem;border:1.5px solid #dee2e6;border-radius:8px;background:white;color:#555;font-weight:600;cursor:pointer;">Cancelar</button>
@@ -2415,23 +2444,36 @@
                 wrap.innerHTML = '<div class="resp-empty"><i class="fas fa-user-slash"></i>No hay usuarios registrados</div>';
                 return;
             }
+            const canManagePin = (USER_ROLE === 'superadmin');
             let html = `<table class="users-table">
                 <thead><tr>
                     <th>Nombre</th><th>Email</th><th>Rol</th>
-                    <th>Último acceso</th><th>Estado</th><th>Acción</th>
+                    <th>Último acceso</th><th>Estado</th><th>PIN acciones</th><th>Acción</th>
                 </tr></thead><tbody>`;
             users.forEach(u => {
                 const role   = u.role || u.rol || 'admin';
                 const active = u.active !== false && u.status !== 'inactive';
+                const email  = u.email || '';
+                const hasPin = !!(u.has_pin);
+                const pinBadge = hasPin
+                    ? `<span class="badge badge-junior" style="font-size:0.72rem;"><i class="fas fa-check"></i> Asignado</span>`
+                    : `<span class="badge badge-rejected" style="font-size:0.72rem;">Sin PIN</span>`;
+                const pinBtn = canManagePin
+                    ? `<button class="btn" style="font-size:0.72rem;padding:0.28rem 0.55rem;background:#d97706;color:white;margin-left:6px;"
+                                onclick="promptSetUserPin('${email}', ${hasPin}, ${active})" title="Asignar o cambiar el PIN de acciones restringidas">
+                            <i class="fas fa-lock"></i> ${hasPin ? 'Cambiar' : 'Asignar'}
+                        </button>`
+                    : '';
                 html += `<tr>
                     <td><strong>${u.nombre || u.name || '—'}</strong></td>
-                    <td style="color:#555;">${u.email || '—'}</td>
+                    <td style="color:#555;">${email || '—'}</td>
                     <td><span class="role-badge ${role}">${role}</span></td>
                     <td style="color:#aaa;font-size:0.82rem;">${u.last_login ? formatDate(u.last_login) : '—'}</td>
                     <td><span class="badge ${active ? 'badge-junior' : 'badge-rejected'}" style="font-size:0.72rem;">${active ? 'Activo' : 'Inactivo'}</span></td>
+                    <td style="white-space:nowrap;">${pinBadge}${pinBtn}</td>
                     <td>
                         <button class="btn" style="font-size:0.78rem;padding:0.3rem 0.7rem;background:#001A55;color:white;"
-                                onclick="generateTokenForUser('${u.email || ''}')">
+                                onclick="generateTokenForUser('${email}')">
                             <i class="fas fa-key"></i> Token
                         </button>
                     </td>
@@ -2439,6 +2481,40 @@
             });
             html += '</tbody></table>';
             wrap.innerHTML = html;
+        }
+
+        // Asignar / cambiar / eliminar el PIN individual de acciones restringidas.
+        async function promptSetUserPin(email, hasPin, active) {
+            if (!email) return;
+            if (!active) {
+                alert('No se puede asignar un PIN a un usuario inactivo.');
+                return;
+            }
+            const msg = hasPin
+                ? `Cambiar el PIN de acciones restringidas de ${email}.\n\nEscribe el nuevo PIN (4 a 8 dígitos), o déjalo vacío para ELIMINARLO:`
+                : `Asignar un PIN de acciones restringidas a ${email}.\n\nEscribe el PIN (4 a 8 dígitos):`;
+            const pin = window.prompt(msg, '');
+            if (pin === null) return;  // canceló
+            const clean = pin.trim();
+            if (clean && !/^\d{4,8}$/.test(clean)) {
+                alert('El PIN debe tener entre 4 y 8 dígitos numéricos.');
+                return;
+            }
+            try {
+                const res = await fetch(API_BASE, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'setUserPin', email, pin: clean, adminToken: ADMIN_TOKEN })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert(clean ? '✓ PIN asignado correctamente.' : '✓ PIN eliminado.');
+                    loadAdminUsers();
+                } else {
+                    alert('✗ ' + (data.message || 'No se pudo guardar el PIN.'));
+                }
+            } catch (e) {
+                alert('Error de conexión al guardar el PIN.');
+            }
         }
 
         async function generateTokenForUser(email) {
@@ -2452,6 +2528,73 @@
         function initSuperAdmin() {
             const el = document.getElementById('superCurrentToken');
             if (el) el.textContent = ADMIN_TOKEN || '(no token en sesión)';
+            loadExamConfig();
+        }
+
+        // Carga los puntajes mínimos vigentes en el módulo de superadmin.
+        async function loadExamConfig() {
+            const e1 = document.getElementById('minScoreE1');
+            const e2 = document.getElementById('minScoreE2');
+            const e3 = document.getElementById('minScoreE3');
+            if (!e1 || !e2 || !e3) return;
+            try {
+                const res = await fetch(API_BASE, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'getExamConfig', adminToken: ADMIN_TOKEN })
+                });
+                const data = await res.json();
+                const s = (data.data && data.data.minScores) || {};
+                e1.value = (s.E1 != null ? s.E1 : 75);
+                e2.value = (s.E2 != null ? s.E2 : 75);
+                e3.value = (s.E3 != null ? s.E3 : 75);
+            } catch (e) {
+                e1.value = e1.value || 75; e2.value = e2.value || 75; e3.value = e3.value || 75;
+            }
+        }
+
+        // Guarda los puntajes mínimos (solo superadmin; el backend lo re-valida).
+        async function saveExamConfig() {
+            const btn = document.getElementById('saveMinScoreBtn');
+            const msg = document.getElementById('examConfigMsg');
+            const vals = {
+                E1: Number(document.getElementById('minScoreE1').value),
+                E2: Number(document.getElementById('minScoreE2').value),
+                E3: Number(document.getElementById('minScoreE3').value)
+            };
+            const show = (ok, text) => {
+                msg.style.display = 'block';
+                msg.style.color = ok ? '#15803d' : '#dc2626';
+                msg.innerHTML = (ok ? '<i class="fas fa-check-circle"></i> ' : '<i class="fas fa-exclamation-triangle"></i> ') + text;
+            };
+            for (const k of ['E1', 'E2', 'E3']) {
+                if (isNaN(vals[k]) || vals[k] < 0 || vals[k] > 100) {
+                    show(false, `El puntaje de ${k} debe estar entre 0 y 100.`);
+                    return;
+                }
+            }
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+            try {
+                const res = await fetch(API_BASE, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'updateExamConfig', minScores: vals, adminToken: ADMIN_TOKEN })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    show(true, data.message || 'Puntajes mínimos actualizados.');
+                    const s = (data.data && data.data.minScores) || {};
+                    if (s.E1 != null) document.getElementById('minScoreE1').value = s.E1;
+                    if (s.E2 != null) document.getElementById('minScoreE2').value = s.E2;
+                    if (s.E3 != null) document.getElementById('minScoreE3').value = s.E3;
+                } else {
+                    show(false, data.message || 'No se pudo guardar.');
+                }
+            } catch (e) {
+                show(false, 'Error de conexión.');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save"></i> Guardar';
+            }
         }
 
         async function generateAdminTokenAction() {
@@ -3042,7 +3185,7 @@
                 const resp = await fetch(API_BASE, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'verifyAdminToken', token: pin })
+                    body: JSON.stringify({ action: 'verifyRestrictedPin', pin: pin, adminToken: ADMIN_TOKEN })
                 });
                 const data = await resp.json();
 

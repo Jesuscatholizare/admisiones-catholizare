@@ -133,6 +133,7 @@ $allowed_actions = [
     'adminLogin',
     'verifyOTP',
     'verifyAdminToken',
+    'verifyRestrictedPin',
     'getUserRole',
     // Acciones extras
     'resendWelcomeEmail',
@@ -144,6 +145,9 @@ $allowed_actions = [
     'getExamResponses',
     'getAdminUsers',
     'generateAdminToken',
+    'setUserPin',
+    'getExamConfig',
+    'updateExamConfig',
     'health',
     'gasDiagnostic',
     'registerInterviewResult',

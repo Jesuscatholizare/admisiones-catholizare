@@ -67,7 +67,7 @@ function initializeSpreadsheet() {
                 'rubric_red_flags', 'rubric_raw']
     },
     'Usuarios': {
-      headers: ['email', 'password_hash', 'role', 'created_date', 'last_login', 'status']
+      headers: ['email', 'password_hash', 'role', 'created_date', 'last_login', 'status', 'pin_admin']
     },
     'Sessions': {
       headers: ['session_id', 'user_email', 'created_at', 'expires_at', 'ip_address', 'user_agent']
@@ -407,6 +407,10 @@ const ACCIONES_SOLO_ADMIN = {
   getExamResponses:      true,
   getAdminUsers:         true,
   generateAdminToken:    true,
+  setUserPin:            true,
+  getExamConfig:         true,
+  updateExamConfig:      true,
+  verifyRestrictedPin:   true,
   getUserRole:           true,
   resetTokenAttempt:     true,
   gasDiagnostic:         true,
@@ -475,6 +479,10 @@ function doPost(e) {
       case 'verifyOTP':            return handleVerifyOTP(data);
       case 'resendWelcomeEmail':   return handleResendWelcomeEmail(data);
       case 'verifyAdminToken':     return handleVerifyAdminToken(data);
+      case 'verifyRestrictedPin':  return handleVerifyRestrictedPin(data);
+      case 'setUserPin':           return handleSetUserPin(data);
+      case 'getExamConfig':        return handleGetExamConfig();
+      case 'updateExamConfig':     return handleUpdateExamConfig(data);
       case 'getDashboardData':     return handleGetDashboardData();
       case 'sendEmailManual':      return handleSendEmailManual(data);
       case 'addToBrevoListManual': return handleAddToBrevoListManual(data);
@@ -916,9 +924,8 @@ function handleExamSubmit(data) {
       flags: JSON.stringify(flags)
     });
 
-    updateCandidateStatus(candidate_id, 'pending_review_' + exam);
-
-    // Escribir score y fecha en columnas dedicadas de Candidatos
+    // Escribir score y fecha en columnas dedicadas de Candidatos (antes de
+    // decidir el estado, para que la auto-aprobación lea datos consistentes).
     const candSheet = SS.getSheetByName('Candidatos');
     if (candSheet) {
       const candData = candSheet.getDataRange().getValues();
@@ -939,11 +946,27 @@ function handleExamSubmit(data) {
     addTimelineEvent(candidate_id, 'TEST_' + exam + '_COMPLETADO', {
       puntaje: score, veredicto: verdict, flags: flags
     });
+
+    // ── AUTO-APROBACIÓN ──────────────────────────────────────────────────────
+    // Si el candidato alcanza el puntaje mínimo configurado y no hay indicios de
+    // uso de IA, el examen se aprueba automáticamente y el candidato avanza a la
+    // siguiente fase, sin necesidad de aprobación manual del administrador.
+    // Cualquier otro caso (bajo el mínimo o marcado para revisión por IA) queda
+    // en 'pending_review_' para que un admin lo evalúe manualmente.
+    let autoApproved = false;
+    if (verdict === 'pass') {
+      const appr = approveExamAdmin(candidate_id, exam, { auto: true, score: score });
+      autoApproved = !!(appr && appr.success);
+    }
+    if (!autoApproved) {
+      updateCandidateStatus(candidate_id, 'pending_review_' + exam);
+    }
+
     notifyAdminExamCompleted(candidate_name, candidate_email, exam, score, verdict, flags);
     markTokenAsUsed(token);
 
     return jsonResponse(true, 'Examen ' + exam + ' recibido. Estado: ' + verdict, {
-      verdict: verdict, score: score, flags: flags
+      verdict: verdict, score: score, flags: flags, autoApproved: autoApproved
     });
   } catch (error) {
     Logger.log('[ERROR handleExamSubmit] ' + error.message);
@@ -1200,6 +1223,188 @@ function handleVerifyAdminToken(data) {
   } catch (error) {
     Logger.log('[ERROR handleVerifyAdminToken] ' + error.message);
     return jsonResponse(false, 'Error: ' + error.message);
+  }
+}
+
+// ================================
+// MODULO: PIN INDIVIDUAL DE ACCIONES RESTRINGIDAS
+// ================================
+/**
+ * Busca un usuario ACTIVO cuyo PIN individual (columna G = pin_admin de la hoja
+ * Usuarios) coincida con el valor recibido. Este PIN es distinto del token de
+ * acceso (columna B) y NO sirve para iniciar sesión: solo autoriza acciones
+ * restringidas (aprobar los exámenes E2 y E3).
+ * Devuelve { email, role, rowIndex } o null si no hay coincidencia activa.
+ */
+function validateRestrictedPin(pin) {
+  try {
+    const clean = String(pin || '').trim();
+    if (!clean) return null;
+    const sheet = SS.getSheetByName('Usuarios');
+    if (!sheet) return null;
+    const data = sheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      const storedPin = String(data[i][6] || '').trim();   // columna 7 = pin_admin
+      if (!storedPin) continue;
+      if (storedPin !== clean) continue;
+      const status = String(data[i][5] || 'active').toLowerCase();
+      if (status !== 'active') return null;   // el PIN existe pero el usuario está inactivo
+      return { email: data[i][0], role: normalizeRole(data[i][2]), rowIndex: i + 1 };
+    }
+    return null;
+  } catch (e) {
+    Logger.log('[validateRestrictedPin] ' + e.message);
+    return null;
+  }
+}
+
+/**
+ * POST action=verifyRestrictedPin
+ * Body: { pin | token, adminToken }
+ * Valida el PIN individual (hoja Usuarios, columna G) de un usuario activo para
+ * autorizar acciones restringidas. NO acepta el PIN global histórico: la
+ * autorización debe estar vinculada a un usuario concreto.
+ */
+function handleVerifyRestrictedPin(data) {
+  try {
+    const pin = String(data.pin || data.token || '').trim();
+    if (!pin) return jsonResponse(false, 'PIN requerido');
+    const user = validateRestrictedPin(pin);
+    if (user) {
+      return jsonResponse(true, 'PIN válido', { email: user.email, role: user.role });
+    }
+    return jsonResponse(false, 'PIN inválido o usuario inactivo');
+  } catch (error) {
+    Logger.log('[ERROR handleVerifyRestrictedPin] ' + error.message);
+    return jsonResponse(false, 'Error: ' + error.message);
+  }
+}
+
+/**
+ * POST action=setUserPin  (solo superadmin)
+ * Body: { email, pin, adminToken }
+ * Asigna / actualiza / elimina el PIN individual de un usuario activo.
+ * - pin vacío → elimina el PIN.
+ * - pin no vacío → debe ser 4-8 dígitos y único entre los demás usuarios.
+ */
+function handleSetUserPin(data) {
+  try {
+    if (!isSuperAdminToken(data.adminToken)) {
+      return jsonResponse(false, 'Solo un superadministrador puede asignar PINes');
+    }
+    const email = String(data.email || '').trim().toLowerCase();
+    if (!email) return jsonResponse(false, 'Email requerido');
+    const pin = String(data.pin == null ? '' : data.pin).trim();
+    if (pin && !/^\d{4,8}$/.test(pin)) {
+      return jsonResponse(false, 'El PIN debe tener entre 4 y 8 dígitos numéricos');
+    }
+
+    const sheet = SS.getSheetByName('Usuarios');
+    if (!sheet) return jsonResponse(false, 'Hoja Usuarios no encontrada');
+    const rows = sheet.getDataRange().getValues();
+
+    let targetRow = -1;
+    for (let i = 1; i < rows.length; i++) {
+      const rowEmail = String(rows[i][0] || '').trim().toLowerCase();
+      if (rowEmail === email) { targetRow = i; }
+      // Unicidad: ningún otro usuario puede tener el mismo PIN.
+      if (pin && rowEmail !== email && String(rows[i][6] || '').trim() === pin) {
+        return jsonResponse(false, 'Ese PIN ya está asignado a otro usuario');
+      }
+    }
+    if (targetRow < 0) return jsonResponse(false, 'Usuario no encontrado');
+
+    if (pin && String(rows[targetRow][5] || 'active').toLowerCase() !== 'active') {
+      return jsonResponse(false, 'No se puede asignar PIN a un usuario inactivo');
+    }
+
+    sheet.getRange(targetRow + 1, 7).setValue(pin);   // columna G = pin_admin
+    return jsonResponse(true, pin ? 'PIN asignado correctamente' : 'PIN eliminado', {
+      email: email, has_pin: !!pin
+    });
+  } catch (e) {
+    Logger.log('[handleSetUserPin Error] ' + e.message);
+    return jsonResponse(false, 'Error: ' + e.message);
+  }
+}
+
+/**
+ * Determina si un token corresponde a un superadministrador.
+ * Acepta el PIN/token global histórico (ADMIN_PIN, tratado como maestro) o el
+ * token individual de un usuario activo con rol superadmin.
+ */
+function isSuperAdminToken(token) {
+  try {
+    const t = String(token || '').trim();
+    if (!t) return false;
+    if (validateAdminPin(t)) return true;
+    const user = findAdminUserByToken(t);
+    return !!(user && String(user.status).toLowerCase() === 'active' && user.role === 'superadmin');
+  } catch (e) {
+    Logger.log('[isSuperAdminToken] ' + e.message);
+    return false;
+  }
+}
+
+// ================================
+// MODULO: CONFIGURACIÓN DE PUNTAJES MÍNIMOS
+// ================================
+/**
+ * POST action=getExamConfig
+ * Devuelve los puntajes mínimos vigentes para aprobar cada examen.
+ */
+function handleGetExamConfig() {
+  try {
+    return jsonResponse(true, 'OK', {
+      minScores: {
+        E1: Number(CONFIG.exam_e1_min_score) || 75,
+        E2: Number(CONFIG.exam_e2_min_score) || 75,
+        E3: Number(CONFIG.exam_e3_min_score) || 75
+      }
+    });
+  } catch (e) {
+    Logger.log('[handleGetExamConfig Error] ' + e.message);
+    return jsonResponse(false, 'Error: ' + e.message);
+  }
+}
+
+/**
+ * POST action=updateExamConfig  (solo superadmin)
+ * Body: { minScores: { E1, E2, E3 }, adminToken }
+ * Actualiza el "puntaje mínimo para pasar" de cada examen. Los valores se
+ * guardan en Script Properties (fuente de máxima prioridad para getConfig), de
+ * modo que la auto-aprobación los usa de inmediato.
+ */
+function handleUpdateExamConfig(data) {
+  try {
+    if (!isSuperAdminToken(data.adminToken)) {
+      return jsonResponse(false, 'Solo un superadministrador puede modificar los puntajes mínimos');
+    }
+    const scores = data.minScores || {};
+    const props  = PropertiesService.getScriptProperties();
+    const applied = {};
+    ['E1', 'E2', 'E3'].forEach(function (ex) {
+      if (scores[ex] === undefined || scores[ex] === null || scores[ex] === '') return;
+      const v = Number(scores[ex]);
+      if (isNaN(v) || v < 0 || v > 100) {
+        throw new Error('El puntaje mínimo de ' + ex + ' debe estar entre 0 y 100');
+      }
+      props.setProperty('EXAM_' + ex + '_MIN_SCORE', String(v));
+      applied[ex] = v;
+    });
+    if (Object.keys(applied).length === 0) {
+      return jsonResponse(false, 'No se recibió ningún puntaje válido');
+    }
+    return jsonResponse(true, 'Puntajes mínimos actualizados', {
+      minScores: {
+        E1: Number(CONFIG.exam_e1_min_score) || 75,
+        E2: Number(CONFIG.exam_e2_min_score) || 75,
+        E3: Number(CONFIG.exam_e3_min_score) || 75
+      }
+    });
+  } catch (e) {
+    Logger.log('[handleUpdateExamConfig Error] ' + e.message);
+    return jsonResponse(false, 'Error: ' + e.message);
   }
 }
 
@@ -1488,8 +1693,9 @@ function getCandidatesForAdmin() {
   }
 }
 
-function approveExamAdmin(candidateId, exam) {
+function approveExamAdmin(candidateId, exam, options) {
   try {
+    const auto  = !!(options && options.auto);
     const sheet = SS.getSheetByName('Candidatos');
     const data  = sheet.getDataRange().getValues();
     for (let i = 1; i < data.length; i++) {
@@ -1509,8 +1715,10 @@ function approveExamAdmin(candidateId, exam) {
           sheet.getRange(i + 1, 11).setValue('awaiting_interview');
           sendEmailAwaitingInterview(email, name, candidateId);
         }
-        addTimelineEvent(candidateId, 'EXAMEN_' + exam + '_APROBADO_ADMIN', {
-          exam: exam, fecha: new Date().toISOString()
+        addTimelineEvent(candidateId, 'EXAMEN_' + exam + (auto ? '_APROBADO_AUTOMATICO' : '_APROBADO_ADMIN'), {
+          exam: exam, fecha: new Date().toISOString(),
+          modo: auto ? 'automatico_puntaje_minimo' : 'manual_admin',
+          score: (options && options.score !== undefined) ? options.score : undefined
         });
         return { success: true };
       }
@@ -2559,7 +2767,7 @@ function handleGetAdminUsers() {
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
       if (!row[0]) continue;
-      users.push({ email: row[0], role: row[2] || 'admin', created_date: row[3], last_login: row[4], status: row[5] || 'active' });
+      users.push({ email: row[0], role: row[2] || 'admin', created_date: row[3], last_login: row[4], status: row[5] || 'active', has_pin: !!(row[6] && String(row[6]).trim()) });
     }
     return jsonResponse(true, 'OK', { users });
   } catch (e) {
