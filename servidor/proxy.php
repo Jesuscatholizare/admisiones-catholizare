@@ -139,6 +139,10 @@ $allowed_actions = [
     'sendEmailManual',
     'addToBrevoListManual',
     'markAsIncomplete',
+    'resetCandidate',
+    'pauseCandidate',
+    'markDelayed',
+    'deleteCandidate',
     'resetTokenAttempt',
     // Vistas admin
     'getExamResponses',

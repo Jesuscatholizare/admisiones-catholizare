@@ -513,6 +513,13 @@
         .tl-name   { font-size: 1.15rem; font-weight: 800; color: #111; }
         .tl-meta   { font-size: 0.8rem; color: #888; margin-top: 2px; }
         .tl-header-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-left: auto; }
+        .tl-act-btn { padding: 6px 11px; border: 1px solid #dee2e6; border-radius: 7px; background: #fff; cursor: pointer; font-size: 0.78rem; font-weight: 600; color: #444; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+        .tl-act-btn:hover { background: #f5f6f8; }
+        .tl-act-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .tl-act-warn { border-color: #ffb020; color: #b76e00; background: #fff8ec; }
+        .tl-act-warn:hover { background: #fdeecd; }
+        .tl-act-danger { border-color: #f1a9a0; color: #c0392b; background: #fdecea; }
+        .tl-act-danger:hover { background: #f9d9d4; }
         .tl-btn    { padding: 0.4rem 0.8rem; border-radius: 7px; border: none; cursor: pointer; font-size: 0.8rem; font-weight: 700; display: flex; align-items: center; gap: 5px; transition: all 0.15s; white-space: nowrap; }
         .tl-btn:disabled { opacity: 0.4; cursor: default; }
         .tl-btn-green  { background: #d1e7dd; color: #0a3622; border: 1.5px solid #a3cfbb; }
@@ -1226,6 +1233,12 @@
             <div class="tl-name" id="tlName">Candidato</div>
             <div class="tl-meta" id="tlMeta">email • Fase • Estado</div>
           </div>
+          <div class="tl-header-actions">
+            <button class="tl-act-btn" onclick="tlReiniciar()" title="Reiniciar el proceso del candidato"><i class="fas fa-play"></i> Reiniciar</button>
+            <button class="tl-act-btn" onclick="tlPausar()" title="Pausar al candidato"><i class="fas fa-pause"></i> Pausar</button>
+            <button class="tl-act-btn tl-act-warn" onclick="tlMarcarAtrasado()" title="Marcar como atrasado"><i class="fas fa-exclamation-triangle"></i> Atrasado</button>
+            <button class="tl-act-btn tl-act-danger" onclick="tlEliminar()" title="Eliminar al candidato"><i class="fas fa-trash"></i> Eliminar</button>
+          </div>
           <button class="tl-close" onclick="closeModal('accionesModal')">&times;</button>
         </div>
         <!-- TL Tabs -->
@@ -1702,6 +1715,11 @@
                 flags.push({icon: 'fa-clock', color: '#ff9800', text: 'Marcado como Atrasado en notas'});
             }
 
+            // Candidato pausado
+            if (c.notes && c.notes.toLowerCase().includes('pausado')) {
+                flags.push({icon: 'fa-pause-circle', color: '#6c757d', text: 'Candidato pausado'});
+            }
+
             if (flags.length === 0) {
                 return `<div style="margin-top:1.5rem;padding:1.5rem;background:#e8f5e9;border-radius:10px;border-left:4px solid #198754;">
                     <div style="font-size:0.9rem;color:#2e7d32;"><i class="fas fa-check-circle"></i> Sin alertas detectadas</div>
@@ -1875,6 +1893,32 @@
                     showToast(data.message || 'Error al avanzar fase', 'error');
                 }
             } catch (e) { showToast('Error de conexión', 'error'); }
+        }
+
+        // ── Acciones del encabezado del modal ────────────────────────────────
+        async function tlReiniciar() {
+            const c = tlCurrentCandidate;
+            if (!c) return;
+            if (!confirm(`¿Reiniciar el proceso de "${c.nombre}"?\n\nVolverá a "Registrado" y se borrarán los resultados de exámenes, entrevista, categoría y las marcas de pausa/atraso.`)) return;
+            await callApi({ action:'resetCandidate', candidateId: c.candidato_id }, '↺ Proceso reiniciado', true);
+        }
+        async function tlPausar() {
+            const c = tlCurrentCandidate;
+            if (!c) return;
+            if (!confirm(`¿Pausar a "${c.nombre}"? Se marcará como pausado (puedes reanudarlo con Reiniciar).`)) return;
+            await callApi({ action:'pauseCandidate', candidateId: c.candidato_id }, '⏸ Candidato pausado', true);
+        }
+        async function tlMarcarAtrasado() {
+            const c = tlCurrentCandidate;
+            if (!c) return;
+            if (!confirm(`¿Marcar a "${c.nombre}" como atrasado?`)) return;
+            await callApi({ action:'markDelayed', candidateId: c.candidato_id }, '⚠ Marcado como atrasado', true);
+        }
+        async function tlEliminar() {
+            const c = tlCurrentCandidate;
+            if (!c) return;
+            if (!confirm(`¿Eliminar a "${c.nombre}"?\n\nEsta acción NO se puede deshacer: se borra el registro del candidato.`)) return;
+            await callApi({ action:'deleteCandidate', candidateId: c.candidato_id }, '🗑 Candidato eliminado', true);
         }
 
         async function doSendEmailTL(emailType) {

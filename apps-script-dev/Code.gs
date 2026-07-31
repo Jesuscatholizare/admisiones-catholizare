@@ -403,6 +403,10 @@ const ACCIONES_SOLO_ADMIN = {
   sendEmailManual:       true,
   addToBrevoListManual:  true,
   markAsIncomplete:      true,
+  resetCandidate:        true,
+  pauseCandidate:        true,
+  markDelayed:           true,
+  deleteCandidate:       true,
   registerInterviewResult: true,
   getExamResponses:      true,
   getAdminUsers:         true,
@@ -479,6 +483,10 @@ function doPost(e) {
       case 'sendEmailManual':      return handleSendEmailManual(data);
       case 'addToBrevoListManual': return handleAddToBrevoListManual(data);
       case 'markAsIncomplete':          return handleMarkAsIncomplete(data);
+      case 'resetCandidate':            return handleResetCandidate(data);
+      case 'pauseCandidate':            return handlePauseCandidate(data);
+      case 'markDelayed':               return handleMarkDelayed(data);
+      case 'deleteCandidate':           return handleDeleteCandidate(data);
       case 'registerInterviewResult':   return handleRegisterInterviewResult(data);
       case 'getExamResponses':          return handleGetExamResponses(data);
       case 'getAdminUsers':             return handleGetAdminUsers();
@@ -1384,6 +1392,111 @@ function handleMarkAsIncomplete(data) {
     return jsonResponse(false, 'Candidato no encontrado');
   } catch (error) {
     Logger.log('[ERROR handleMarkAsIncomplete] ' + error.message);
+    return jsonResponse(false, 'Error: ' + error.message);
+  }
+}
+
+/**
+ * Reinicia el proceso de un candidato: vuelve a 'registered' y limpia
+ * resultados de exámenes, entrevista, categoría y las marcas en notas.
+ * Columnas Candidatos: 11=status, 12-19=E1..final_category, 20=last_interaction, 21=notes
+ */
+function handleResetCandidate(data) {
+  try {
+    const { candidateId } = data;
+    if (!candidateId) return jsonResponse(false, 'candidateId requerido');
+
+    const sheet = SS.getSheetByName('Candidatos');
+    if (!sheet) return jsonResponse(false, 'Sheet Candidatos no encontrada');
+    const rows = sheet.getDataRange().getValues();
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][0] === candidateId) {
+        const rowNum = i + 1;
+        sheet.getRange(rowNum, 11).setValue('registered');   // status
+        sheet.getRange(rowNum, 12, 1, 8).clearContent();      // E1_score .. final_category (12-19)
+        sheet.getRange(rowNum, 20).setValue(new Date());      // last_interaction
+        sheet.getRange(rowNum, 21).setValue('');              // notes (limpia pausa/atraso)
+        addTimelineEvent(candidateId, 'PROCESO_REINICIADO', { por: 'Admin' });
+        return jsonResponse(true, 'Proceso del candidato reiniciado');
+      }
+    }
+    return jsonResponse(false, 'Candidato no encontrado');
+  } catch (error) {
+    Logger.log('[ERROR handleResetCandidate] ' + error.message);
+    return jsonResponse(false, 'Error: ' + error.message);
+  }
+}
+
+/**
+ * Marca al candidato como pausado dejando una etiqueta en la columna notas
+ * sin borrar el texto existente. Reversible con Reiniciar.
+ */
+function handlePauseCandidate(data) {
+  return setCandidateNoteTag_(data, 'Pausado', 'CANDIDATO_PAUSADO', 'Candidato pausado');
+}
+
+/**
+ * Marca al candidato como atrasado dejando una etiqueta en la columna notas.
+ * El frontend ya reconoce 'atrasado' en notas para mostrar el aviso.
+ */
+function handleMarkDelayed(data) {
+  return setCandidateNoteTag_(data, 'Atrasado', 'CANDIDATO_ATRASADO', 'Candidato marcado como atrasado');
+}
+
+/**
+ * Helper: agrega una etiqueta [Tag] a la columna notas (21) si no está ya,
+ * preservando el texto previo. Usado por Pausar y Atrasado.
+ */
+function setCandidateNoteTag_(data, tag, eventType, okMsg) {
+  try {
+    const { candidateId } = data;
+    if (!candidateId) return jsonResponse(false, 'candidateId requerido');
+
+    const sheet = SS.getSheetByName('Candidatos');
+    if (!sheet) return jsonResponse(false, 'Sheet Candidatos no encontrada');
+    const rows = sheet.getDataRange().getValues();
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][0] === candidateId) {
+        const rowNum = i + 1;
+        let notes = String(rows[i][20] || '');
+        if (notes.toLowerCase().indexOf(tag.toLowerCase()) === -1) {
+          notes = (notes ? notes.trim() + ' ' : '') + '[' + tag + ']';
+          sheet.getRange(rowNum, 21).setValue(notes);
+        }
+        sheet.getRange(rowNum, 20).setValue(new Date()); // last_interaction
+        addTimelineEvent(candidateId, eventType, { por: 'Admin' });
+        return jsonResponse(true, okMsg);
+      }
+    }
+    return jsonResponse(false, 'Candidato no encontrado');
+  } catch (error) {
+    Logger.log('[ERROR setCandidateNoteTag_] ' + error.message);
+    return jsonResponse(false, 'Error: ' + error.message);
+  }
+}
+
+/**
+ * Elimina por completo la fila del candidato en la hoja Candidatos.
+ * Acción irreversible (el frontend pide confirmación antes de llamar).
+ */
+function handleDeleteCandidate(data) {
+  try {
+    const { candidateId } = data;
+    if (!candidateId) return jsonResponse(false, 'candidateId requerido');
+
+    const sheet = SS.getSheetByName('Candidatos');
+    if (!sheet) return jsonResponse(false, 'Sheet Candidatos no encontrada');
+    const rows = sheet.getDataRange().getValues();
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][0] === candidateId) {
+        addTimelineEvent(candidateId, 'CANDIDATO_ELIMINADO', { nombre: rows[i][2], email: rows[i][3], por: 'Admin' });
+        sheet.deleteRow(i + 1);
+        return jsonResponse(true, 'Candidato eliminado');
+      }
+    }
+    return jsonResponse(false, 'Candidato no encontrado');
+  } catch (error) {
+    Logger.log('[ERROR handleDeleteCandidate] ' + error.message);
     return jsonResponse(false, 'Error: ' + error.message);
   }
 }
