@@ -143,6 +143,8 @@ $allowed_actions = [
     'pauseCandidate',
     'markDelayed',
     'deleteCandidate',
+    'archiveCandidate',
+    'unarchiveCandidate',
     'resetTokenAttempt',
     // Vistas admin
     'getExamResponses',
@@ -152,6 +154,7 @@ $allowed_actions = [
     'gasDiagnostic',
     'registerInterviewResult',
     'handoff',
+    'handoffCandidate',
     'uploadCandidateCV',
     'getNotificaciones',
 ];

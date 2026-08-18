@@ -520,6 +520,10 @@
         .tl-act-warn:hover { background: #fdeecd; }
         .tl-act-danger { border-color: #f1a9a0; color: #c0392b; background: #fdecea; }
         .tl-act-danger:hover { background: #f9d9d4; }
+        .tl-act-handoff { border-color: #c4b5fd; color: #5b21b6; background: #ede9fe; }
+        .tl-act-handoff:hover { background: #ddd6fe; }
+        .tl-act-archive { border-color: #cbd5e1; color: #475569; background: #f1f5f9; }
+        .tl-act-archive:hover { background: #e2e8f0; }
         .tl-btn    { padding: 0.4rem 0.8rem; border-radius: 7px; border: none; cursor: pointer; font-size: 0.8rem; font-weight: 700; display: flex; align-items: center; gap: 5px; transition: all 0.15s; white-space: nowrap; }
         .tl-btn:disabled { opacity: 0.4; cursor: default; }
         .tl-btn-green  { background: #d1e7dd; color: #0a3622; border: 1.5px solid #a3cfbb; }
@@ -630,7 +634,7 @@
     <!-- Sidebar -->
     <aside class="sidebar">
         <div class="sidebar-logo">
-            <img src="https://profesionales.catholizare.com/wp-content/uploads/2024/03/logo-Pro-2024-bco-1-1536x251.png"
+            <img src="https://catholizare.com/wp-content/uploads/2026/08/Captura-de-pantalla-2026-08-13-190033.jpg"
                  alt="Catholizare Pro"
                  style="width:140px;max-width:100%;display:block;margin-bottom:6px;">
             <div class="sidebar-logo-sub">Panel de Admisión</div>
@@ -644,6 +648,9 @@
             </button>
             <button class="nav-item" onclick="showView('profesionales')" id="nav-profesionales">
                 <i class="fas fa-users"></i> Profesionales
+            </button>
+            <button class="nav-item" onclick="showView('archivados')" id="nav-archivados">
+                <i class="fas fa-box-archive"></i> Profesionales archivados
             </button>
             <button class="nav-item" onclick="showView('respuestas')" id="nav-respuestas">
                 <i class="fas fa-clipboard-list"></i> Ver Respuestas
@@ -761,9 +768,6 @@
                 <button class="btn" style="background:#198754;color:white;" onclick="document.getElementById('modalAgregarProfesional').style.display='block'">
                     <i class="fas fa-user-plus"></i> + Agregar Profesional
                 </button>
-                <button class="btn" style="background:#7c3aed;color:white;" onclick="document.getElementById('modalHandoff').style.display='block'">
-                    <i class="fas fa-share-square"></i> Handoff → Onboarding
-                </button>
                 <button class="btn" style="background:#001A55;color:white;" onclick="refreshData()">
                     <i class="fas fa-sync-alt"></i> Actualizar
                 </button>
@@ -797,8 +801,59 @@
                 </div>
             </div>
         </div>
+        <!-- Cargar más -->
+        <div style="text-align:center;margin-top:1rem;">
+            <button id="candLoadMore" onclick="loadMoreCandidates()"
+                style="display:none;background:#001A55;color:white;border:none;border-radius:10px;padding:10px 24px;font-size:0.85rem;font-weight:600;cursor:pointer;gap:7px;align-items:center;">
+                <i class="fas fa-chevron-down"></i> Cargar más
+            </button>
+        </div>
     </div><!-- /.container -->
     </div><!-- /#view-profesionales -->
+
+    <!-- Vista: Profesionales archivados -->
+    <div id="view-archivados" class="view">
+    <div class="container">
+        <div class="header-section">
+            <div>
+                <h1><i class="fas fa-box-archive" style="color:var(--primary);font-size:1.3rem;vertical-align:middle;margin-right:0.5rem;"></i>Profesionales archivados</h1>
+                <small>Candidatos fuera del proceso activo, marcados como inconclusos en Brevo</small>
+            </div>
+            <div style="display:flex;gap:0.6rem;flex-wrap:wrap;">
+                <button class="btn" style="background:#001A55;color:white;" onclick="refreshData()">
+                    <i class="fas fa-sync-alt"></i> Actualizar
+                </button>
+            </div>
+        </div>
+        <!-- Filters -->
+        <div class="filters-section">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="archSearchInput" placeholder="Buscar por nombre, email o ID..." onkeyup="renderArchivedTable()">
+            </div>
+        </div>
+        <!-- Table -->
+        <div class="table-container">
+            <div class="table-header">
+                <h2>Archivados</h2>
+                <span class="table-header-meta" id="archRecordCount">0 registros</span>
+            </div>
+            <div id="archTableContent">
+                <div class="empty-state">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Cargando datos...</p>
+                </div>
+            </div>
+        </div>
+        <!-- Cargar más -->
+        <div style="text-align:center;margin-top:1rem;">
+            <button id="archLoadMore" onclick="loadMoreArchived()"
+                style="display:none;background:#001A55;color:white;border:none;border-radius:10px;padding:10px 24px;font-size:0.85rem;font-weight:600;cursor:pointer;gap:7px;align-items:center;">
+                <i class="fas fa-chevron-down"></i> Cargar más
+            </button>
+        </div>
+    </div><!-- /.container -->
+    </div><!-- /#view-archivados -->
 
     <!-- Vista: Ver Respuestas -->
     <div id="view-respuestas" class="view">
@@ -1060,40 +1115,6 @@
     </div><!-- /.main-content -->
 </div><!-- /.app-layout -->
 
-    <!-- Modal: Handoff → Onboarding -->
-    <div id="modalHandoff" class="modal">
-      <div class="modal-content" style="max-width:520px;padding:0;border-radius:12px;overflow:hidden;">
-        <div style="background:#7c3aed;color:white;padding:1.1rem 1.4rem;display:flex;align-items:center;justify-content:space-between;">
-          <div style="font-weight:800;font-size:1rem;"><i class="fas fa-share-square" style="margin-right:8px;"></i>Handoff → Onboarding</div>
-          <button onclick="document.getElementById('modalHandoff').style.display='none'" style="background:none;border:none;color:white;font-size:1.4rem;cursor:pointer;line-height:1;">&times;</button>
-        </div>
-        <div style="padding:1.4rem;background:white;">
-          <div style="background:#ede9fe;border:1px solid #c4b5fd;border-radius:8px;padding:0.85rem 1rem;margin-bottom:1.25rem;font-size:0.83rem;color:#5b21b6;line-height:1.5;">
-            <strong><i class="fas fa-info-circle"></i> ¿Qué hace este botón?</strong><br>
-            Transfiere todos los candidatos con estado <strong>Aprobado</strong> (Junior / Senior / Expert)
-            al spreadsheet de Onboarding. Los candidatos ya existentes en Onboarding
-            (por email) son omitidos automáticamente.
-          </div>
-          <div id="handoffMensaje" style="display:none;margin-bottom:1rem;padding:0.75rem 1rem;border-radius:8px;font-size:0.84rem;line-height:1.5;"></div>
-          <div id="handoffPreview" style="display:none;margin-bottom:1rem;max-height:200px;overflow-y:auto;border:1px solid #e9ecef;border-radius:8px;"></div>
-          <div style="display:flex;gap:0.75rem;margin-top:0.5rem;">
-            <button onclick="document.getElementById('modalHandoff').style.display='none'"
-                    style="flex:1;padding:0.65rem;border:1.5px solid #dee2e6;border-radius:8px;background:white;color:#555;font-weight:600;cursor:pointer;">
-                Cancelar
-            </button>
-            <button id="handoffPreviewBtn" onclick="previewHandoff()"
-                    style="flex:1;padding:0.65rem;border:none;border-radius:8px;background:#6b7280;color:white;font-weight:700;cursor:pointer;">
-                <i class="fas fa-eye"></i> Vista Previa
-            </button>
-            <button id="handoffBtn" onclick="runHandoff()"
-                    style="flex:2;padding:0.65rem;border:none;border-radius:8px;background:#7c3aed;color:white;font-weight:700;cursor:pointer;">
-                <i class="fas fa-share-square"></i> Transferir al Onboarding
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- Modal: Agregar Profesional -->
     <div id="modalAgregarProfesional" class="modal">
       <div class="modal-content" style="max-width:520px;padding:0;border-radius:12px;overflow:hidden;">
@@ -1237,7 +1258,8 @@
             <button class="tl-act-btn" onclick="tlReiniciar()" title="Reiniciar el proceso del candidato"><i class="fas fa-play"></i> Reiniciar</button>
             <button class="tl-act-btn" onclick="tlPausar()" title="Pausar al candidato"><i class="fas fa-pause"></i> Pausar</button>
             <button class="tl-act-btn tl-act-warn" onclick="tlMarcarAtrasado()" title="Marcar como atrasado"><i class="fas fa-exclamation-triangle"></i> Atrasado</button>
-            <button class="tl-act-btn tl-act-danger" onclick="tlEliminar()" title="Eliminar al candidato"><i class="fas fa-trash"></i> Eliminar</button>
+            <button class="tl-act-btn tl-act-handoff" id="tlHandoffBtn" onclick="tlHandoff()" title="Transferir este candidato al sistema de Onboarding"><i class="fas fa-share-square"></i> Handoff</button>
+            <button class="tl-act-btn tl-act-archive" onclick="tlArchivar()" title="Archivar al candidato (sale de la lista y se marca como inconcluso)"><i class="fas fa-box-archive"></i> Archivar</button>
           </div>
           <button class="tl-close" onclick="closeModal('accionesModal')">&times;</button>
         </div>
@@ -1377,7 +1399,8 @@
                     const payload = data.data || {};
                     candidates = payload.candidates || [];
                     updateStats(payload.stats || { total: 0, pending: 0, approved: 0, rejected: 0 });
-                    renderTable(candidates);
+                    filterTable();
+                    renderArchivedTable();
                     buildDashboard();
                     updateLastUpdate();
                 } else {
@@ -1396,17 +1419,46 @@
             document.getElementById('statRejected').textContent = stats.rejected || 0;
         }
 
+        // ── Listado de candidatos con paginación (10 + "Cargar más") ─────────
+        const CAND_PAGE_SIZE = 10;
+        let _candRows  = [];              // conjunto filtrado completo, ya ordenado
+        let _candShown = CAND_PAGE_SIZE;  // cuántos se muestran ahora
+
+        /** Candidatos activos: los archivados salen de la lista de Profesionales. */
+        function activeCandidates() {
+            return candidates.filter(c => (c.status || '') !== 'archived');
+        }
+        /** Candidatos archivados, para la pestaña "Profesionales archivados". */
+        function archivedCandidates() {
+            return candidates.filter(c => (c.status || '') === 'archived');
+        }
+
+        function loadMoreCandidates() {
+            _candShown += CAND_PAGE_SIZE;
+            renderCandRows();
+        }
+
         function renderTable(data) {
+            _candRows  = [...(data || [])].sort((a, b) => new Date(b.registration_date || 0) - new Date(a.registration_date || 0));
+            _candShown = CAND_PAGE_SIZE;
+            renderCandRows();
+        }
+
+        function renderCandRows() {
             const tableContent = document.getElementById('tableContent');
-            if (!data || data.length === 0) {
+            const loadBtn      = document.getElementById('candLoadMore');
+            const data         = _candRows;
+            if (!data.length) {
                 tableContent.innerHTML = `
                     <div class="empty-state">
                         <i class="fas fa-inbox"></i>
                         <p>No hay candidatos registrados</p>
                     </div>`;
                 document.getElementById('recordCount').textContent = '0 registros';
+                if (loadBtn) loadBtn.style.display = 'none';
                 return;
             }
+            const visible = data.slice(0, _candShown);
             let html = `
                 <table>
                     <thead>
@@ -1421,8 +1473,7 @@
                         </tr>
                     </thead>
                     <tbody>`;
-            const sorted = [...data].sort((a, b) => new Date(b.registration_date || 0) - new Date(a.registration_date || 0));
-            sorted.forEach(candidate => {
+            visible.forEach(candidate => {
                 html += `
                     <tr>
                         <td><code style="background:#f5f5f5;padding:0.2rem 0.5rem;border-radius:3px;font-size:0.85em;">${candidate.candidato_id || ''}</code></td>
@@ -1444,7 +1495,97 @@
             });
             html += `</tbody></table>`;
             tableContent.innerHTML = html;
-            document.getElementById('recordCount').textContent = data.length + ' registros';
+            document.getElementById('recordCount').textContent =
+                visible.length < data.length
+                    ? `${visible.length} de ${data.length} registros`
+                    : `${data.length} registros`;
+            if (loadBtn) {
+                const restantes = data.length - visible.length;
+                loadBtn.style.display = restantes > 0 ? 'inline-flex' : 'none';
+                loadBtn.innerHTML = `<i class="fas fa-chevron-down"></i> Cargar más (${Math.min(CAND_PAGE_SIZE, restantes)} de ${restantes})`;
+            }
+        }
+
+        // ── Profesionales archivados ─────────────────────────────────────────
+        let _archShown = CAND_PAGE_SIZE;
+
+        function loadMoreArchived() {
+            _archShown += CAND_PAGE_SIZE;
+            renderArchivedTable(true);
+        }
+
+        /** @param {boolean} keepPage - true al paginar; false (por defecto) reinicia a la primera página. */
+        function renderArchivedTable(keepPage) {
+            if (!keepPage) _archShown = CAND_PAGE_SIZE;
+            const tableContent = document.getElementById('archTableContent');
+            const loadBtn      = document.getElementById('archLoadMore');
+            const countEl      = document.getElementById('archRecordCount');
+            if (!tableContent) return;
+            const searchEl = document.getElementById('archSearchInput');
+            const search   = (searchEl ? searchEl.value : '').toLowerCase();
+            const data = archivedCandidates()
+                .filter(c => !search ||
+                    (c.nombre || '').toLowerCase().includes(search) ||
+                    (c.email  || '').toLowerCase().includes(search) ||
+                    (c.candidato_id || '').toLowerCase().includes(search))
+                .sort((a, b) => new Date(b.last_interaction || 0) - new Date(a.last_interaction || 0));
+            if (!data.length) {
+                tableContent.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-box-archive"></i>
+                        <p>No hay profesionales archivados</p>
+                    </div>`;
+                if (countEl) countEl.textContent = '0 registros';
+                if (loadBtn) loadBtn.style.display = 'none';
+                return;
+            }
+            const visible = data.slice(0, _archShown);
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Email</th>
+                            <th>Archivado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+            visible.forEach(c => {
+                html += `
+                    <tr>
+                        <td><code style="background:#f5f5f5;padding:0.2rem 0.5rem;border-radius:3px;font-size:0.85em;">${c.candidato_id || ''}</code></td>
+                        <td><strong>${c.nombre || ''}</strong></td>
+                        <td>${c.email || ''}</td>
+                        <td><small>${formatDate(c.last_interaction)}</small></td>
+                        <td>
+                            <div class="actions">
+                                <button class="btn" style="background:#198754;color:white;" onclick="reactivarCandidato('${c.candidato_id}')" title="Reactivar y devolver a la lista de Profesionales">
+                                    <i class="fas fa-rotate-left"></i> Reactivar
+                                </button>
+                            </div>
+                        </td>
+                    </tr>`;
+            });
+            html += `</tbody></table>`;
+            tableContent.innerHTML = html;
+            if (countEl) {
+                countEl.textContent = visible.length < data.length
+                    ? `${visible.length} de ${data.length} registros`
+                    : `${data.length} registros`;
+            }
+            if (loadBtn) {
+                const restantes = data.length - visible.length;
+                loadBtn.style.display = restantes > 0 ? 'inline-flex' : 'none';
+                loadBtn.innerHTML = `<i class="fas fa-chevron-down"></i> Cargar más (${Math.min(CAND_PAGE_SIZE, restantes)} de ${restantes})`;
+            }
+        }
+
+        async function reactivarCandidato(candidateId) {
+            const c = candidates.find(x => x.candidato_id === candidateId);
+            if (!confirm(`¿Reactivar a "${c ? c.nombre : candidateId}"?\n\nVolverá a la lista de Profesionales en la fase en la que estaba al archivarse.`)) return;
+            await callApi({ action:'unarchiveCandidate', candidateId }, '↩ Candidato reactivado', true);
         }
 
         function getProgress(status) {
@@ -1467,6 +1608,7 @@
                 'awaiting_interview':        ['badge-interview',    'Entrevista'],
                 'awaiting_category':         ['badge-awaiting-cat','Asignar Categoría'],
                 'rejected':                  ['badge-rejected',    'Rechazado'],
+                'archived':                  ['badge-registered',  '📦 Archivado'],
                 'approved_junior':           ['badge-junior',    '🥉 Junior'],
                 'approved_senior':           ['badge-senior',    '🥈 Senior'],
                 'approved_expert':           ['badge-expert',    '🥇 Expert'],
@@ -1914,11 +2056,41 @@
             if (!confirm(`¿Marcar a "${c.nombre}" como atrasado?`)) return;
             await callApi({ action:'markDelayed', candidateId: c.candidato_id }, '⚠ Marcado como atrasado', true);
         }
-        async function tlEliminar() {
+        async function tlHandoff() {
             const c = tlCurrentCandidate;
             if (!c) return;
-            if (!confirm(`¿Eliminar a "${c.nombre}"?\n\nEsta acción NO se puede deshacer: se borra el registro del candidato.`)) return;
-            await callApi({ action:'deleteCandidate', candidateId: c.candidato_id }, '🗑 Candidato eliminado', true);
+            if (!(c.status || '').startsWith('approved_')) {
+                showToast('Solo se puede hacer handoff de un candidato aprobado (Junior / Senior / Expert)', 'error');
+                return;
+            }
+            if (!confirm(`¿Transferir a "${c.nombre}" al sistema de Onboarding?\n\nSi su correo ya existe en Onboarding, la transferencia se omitirá y se te avisará.`)) return;
+            const btn = document.getElementById('tlHandoffBtn');
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Transfiriendo...'; }
+            try {
+                const res  = await fetch(API_BASE, { method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({ action:'handoffCandidate', candidateId: c.candidato_id, adminToken: ADMIN_TOKEN }) });
+                const data = await res.json();
+                if (data.success && data.data && data.data.skipped) {
+                    // Regla existente: si el correo ya está en Onboarding se omite y se avisa.
+                    showToast('⚠ Omitido: ' + (data.message || 'el correo ya existe en Onboarding'), 'error');
+                } else if (data.success) {
+                    showToast('✓ ' + (data.message || 'Candidato transferido al Onboarding'), 'success');
+                    closeModal('accionesModal');
+                    loadData();
+                    return;
+                } else {
+                    showToast(data.message || 'Error en el handoff', 'error');
+                }
+            } catch (e) {
+                showToast('Error de conexión', 'error');
+            }
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-share-square"></i> Handoff'; }
+        }
+        async function tlArchivar() {
+            const c = tlCurrentCandidate;
+            if (!c) return;
+            if (!confirm(`¿Archivar a "${c.nombre}"?\n\nSaldrá de la lista de Profesionales y se marcará como inconcluso en Brevo.\nPodrás reactivarlo desde "Profesionales archivados".`)) return;
+            await callApi({ action:'archiveCandidate', candidateId: c.candidato_id }, '📦 Candidato archivado', true);
         }
 
         async function doSendEmailTL(emailType) {
@@ -2005,7 +2177,7 @@
         function filterTable() {
             const search = document.getElementById('searchInput').value.toLowerCase();
             const status = document.getElementById('statusFilter').value;
-            const filtered = candidates.filter(c => {
+            const filtered = activeCandidates().filter(c => {
                 const matchSearch = !search ||
                     (c.nombre    || '').toLowerCase().includes(search) ||
                     (c.email     || '').toLowerCase().includes(search) ||
@@ -2038,6 +2210,7 @@
             if (viewEl) viewEl.classList.add('active');
             // hooks por vista
             if (view === 'dashboard')  buildDashboard();
+            if (view === 'archivados') renderArchivedTable();
             if (view === 'respuestas') renderRespCandidates('');
             if (view === 'usuarios')   loadAdminUsers();
             if (view === 'superadmin') initSuperAdmin();
@@ -2190,6 +2363,7 @@
             'approved_senior':          'Aprobado Senior',
             'approved_expert':          'Aprobado Expert',
             'rejected':                 'Rechazado',
+            'archived':                 'Archivado',
         };
         const STATUS_ICON = {
             'registered':'fa-user-plus', 'pending_review_E1':'fa-file-alt',
@@ -2197,7 +2371,7 @@
             'pending_review_E3':'fa-file-alt', 'awaiting_interview':'fa-handshake',
             'awaiting_category':'fa-award', 'approved_junior':'fa-check-circle',
             'approved_senior':'fa-check-circle', 'approved_expert':'fa-check-circle',
-            'rejected':'fa-times-circle',
+            'rejected':'fa-times-circle', 'archived':'fa-box-archive',
         };
 
         function buildDashboard() {
@@ -2783,65 +2957,6 @@
                 msg.style.display='block'; msg.style.background='#fff5f5'; msg.style.color='#b91c1c';
                 msg.textContent='Error de conexión.';
                 btn.disabled=false; btn.innerHTML='<i class="fas fa-user-shield"></i> Crear Admin';
-            }
-        }
-
-        // ── Handoff → Onboarding ─────────────────────────────────────────────
-        function previewHandoff() {
-            const approved = candidates.filter(c => c.status && c.status.startsWith('approved_'));
-            const preview  = document.getElementById('handoffPreview');
-            const msg      = document.getElementById('handoffMensaje');
-            if (!approved.length) {
-                msg.style.display='block'; msg.style.background='#fff5f5'; msg.style.color='#b91c1c';
-                msg.textContent='No hay candidatos aprobados para transferir.';
-                preview.style.display='none'; return;
-            }
-            msg.style.display='block'; msg.style.background='#ede9fe'; msg.style.color='#5b21b6';
-            msg.textContent=approved.length + ' candidato(s) aprobado(s) serán evaluados para transferencia (los ya existentes en Onboarding serán omitidos).';
-            let html = `<table style="width:100%;border-collapse:collapse;font-size:0.79rem;">
-                <thead><tr style="background:#f3f4f6;">
-                    <th style="padding:0.4rem 0.6rem;text-align:left;border-bottom:1px solid #e9ecef;">Nombre</th>
-                    <th style="padding:0.4rem 0.6rem;text-align:left;border-bottom:1px solid #e9ecef;">Email</th>
-                    <th style="padding:0.4rem 0.6rem;text-align:left;border-bottom:1px solid #e9ecef;">Categoría</th>
-                </tr></thead><tbody>`;
-            approved.forEach(c => {
-                html += `<tr style="border-bottom:1px solid #f3f4f6;">
-                    <td style="padding:0.38rem 0.6rem;">${c.nombre||'—'}</td>
-                    <td style="padding:0.38rem 0.6rem;color:#555;">${c.email||'—'}</td>
-                    <td style="padding:0.38rem 0.6rem;">${getStatusBadge(c.status)}</td>
-                </tr>`;
-            });
-            html += '</tbody></table>';
-            preview.style.display='block'; preview.innerHTML=html;
-        }
-
-        async function runHandoff() {
-            const msg = document.getElementById('handoffMensaje');
-            const btn = document.getElementById('handoffBtn');
-            if (!confirm('¿Confirmas el traspaso de candidatos aprobados al sistema de Onboarding?')) return;
-            btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Transfiriendo...';
-            try {
-                const res  = await fetch(API_BASE, { method:'POST', headers:{'Content-Type':'application/json'},
-                    body: JSON.stringify({ action:'handoff', adminToken:ADMIN_TOKEN }) });
-                const data = await res.json();
-                msg.style.display='block';
-                if (data.success) {
-                    msg.style.background='#f0fff4'; msg.style.color='#15803d';
-                    msg.innerHTML='<strong>✓ ' + data.message + '</strong>';
-                    if (data.data && data.data.details && data.data.details.length) {
-                        msg.innerHTML += '<ul style="margin:.5rem 0 0 1rem;font-size:.79rem;">' +
-                            data.data.details.map(d=>`<li>${d}</li>`).join('') + '</ul>';
-                    }
-                    btn.innerHTML='<i class="fas fa-check"></i> Transferido';
-                } else {
-                    msg.style.background='#fff5f5'; msg.style.color='#b91c1c';
-                    msg.textContent='Error: ' + (data.message||'Inténtalo de nuevo.');
-                    btn.disabled=false; btn.innerHTML='<i class="fas fa-share-square"></i> Transferir al Onboarding';
-                }
-            } catch(e) {
-                msg.style.display='block'; msg.style.background='#fff5f5'; msg.style.color='#b91c1c';
-                msg.textContent='Error de conexión.';
-                btn.disabled=false; btn.innerHTML='<i class="fas fa-share-square"></i> Transferir al Onboarding';
             }
         }
 

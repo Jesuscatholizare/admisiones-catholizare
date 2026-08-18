@@ -407,6 +407,9 @@ const ACCIONES_SOLO_ADMIN = {
   pauseCandidate:        true,
   markDelayed:           true,
   deleteCandidate:       true,
+  archiveCandidate:      true,
+  unarchiveCandidate:    true,
+  handoffCandidate:      true,
   registerInterviewResult: true,
   getExamResponses:      true,
   getAdminUsers:         true,
@@ -487,6 +490,9 @@ function doPost(e) {
       case 'pauseCandidate':            return handlePauseCandidate(data);
       case 'markDelayed':               return handleMarkDelayed(data);
       case 'deleteCandidate':           return handleDeleteCandidate(data);
+      case 'archiveCandidate':          return handleArchiveCandidate(data);
+      case 'unarchiveCandidate':        return handleUnarchiveCandidate(data);
+      case 'handoffCandidate':          return handleHandoffCandidate(data);
       case 'registerInterviewResult':   return handleRegisterInterviewResult(data);
       case 'getExamResponses':          return handleGetExamResponses(data);
       case 'getAdminUsers':             return handleGetAdminUsers();
@@ -1501,6 +1507,95 @@ function handleDeleteCandidate(data) {
   }
 }
 
+/** Etiqueta en notas que guarda el status previo al archivar, para poder reactivar. */
+const ARCHIVE_TAG_RE = /\[Archivado:([^\]]*)\]/i;
+
+/**
+ * Archiva a un candidato: sale de la lista de Profesionales y se marca como
+ * inconcluso en Brevo. El status previo queda guardado en la columna notas
+ * como [Archivado:<status>] para poder reactivarlo tal como estaba.
+ * Columnas Candidatos: 11=status, 20=last_interaction, 21=notes
+ */
+function handleArchiveCandidate(data) {
+  try {
+    const { candidateId } = data;
+    if (!candidateId) return jsonResponse(false, 'candidateId requerido');
+
+    const sheet = SS.getSheetByName('Candidatos');
+    if (!sheet) return jsonResponse(false, 'Sheet Candidatos no encontrada');
+    const rows = sheet.getDataRange().getValues();
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][0] === candidateId) {
+        const rowNum   = i + 1;
+        const prevStat = String(rows[i][10] || '').trim();
+        if (prevStat === 'archived') return jsonResponse(false, 'El candidato ya está archivado');
+
+        const email = rows[i][3];
+        const name  = rows[i][2];
+
+        // Guardar el status previo en notas sin perder el texto existente.
+        let notes = String(rows[i][20] || '').replace(ARCHIVE_TAG_RE, '').trim();
+        notes = (notes ? notes + ' ' : '') + '[Archivado:' + prevStat + ']';
+
+        sheet.getRange(rowNum, 11).setValue('archived');
+        sheet.getRange(rowNum, 21).setValue(notes);
+        sheet.getRange(rowNum, 20).setValue(new Date());
+
+        // Grupo Brevo de inconclusos.
+        try {
+          addContactToBrevoList(email, name, '', CONFIG.brevo_list_inconclusos);
+        } catch (brevoErr) {
+          Logger.log('[handleArchiveCandidate] Brevo falló: ' + brevoErr.message);
+        }
+
+        addTimelineEvent(candidateId, 'CANDIDATO_ARCHIVADO', { status_previo: prevStat, por: 'Admin' });
+        return jsonResponse(true, 'Candidato archivado y marcado como inconcluso');
+      }
+    }
+    return jsonResponse(false, 'Candidato no encontrado');
+  } catch (error) {
+    Logger.log('[ERROR handleArchiveCandidate] ' + error.message);
+    return jsonResponse(false, 'Error: ' + error.message);
+  }
+}
+
+/**
+ * Reactiva a un candidato archivado devolviéndolo a la fase que tenía al
+ * archivarse (leída de la etiqueta [Archivado:<status>] en notas).
+ */
+function handleUnarchiveCandidate(data) {
+  try {
+    const { candidateId } = data;
+    if (!candidateId) return jsonResponse(false, 'candidateId requerido');
+
+    const sheet = SS.getSheetByName('Candidatos');
+    if (!sheet) return jsonResponse(false, 'Sheet Candidatos no encontrada');
+    const rows = sheet.getDataRange().getValues();
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][0] === candidateId) {
+        const rowNum = i + 1;
+        if (String(rows[i][10] || '').trim() !== 'archived') {
+          return jsonResponse(false, 'El candidato no está archivado');
+        }
+        const notes   = String(rows[i][20] || '');
+        const match   = notes.match(ARCHIVE_TAG_RE);
+        const restore = (match && match[1].trim()) ? match[1].trim() : 'registered';
+
+        sheet.getRange(rowNum, 11).setValue(restore);
+        sheet.getRange(rowNum, 21).setValue(notes.replace(ARCHIVE_TAG_RE, '').replace(/\s+/g, ' ').trim());
+        sheet.getRange(rowNum, 20).setValue(new Date());
+
+        addTimelineEvent(candidateId, 'CANDIDATO_REACTIVADO', { status_restaurado: restore, por: 'Admin' });
+        return jsonResponse(true, 'Candidato reactivado');
+      }
+    }
+    return jsonResponse(false, 'Candidato no encontrado');
+  } catch (error) {
+    Logger.log('[ERROR handleUnarchiveCandidate] ' + error.message);
+    return jsonResponse(false, 'Error: ' + error.message);
+  }
+}
+
 /**
  * POST action=registerInterviewResult
  * Body: { candidateId, result: 'pass'|'fail', interviewNotes }
@@ -1768,8 +1863,9 @@ function getDashboardStats() {
     let total = 0, pending = 0, approved = 0, rejected = 0;
     for (let i = 1; i < data.length; i++) {
       if (!data[i][0]) continue;
-      total++;
       const status = String(data[i][10] || '');
+      if (status === 'archived') continue;  // los archivados salen del conteo, igual que de la lista
+      total++;
       if (status.includes('pending') || status.includes('awaiting') || status === 'registered') pending++;
       else if (status.includes('approved')) approved++;
       else if (status === 'rejected')        rejected++;
@@ -2749,42 +2845,140 @@ function handleGenerateAdminToken(data) {
  *   J: Estado        K: Categoria     L: Legal_Aceptacion
  *   M: Legal_Fecha
  */
+const ONBOARDING_SS_ID  = '1YgbnsB0_oLbSlYBUNqhe2V9QqlbEu8nGotYTWHHXW4I';
+const ONBOARDING_SHEET  = 'Onboarding';
+const APPROVED_STATUSES = ['approved_junior', 'approved_senior', 'approved_expert'];
+
+/**
+ * Abre la hoja de Onboarding destino del handoff.
+ * Lanza si el spreadsheet no se puede abrir.
+ */
+function openOnboardingSheet_() {
+  const onbSS = SpreadsheetApp.openById(ONBOARDING_SS_ID);
+  let onbSheet = onbSS.getSheetByName(ONBOARDING_SHEET);
+  if (!onbSheet) {
+    // Buscar cualquier hoja disponible y usarla, o crear nueva
+    const sheets = onbSS.getSheets();
+    onbSheet = sheets.length > 0 ? sheets[0] : onbSS.insertSheet(ONBOARDING_SHEET);
+  }
+  return onbSheet;
+}
+
+/**
+ * Set de emails (minúsculas) ya presentes en Onboarding.
+ * Base de la regla: un candidato ya existente por email se omite.
+ */
+function onboardingExistingEmails_(onbSheet) {
+  const onbData = onbSheet.getDataRange().getValues();
+  const existingEmails = new Set();
+  for (let i = 1; i < onbData.length; i++) {
+    const email = String(onbData[i][2] || '').trim().toLowerCase();
+    if (email) existingEmails.add(email);
+  }
+  return existingEmails;
+}
+
+/**
+ * Construye la fila de Onboarding (A..M) a partir de una fila de Candidatos.
+ * Candidatos sheet columns (0-indexed):
+ * 0=candidate_id, 1=registration_date, 2=name, 3=email, 4=phone
+ * 5=country, 6=birthday, 7=professional_type, 8=therapeutic_approach, 9=about
+ * 10=status, 11=E1_score, 12=E1_date, 13=E2_score, 14=E2_date
+ * 15=E3_score, 16=E3_date, 17=interview_notes, 18=final_category
+ * 19=last_interaction, 20=notes, 21=terms_accepted_at, 22=terms_ip, 23=terms_user_agent
+ */
+function buildOnboardingRow_(row) {
+  const onbToken        = 'ONB-' + Utilities.getUuid().replace(/-/g, '').substring(0, 8).toUpperCase();
+  const termsAcceptedAt = row[21] || '';   // Legal_Fecha
+  return [
+    onbToken,                                    // A: ID_Token
+    row[2] || '',                                // B: Nombre
+    String(row[3] || '').trim().toLowerCase(),   // C: Email
+    row[7] || '',                                // D: Especialidad
+    '',                                          // E: CV_Url
+    '',                                          // F: Docs_Profesion
+    '',                                          // G: Foto_Url
+    '',                                          // H: Carta_Sacerdote
+    'Fase 1',                                    // I: Fase_Actual
+    'Activo',                                    // J: Estado
+    row[18] || '',                               // K: Categoria
+    termsAcceptedAt ? 'ACEPTADO | v1' : '',      // L: Legal_Aceptacion
+    termsAcceptedAt                              // M: Legal_Fecha
+  ];
+}
+
+/**
+ * Handoff de UN candidato aprobado, disparado desde el modal de acciones.
+ * Respeta la regla existente: si el correo ya está en Onboarding se omite
+ * la transferencia y se avisa (success con skipped:true).
+ */
+function handleHandoffCandidate(data) {
+  try {
+    const { candidateId } = data;
+    if (!candidateId) return jsonResponse(false, 'candidateId requerido');
+
+    const candSheet = SS.getSheetByName('Candidatos');
+    if (!candSheet) return jsonResponse(false, 'Hoja Candidatos no encontrada');
+    const candData = candSheet.getDataRange().getValues();
+
+    for (let i = 1; i < candData.length; i++) {
+      const row = candData[i];
+      if (row[0] !== candidateId) continue;
+
+      const status = String(row[10] || '').trim();
+      if (!APPROVED_STATUSES.includes(status)) {
+        return jsonResponse(false, 'Solo se puede transferir un candidato aprobado (Junior / Senior / Expert)');
+      }
+
+      const email = String(row[3] || '').trim().toLowerCase();
+      if (!email) return jsonResponse(false, 'El candidato no tiene correo registrado');
+
+      let onbSheet;
+      try {
+        onbSheet = openOnboardingSheet_();
+      } catch (err) {
+        return jsonResponse(false, 'No se pudo abrir la hoja de Onboarding: ' + err.message);
+      }
+
+      // Regla existente: si el correo ya está en Onboarding, se omite y se avisa.
+      if (onboardingExistingEmails_(onbSheet).has(email)) {
+        addTimelineEvent(candidateId, 'HANDOFF_OMITIDO', { motivo: 'Email ya existe en Onboarding', email: email });
+        return jsonResponse(true, 'Omitido: ' + email + ' ya existe en Onboarding', {
+          transferred: 0, skipped: 1, email: email
+        });
+      }
+
+      insertNewRow(onbSheet, buildOnboardingRow_(row));
+      candSheet.getRange(i + 1, 20).setValue(new Date()); // last_interaction
+      addTimelineEvent(candidateId, 'HANDOFF_COMPLETADO', { email: email, categoria: row[18] || '' });
+
+      return jsonResponse(true, (row[2] || email) + ' transferido al Onboarding', {
+        transferred: 1, skipped: 0, email: email
+      });
+    }
+    return jsonResponse(false, 'Candidato no encontrado');
+  } catch (e) {
+    Logger.log('[handleHandoffCandidate Error] ' + e.message);
+    return jsonResponse(false, 'Error en handoff: ' + e.message);
+  }
+}
+
 function handleHandoff(data) {
   try {
     if (!validateAdminPin(data.admin_pin)) {
       return jsonResponse(false, 'PIN de admin incorrecto');
     }
 
-    const ONBOARDING_SS_ID  = '1YgbnsB0_oLbSlYBUNqhe2V9QqlbEu8nGotYTWHHXW4I';
-    const ONBOARDING_SHEET  = 'Onboarding';
-    const APPROVED_STATUSES = ['approved_junior', 'approved_senior', 'approved_expert'];
-
     // Abrir spreadsheet de onboarding
-    let onbSS;
+    let onbSheet;
     try {
-      onbSS = SpreadsheetApp.openById(ONBOARDING_SS_ID);
+      onbSheet = openOnboardingSheet_();
     } catch (err) {
       return jsonResponse(false, 'No se pudo abrir la hoja de Onboarding: ' + err.message);
     }
 
-    let onbSheet = onbSS.getSheetByName(ONBOARDING_SHEET);
-    if (!onbSheet) {
-      // Buscar cualquier hoja disponible y usarla, o crear nueva
-      const sheets = onbSS.getSheets();
-      if (sheets.length > 0) {
-        onbSheet = sheets[0]; // usar la primera hoja
-      } else {
-        onbSheet = onbSS.insertSheet(ONBOARDING_SHEET);
-      }
-    }
-
     // Leer emails ya existentes en onboarding para evitar duplicados
-    const onbData = onbSheet.getDataRange().getValues();
-    const existingEmails = new Set();
-    for (let i = 1; i < onbData.length; i++) {
-      const email = String(onbData[i][2] || '').trim().toLowerCase();
-      if (email) existingEmails.add(email);
-    }
+    const existingEmails = onboardingExistingEmails_(onbSheet);
 
     // Leer candidatos de admisiones
     const candSheet = SS.getSheetByName('Candidatos');
@@ -2812,36 +3006,11 @@ function handleHandoff(data) {
         continue;
       }
 
-      // Generar token ONB único
-      const onbToken = 'ONB-' + Utilities.getUuid().replace(/-/g, '').substring(0, 8).toUpperCase();
-
-      const name              = row[2]  || '';
-      const professionalType  = row[7]  || '';   // Especialidad
-      const finalCategory     = row[18] || '';   // Categoria
-      const termsAcceptedAt   = row[21] || '';   // Legal_Fecha
-
-      // Determinar etiqueta Legal_Aceptacion
-      const legalAceptacion   = termsAcceptedAt ? 'ACEPTADO | v1' : '';
-
-      insertNewRow(onbSheet, [
-        onbToken,           // A: ID_Token
-        name,               // B: Nombre
-        email,              // C: Email
-        professionalType,   // D: Especialidad
-        '',                 // E: CV_Url
-        '',                 // F: Docs_Profesion
-        '',                 // G: Foto_Url
-        '',                 // H: Carta_Sacerdote
-        'Fase 1',           // I: Fase_Actual
-        'Activo',           // J: Estado
-        finalCategory,      // K: Categoria
-        legalAceptacion,    // L: Legal_Aceptacion
-        termsAcceptedAt     // M: Legal_Fecha
-      ]);
+      insertNewRow(onbSheet, buildOnboardingRow_(row));
 
       existingEmails.add(email); // prevenir duplicados dentro de la misma ejecución
       transferred++;
-      transferredNames.push(name + ' <' + email + '>');
+      transferredNames.push((row[2] || '') + ' <' + email + '>');
     }
 
     return jsonResponse(true, 'Handoff completado', {
