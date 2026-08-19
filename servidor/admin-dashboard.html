@@ -654,6 +654,9 @@
             <button class="nav-item" onclick="showView('archivados')" id="nav-archivados">
                 <i class="fas fa-box-archive"></i> Profesionales archivados
             </button>
+            <button class="nav-item" onclick="showView('historial')" id="nav-historial">
+                <i class="fas fa-clock-rotate-left"></i> Historial
+            </button>
             <button class="nav-item" onclick="showView('respuestas')" id="nav-respuestas">
                 <i class="fas fa-clipboard-list"></i> Ver Respuestas
             </button>
@@ -856,6 +859,55 @@
         </div>
     </div><!-- /.container -->
     </div><!-- /#view-archivados -->
+
+    <!-- Vista: Historial de handoff -->
+    <div id="view-historial" class="view">
+    <div class="container">
+        <div class="header-section">
+            <div>
+                <h1><i class="fas fa-clock-rotate-left" style="color:var(--primary);font-size:1.3rem;vertical-align:middle;margin-right:0.5rem;"></i>Historial</h1>
+                <small>Profesionales a los que ya se les hizo el handoff al Onboarding</small>
+            </div>
+            <div style="display:flex;gap:0.6rem;flex-wrap:wrap;">
+                <button class="btn" style="background:#001A55;color:white;" onclick="refreshData()">
+                    <i class="fas fa-sync-alt"></i> Actualizar
+                </button>
+            </div>
+        </div>
+        <!-- Filters -->
+        <div class="filters-section">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="histSearchInput" placeholder="Buscar por nombre, email o ID..." onkeyup="renderHistorialTable()">
+            </div>
+            <select class="filter-select" id="histResultFilter" onchange="renderHistorialTable()">
+                <option value="">Todos los resultados</option>
+                <option value="transferido">Transferidos</option>
+                <option value="omitido">Omitidos (ya existían)</option>
+            </select>
+        </div>
+        <!-- Table -->
+        <div class="table-container">
+            <div class="table-header">
+                <h2>Handoff realizado</h2>
+                <span class="table-header-meta" id="histRecordCount">0 registros</span>
+            </div>
+            <div id="histTableContent">
+                <div class="empty-state">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Cargando datos...</p>
+                </div>
+            </div>
+        </div>
+        <!-- Cargar más -->
+        <div style="text-align:center;margin-top:1rem;">
+            <button id="histLoadMore" onclick="loadMoreHistorial()"
+                style="display:none;background:#001A55;color:white;border:none;border-radius:10px;padding:10px 24px;font-size:0.85rem;font-weight:600;cursor:pointer;gap:7px;align-items:center;">
+                <i class="fas fa-chevron-down"></i> Cargar más
+            </button>
+        </div>
+    </div><!-- /.container -->
+    </div><!-- /#view-historial -->
 
     <!-- Vista: Ver Respuestas -->
     <div id="view-respuestas" class="view">
@@ -1403,6 +1455,7 @@
                     updateStats(payload.stats || { total: 0, pending: 0, approved: 0, rejected: 0 });
                     filterTable();
                     renderArchivedTable();
+                    renderHistorialTable();
                     buildDashboard();
                     updateLastUpdate();
                 } else {
@@ -1426,13 +1479,28 @@
         let _candRows  = [];              // conjunto filtrado completo, ya ordenado
         let _candShown = CAND_PAGE_SIZE;  // cuántos se muestran ahora
 
-        /** Candidatos activos: los archivados salen de la lista de Profesionales. */
+        /** Archivados e historial de handoff salen de la lista de Profesionales. */
         function activeCandidates() {
-            return candidates.filter(c => (c.status || '') !== 'archived');
+            return candidates.filter(c => {
+                const s = c.status || '';
+                return s !== 'archived' && s !== 'handoff_completed';
+            });
         }
         /** Candidatos archivados, para la pestaña "Profesionales archivados". */
         function archivedCandidates() {
             return candidates.filter(c => (c.status || '') === 'archived');
+        }
+        /** Candidatos con handoff resuelto, para la pestaña "Historial". */
+        function historialCandidates() {
+            return candidates.filter(c => (c.status || '') === 'handoff_completed');
+        }
+        /**
+         * Resultado del handoff leído de la etiqueta [Handoff:...] en notas.
+         * @returns {'transferido'|'omitido'|''}
+         */
+        function handoffResultado(c) {
+            const m = String(c.notes || '').match(/\[Handoff:([^\]]*)\]/i);
+            return m ? m[1].trim().toLowerCase() : '';
         }
 
         function loadMoreCandidates() {
@@ -1584,6 +1652,87 @@
             }
         }
 
+        // ── Historial de handoff ─────────────────────────────────────────────
+        let _histShown = CAND_PAGE_SIZE;
+
+        function loadMoreHistorial() {
+            _histShown += CAND_PAGE_SIZE;
+            renderHistorialTable(true);
+        }
+
+        /** @param {boolean} keepPage - true al paginar; false (por defecto) reinicia a la primera página. */
+        function renderHistorialTable(keepPage) {
+            if (!keepPage) _histShown = CAND_PAGE_SIZE;
+            const tableContent = document.getElementById('histTableContent');
+            const loadBtn      = document.getElementById('histLoadMore');
+            const countEl      = document.getElementById('histRecordCount');
+            if (!tableContent) return;
+            const searchEl = document.getElementById('histSearchInput');
+            const filterEl = document.getElementById('histResultFilter');
+            const search   = (searchEl ? searchEl.value : '').toLowerCase();
+            const result   = filterEl ? filterEl.value : '';
+            const data = historialCandidates()
+                .filter(c => !search ||
+                    (c.nombre || '').toLowerCase().includes(search) ||
+                    (c.email  || '').toLowerCase().includes(search) ||
+                    (c.candidato_id || '').toLowerCase().includes(search))
+                .filter(c => !result || handoffResultado(c) === result)
+                .sort((a, b) => new Date(b.last_interaction || 0) - new Date(a.last_interaction || 0));
+            if (!data.length) {
+                tableContent.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-clock-rotate-left"></i>
+                        <p>Todavía no se ha hecho handoff de ningún profesional</p>
+                    </div>`;
+                if (countEl) countEl.textContent = '0 registros';
+                if (loadBtn) loadBtn.style.display = 'none';
+                return;
+            }
+            const visible = data.slice(0, _histShown);
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Email</th>
+                            <th>Categoría</th>
+                            <th>Resultado</th>
+                            <th>Fecha de handoff</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+            visible.forEach(c => {
+                const res   = handoffResultado(c);
+                const badge = res === 'omitido'
+                    ? '<span class="badge" style="background:#fff8ec;color:#b76e00;border:1px solid #ffb020;">⚠ Omitido — ya existía</span>'
+                    : res === 'transferido'
+                        ? '<span class="badge" style="background:#ede9fe;color:#5b21b6;border:1px solid #c4b5fd;">✓ Transferido</span>'
+                        : '<span class="badge badge-registered">—</span>';
+                html += `
+                    <tr>
+                        <td><code style="background:#f5f5f5;padding:0.2rem 0.5rem;border-radius:3px;font-size:0.85em;">${c.candidato_id || ''}</code></td>
+                        <td><strong>${c.nombre || ''}</strong></td>
+                        <td>${c.email || ''}</td>
+                        <td>${c.final_category || '—'}</td>
+                        <td>${badge}</td>
+                        <td><small>${formatDate(c.last_interaction)}</small></td>
+                    </tr>`;
+            });
+            html += `</tbody></table>`;
+            tableContent.innerHTML = html;
+            if (countEl) {
+                countEl.textContent = visible.length < data.length
+                    ? `${visible.length} de ${data.length} registros`
+                    : `${data.length} registros`;
+            }
+            if (loadBtn) {
+                const restantes = data.length - visible.length;
+                loadBtn.style.display = restantes > 0 ? 'inline-flex' : 'none';
+                loadBtn.innerHTML = `<i class="fas fa-chevron-down"></i> Cargar más (${Math.min(CAND_PAGE_SIZE, restantes)} de ${restantes})`;
+            }
+        }
+
         async function reactivarCandidato(candidateId) {
             const c = candidates.find(x => x.candidato_id === candidateId);
             if (!confirm(`¿Reactivar a "${c ? c.nombre : candidateId}"?\n\nVolverá a la lista de Profesionales en la fase en la que estaba al archivarse.`)) return;
@@ -1611,6 +1760,7 @@
                 'awaiting_category':         ['badge-awaiting-cat','Asignar Categoría'],
                 'rejected':                  ['badge-rejected',    'Rechazado'],
                 'archived':                  ['badge-registered',  '📦 Archivado'],
+                'handoff_completed':         ['badge-registered',  '↗ Handoff realizado'],
                 'approved_junior':           ['badge-junior',    '🥉 Junior'],
                 'approved_senior':           ['badge-senior',    '🥈 Senior'],
                 'approved_expert':           ['badge-expert',    '🥇 Expert'],
@@ -2072,11 +2222,13 @@
                 const res  = await fetch(API_BASE, { method:'POST', headers:{'Content-Type':'application/json'},
                     body: JSON.stringify({ action:'handoffCandidate', candidateId: c.candidato_id, adminToken: ADMIN_TOKEN }) });
                 const data = await res.json();
-                if (data.success && data.data && data.data.skipped) {
-                    // Regla existente: si el correo ya está en Onboarding se omite y se avisa.
-                    showToast('⚠ Omitido: ' + (data.message || 'el correo ya existe en Onboarding'), 'error');
-                } else if (data.success) {
-                    showToast('✓ ' + (data.message || 'Candidato transferido al Onboarding'), 'success');
+                if (data.success) {
+                    // Omitido o transferido, en ambos casos pasa a Historial.
+                    if (data.data && data.data.skipped) {
+                        showToast('⚠ Omitido: ' + (data.message || 'el correo ya existe en Onboarding') + ' — movido a Historial', 'error');
+                    } else {
+                        showToast('✓ ' + (data.message || 'Candidato transferido al Onboarding'), 'success');
+                    }
                     closeModal('accionesModal');
                     loadData();
                     return;
@@ -2213,6 +2365,7 @@
             // hooks por vista
             if (view === 'dashboard')  buildDashboard();
             if (view === 'archivados') renderArchivedTable();
+            if (view === 'historial')  renderHistorialTable();
             if (view === 'respuestas') renderRespCandidates('');
             if (view === 'usuarios')   loadAdminUsers();
             if (view === 'superadmin') initSuperAdmin();
@@ -2366,6 +2519,7 @@
             'approved_expert':          'Aprobado Expert',
             'rejected':                 'Rechazado',
             'archived':                 'Archivado',
+            'handoff_completed':        'Handoff realizado',
         };
         const STATUS_ICON = {
             'registered':'fa-user-plus', 'pending_review_E1':'fa-file-alt',
@@ -2374,6 +2528,7 @@
             'awaiting_category':'fa-award', 'approved_junior':'fa-check-circle',
             'approved_senior':'fa-check-circle', 'approved_expert':'fa-check-circle',
             'rejected':'fa-times-circle', 'archived':'fa-box-archive',
+            'handoff_completed':'fa-share-square',
         };
 
         function buildDashboard() {

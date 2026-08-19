@@ -1864,7 +1864,8 @@ function getDashboardStats() {
     for (let i = 1; i < data.length; i++) {
       if (!data[i][0]) continue;
       const status = String(data[i][10] || '');
-      if (status === 'archived') continue;  // los archivados salen del conteo, igual que de la lista
+      // Archivados e historial de handoff salen del conteo, igual que de la lista
+      if (status === 'archived' || status === 'handoff_completed') continue;
       total++;
       if (status.includes('pending') || status.includes('awaiting') || status === 'registered') pending++;
       else if (status.includes('approved')) approved++;
@@ -2907,6 +2908,28 @@ function buildOnboardingRow_(row) {
   ];
 }
 
+/** Etiqueta en notas con el resultado del handoff. */
+const HANDOFF_TAG_RE = /\[Handoff:([^\]]*)\]/i;
+
+/**
+ * Marca a un candidato como handoff resuelto: pasa a status 'handoff_completed'
+ * (sale de la lista de Profesionales y entra a Historial) y deja en notas la
+ * etiqueta [Handoff:transferido] o [Handoff:omitido] para poder distinguir
+ * en el historial a quién se transfirió y a quién se omitió por duplicado.
+ *
+ * @param {Sheet}  candSheet  hoja Candidatos
+ * @param {number} rowNum     fila 1-indexed del candidato
+ * @param {Array}  row        valores de esa fila (0-indexed)
+ * @param {string} resultado  'transferido' | 'omitido'
+ */
+function markHandoffDone_(candSheet, rowNum, row, resultado) {
+  let notes = String(row[20] || '').replace(HANDOFF_TAG_RE, '').trim();
+  notes = (notes ? notes + ' ' : '') + '[Handoff:' + resultado + ']';
+  candSheet.getRange(rowNum, 11).setValue('handoff_completed');  // status
+  candSheet.getRange(rowNum, 21).setValue(notes);                // notes
+  candSheet.getRange(rowNum, 20).setValue(new Date());           // last_interaction
+}
+
 /**
  * Handoff de UN candidato aprobado, disparado desde el modal de acciones.
  * Respeta la regla existente: si el correo ya está en Onboarding se omite
@@ -2941,7 +2964,9 @@ function handleHandoffCandidate(data) {
       }
 
       // Regla existente: si el correo ya está en Onboarding, se omite y se avisa.
+      // Igual pasa a Historial: el handoff se dio por resuelto para este candidato.
       if (onboardingExistingEmails_(onbSheet).has(email)) {
+        markHandoffDone_(candSheet, i + 1, row, 'omitido');
         addTimelineEvent(candidateId, 'HANDOFF_OMITIDO', { motivo: 'Email ya existe en Onboarding', email: email });
         return jsonResponse(true, 'Omitido: ' + email + ' ya existe en Onboarding', {
           transferred: 0, skipped: 1, email: email
@@ -2949,7 +2974,7 @@ function handleHandoffCandidate(data) {
       }
 
       insertNewRow(onbSheet, buildOnboardingRow_(row));
-      candSheet.getRange(i + 1, 20).setValue(new Date()); // last_interaction
+      markHandoffDone_(candSheet, i + 1, row, 'transferido');
       addTimelineEvent(candidateId, 'HANDOFF_COMPLETADO', { email: email, categoria: row[18] || '' });
 
       return jsonResponse(true, (row[2] || email) + ' transferido al Onboarding', {
@@ -3002,11 +3027,14 @@ function handleHandoff(data) {
 
       const email = String(row[3] || '').trim().toLowerCase();
       if (existingEmails.has(email)) {
+        // Omitido por duplicado, pero igual pasa a Historial.
+        markHandoffDone_(candSheet, i + 1, row, 'omitido');
         skipped++;
         continue;
       }
 
       insertNewRow(onbSheet, buildOnboardingRow_(row));
+      markHandoffDone_(candSheet, i + 1, row, 'transferido');
 
       existingEmails.add(email); // prevenir duplicados dentro de la misma ejecución
       transferred++;
