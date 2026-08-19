@@ -1699,6 +1699,7 @@
                             <th>Categoría</th>
                             <th>Resultado</th>
                             <th>Fecha de handoff</th>
+                            <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>`;
@@ -1717,6 +1718,11 @@
                         <td>${c.final_category || '—'}</td>
                         <td>${badge}</td>
                         <td><small>${formatDate(c.last_interaction)}</small></td>
+                        <td>
+                            <div class="actions">
+                                ${getActionButtons(c)}
+                            </div>
+                        </td>
                     </tr>`;
             });
             html += `</tbody></table>`;
@@ -2031,12 +2037,18 @@
         }
 
         function phaseIndex(status) {
+            // Un candidato con el handoff hecho completó todo el proceso (venía de
+            // approved_*), así que se ancla a la última fase en vez de quedar en -1,
+            // que dejaría el Timeline entero como "Pendiente".
+            if (status === 'handoff_completed') return TL_PHASES.length - 1;
             return TL_PHASES.findIndex(p => p.statuses.includes(status));
         }
         function getCurrentPhaseLabel(status) {
             if (!status) return 'Sin estado';
             if (status.startsWith('approved_')) return 'Aprobado';
             if (status === 'rejected') return 'Rechazado';
+            if (status === 'handoff_completed') return 'Handoff realizado';
+            if (status === 'archived') return 'Archivado';
             const p = TL_PHASES.find(ph => ph.statuses.includes(status));
             return p ? p.label : status;
         }
