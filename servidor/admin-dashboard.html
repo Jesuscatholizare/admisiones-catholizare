@@ -1308,7 +1308,7 @@
             <div class="tl-name" id="tlName">Candidato</div>
             <div class="tl-meta" id="tlMeta">email • Fase • Estado</div>
           </div>
-          <div class="tl-header-actions">
+          <div class="tl-header-actions" id="tlHeaderActions">
             <button class="tl-act-btn" onclick="tlReiniciar()" title="Reiniciar el proceso del candidato"><i class="fas fa-play"></i> Reiniciar</button>
             <button class="tl-act-btn" onclick="tlPausar()" title="Pausar al candidato"><i class="fas fa-pause"></i> Pausar</button>
             <button class="tl-act-btn tl-act-warn" onclick="tlMarcarAtrasado()" title="Marcar como atrasado"><i class="fas fa-exclamation-triangle"></i> Atrasado</button>
@@ -1862,6 +1862,10 @@
             document.getElementById('tlMeta').innerHTML =
                 `<span>${c.email||''}</span> <span>•</span> <span>${getCurrentPhaseLabel(c.status)}</span> <span>•</span> ${getStatusBadge(c.status)}`;
             updateAvanzarBtn(c);
+            // En Historial el modal es solo de consulta: el proceso ya terminó con el
+            // handoff, así que no se ofrecen acciones sobre el candidato.
+            const acts = document.getElementById('tlHeaderActions');
+            if (acts) acts.style.display = (c.status === 'handoff_completed') ? 'none' : 'flex';
             const tabs = document.querySelectorAll('.tl-tab');
             tabs.forEach(t => t.classList.remove('active'));
             if (tabs[0]) { tabs[0].classList.add('active'); }
@@ -2202,26 +2206,38 @@
         }
 
         // ── Acciones del encabezado del modal ────────────────────────────────
-        async function tlReiniciar() {
+        /**
+         * Candidato sobre el que pueden actuar los botones del encabezado.
+         * Devuelve null si no hay candidato abierto o si el modal se abrió desde
+         * Historial: ahí el proceso ya terminó con el handoff y la vista es solo
+         * de consulta, por eso la barra de acciones ni siquiera se muestra.
+         */
+        function tlCandidatoAccionable() {
             const c = tlCurrentCandidate;
+            if (!c || c.status === 'handoff_completed') return null;
+            return c;
+        }
+
+        async function tlReiniciar() {
+            const c = tlCandidatoAccionable();
             if (!c) return;
             if (!confirm(`¿Reiniciar el proceso de "${c.nombre}"?\n\nVolverá a "Registrado" y se borrarán los resultados de exámenes, entrevista, categoría y las marcas de pausa/atraso.`)) return;
             await callApi({ action:'resetCandidate', candidateId: c.candidato_id }, '↺ Proceso reiniciado', true);
         }
         async function tlPausar() {
-            const c = tlCurrentCandidate;
+            const c = tlCandidatoAccionable();
             if (!c) return;
             if (!confirm(`¿Pausar a "${c.nombre}"? Se marcará como pausado (puedes reanudarlo con Reiniciar).`)) return;
             await callApi({ action:'pauseCandidate', candidateId: c.candidato_id }, '⏸ Candidato pausado', true);
         }
         async function tlMarcarAtrasado() {
-            const c = tlCurrentCandidate;
+            const c = tlCandidatoAccionable();
             if (!c) return;
             if (!confirm(`¿Marcar a "${c.nombre}" como atrasado?`)) return;
             await callApi({ action:'markDelayed', candidateId: c.candidato_id }, '⚠ Marcado como atrasado', true);
         }
         async function tlHandoff() {
-            const c = tlCurrentCandidate;
+            const c = tlCandidatoAccionable();
             if (!c) return;
             if (!(c.status || '').startsWith('approved_')) {
                 showToast('Solo se puede hacer handoff de un candidato aprobado (Junior / Senior / Expert)', 'error');
@@ -2253,7 +2269,7 @@
             if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-share-square"></i> Handoff'; }
         }
         async function tlArchivar() {
-            const c = tlCurrentCandidate;
+            const c = tlCandidatoAccionable();
             if (!c) return;
             if (!confirm(`¿Archivar a "${c.nombre}"?\n\nSaldrá de la lista de Profesionales y se marcará como inconcluso en Brevo.\nPodrás reactivarlo desde "Profesionales archivados".`)) return;
             await callApi({ action:'archiveCandidate', candidateId: c.candidato_id }, '📦 Candidato archivado', true);
