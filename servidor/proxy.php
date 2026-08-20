@@ -139,6 +139,12 @@ $allowed_actions = [
     'sendEmailManual',
     'addToBrevoListManual',
     'markAsIncomplete',
+    'resetCandidate',
+    'pauseCandidate',
+    'markDelayed',
+    'deleteCandidate',
+    'archiveCandidate',
+    'unarchiveCandidate',
     'resetTokenAttempt',
     // Vistas admin
     'getExamResponses',
@@ -148,8 +154,11 @@ $allowed_actions = [
     'gasDiagnostic',
     'registerInterviewResult',
     'handoff',
+    'handoffCandidate',
     'uploadCandidateCV',
     'getNotificaciones',
+    'getCandidateTimeline',
+    'verifyAdminPin',
 ];
 
 if (!in_array($action, $allowed_actions)) {
