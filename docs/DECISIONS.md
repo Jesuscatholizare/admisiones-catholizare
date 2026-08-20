@@ -116,3 +116,42 @@
 | 2026-05-13 | Eliminar campo `scheduled_date` del formulario de registro (v3.0) |
 | 2026-05-13 | Confirmar tokens sin expiración por tiempo (solo un uso)          |
 | 2026-05-13 | Consolidar todo en `main`, borrar ramas de features viejas        |
+
+
+---
+
+## Motivo obligatorio en cada aprobación
+
+**Decisión:** Toda aprobación pide un **motivo escrito** en el mismo modal donde
+ya se pedía el PIN, y guarda quién la autorizó en la hoja `Aprobaciones`.
+
+**Razón:** El proceso decide sobre personas. Un "aprobado" sin autor ni razón no
+se puede revisar después ni explicar a un candidato que pregunta. Pedir el
+motivo justo cuando ya se pide el PIN no agrega fricción: es la misma pausa.
+
+**Implicación:** El backend rechaza la acción si el motivo viene vacío — no es
+solo una validación del navegador.
+
+---
+
+## Aprobar no es privilegio de superadmin
+
+**Decisión:** `admin` y `superadmin` aprueban todos los pasos, incluida la
+entrevista personal. Lo exclusivo del superadmin es la administración del
+sistema: usuarios, PIN de terceros, registro de sesiones y reinicio.
+
+**Razón:** Los administradores son quienes revisan exámenes y hacen entrevistas
+a diario; bloquearles la aprobación obligaba a interrumpir a un superadmin por
+cada candidato. La trazabilidad la da la firma del motivo, no el rol.
+
+---
+
+## El PIN se compara como texto
+
+**Decisión:** `normalizePin_()` convierte a texto tanto el PIN escrito como el
+leído de la hoja antes de compararlos.
+
+**Razón:** Google Sheets guarda `104566` como número. Sin normalizar, un PIN con
+cero a la izquierda (`0104`) se lee como `104` y no coincide nunca, con el
+mensaje engañoso "PIN incorrecto". Al escribirlo, `setAdminPin` fuerza además el
+formato de celda a texto.

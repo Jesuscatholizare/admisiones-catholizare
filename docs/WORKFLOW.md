@@ -187,3 +187,25 @@ El admin ejecuta handoff desde el dashboard:
 5. Si se modificaron HTMLs: subir al servidor por FTP/SSH
 
 No existe CI/CD ni deploy automático.
+
+
+---
+
+## Aprobaciones: motivo + PIN (admin y superadmin)
+
+| Paso                            | Acción backend            | Motivo | PIN |
+|---------------------------------|---------------------------|:------:|:---:|
+| Aprobar registro (E1 de oficio) | `autoApproveE1`           | sí     | sí  |
+| Aprobar E1 / E2 / E3            | `approveExam`             | sí     | sí  |
+| Entrevista PASS / FAIL          | `registerInterviewResult` | sí     | sí  |
+| Asignar categoría final         | `assignCategory`          | sí     | sí  |
+| Rechazar proceso                | `rejectExam`              | sí     | sí  |
+
+Enviar correos (información general, tokens) no es una aprobación: no pide
+motivo ni PIN.
+
+### Solo SUPERADMIN
+- `generateAdminToken`, `toggleAdminUser`, `setAdminUserName`, `setUserPin`
+- `getSessionLog` — registro de inicios de sesión
+- `resetSystem` — reinicio con copia de seguridad previa en Drive
+- `resetTokenAttempt`, `gasDiagnostic`

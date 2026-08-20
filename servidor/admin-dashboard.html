@@ -444,6 +444,57 @@
         .quick-btn { background: #f8f9fc; border: 1.5px solid #e8e8e8; border-radius: 10px; padding: 0.9rem 1rem; cursor: pointer; text-align: center; transition: all 0.15s; font-size: 0.85rem; color: #333; font-weight: 500; }
         .quick-btn i { display: block; font-size: 1.4rem; margin-bottom: 0.4rem; color: #001A55; opacity: 0.7; }
         .quick-btn:hover { background: #eff3ff; border-color: #c5d3ff; color: #001A55; }
+        /* ── Gestión de Usuarios (paridad con el panel de Onboarding) ── */
+        .gu-form { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem 1.5rem; margin-top:1.25rem; }
+        @media (max-width: 720px) { .gu-form { grid-template-columns:1fr; } }
+        .gu-field label { display:block; font-size:0.8rem; font-weight:600; color:#4b5563; margin-bottom:0.35rem; }
+        .gu-field input, .gu-field select {
+            width:100%; padding:0.6rem 0.8rem; border:1.5px solid #dee2e6; border-radius:8px;
+            font-size:0.9rem; box-sizing:border-box; background:#fff; color:#111;
+        }
+        .gu-field input:focus, .gu-field select:focus { outline:none; border-color:var(--primary-light); box-shadow:0 0 0 3px rgba(9,102,255,0.1); }
+        .gu-submit { width:100%; margin-top:1.25rem; padding:0.85rem; border:none; border-radius:8px;
+            background:#001A55; color:#fff; font-weight:700; font-size:0.92rem; cursor:pointer; transition:opacity .15s; }
+        .gu-submit:hover { opacity:0.92; }
+        .gu-submit:disabled { opacity:0.6; cursor:not-allowed; }
+        .gu-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:1.25rem; margin-bottom:1.25rem; }
+        .gu-stat { background:#fff; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.08); padding:1.25rem 1.4rem; display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; }
+        .gu-stat-label { font-size:0.85rem; color:#6b7280; font-weight:500; }
+        .gu-stat-value { font-size:2.2rem; font-weight:800; color:#111827; line-height:1.2; margin-top:0.5rem; }
+        .gu-stat-ico { width:38px; height:38px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:1rem; flex-shrink:0; }
+        .gu-roles { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:1.25rem; }
+        .gu-role-card { border:1.5px solid #e5e7eb; border-radius:10px; padding:1.1rem 1.25rem; }
+        .gu-role-card.super { border-color:#c7d2fe; background:#f8faff; }
+        .gu-role-title { font-weight:800; font-size:0.95rem; margin-bottom:0.75rem; }
+        .gu-perm { font-size:0.85rem; color:#374151; padding:0.22rem 0; display:flex; gap:0.5rem; align-items:flex-start; }
+        .gu-perm .yes { color:#16a34a; } .gu-perm .no { color:#dc2626; }
+        .status-pill { display:inline-block; padding:2px 10px; border-radius:999px; font-size:0.75rem; font-weight:700; }
+        .status-pill.on  { background:#dcfce7; color:#15803d; }
+        .status-pill.off { background:#fee2e2; color:#b91c1c; }
+        /* ── Super Admin ── */
+        .sa-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:1.25rem; align-items:start; }
+        .sa-cfg-row { display:flex; align-items:center; justify-content:space-between; gap:1rem; background:#f8f9fc; border:1px solid #eef0f5; border-radius:9px; padding:0.75rem 1rem; margin-bottom:0.6rem; }
+        .sa-cfg-name { font-weight:700; font-size:0.88rem; color:#111827; }
+        .sa-cfg-desc { font-size:0.78rem; color:#8b93a3; }
+        .sa-badge { font-size:0.72rem; font-weight:700; padding:3px 10px; border-radius:999px; white-space:nowrap; }
+        .sa-badge.ok   { background:#dcfce7; color:#15803d; }
+        .sa-badge.warn { background:#fef3c7; color:#92400e; }
+        .sa-log-wrap { max-height:340px; overflow:auto; }
+        .sa-log { width:100%; border-collapse:collapse; }
+        .sa-log th { position:sticky; top:0; background:#f8f9fc; padding:0.6rem 0.9rem; text-align:left; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.5px; color:#8b93a3; border-bottom:2px solid #eee; white-space:nowrap; }
+        .sa-log td { padding:0.7rem 0.9rem; border-bottom:1px solid #f5f5f5; font-size:0.82rem; vertical-align:top; }
+        .sa-log td.ua { font-family:monospace; font-size:0.72rem; color:#6b7280; max-width:280px; word-break:break-word; }
+        .sa-danger { border:1.5px solid #fecaca; background:#fff5f5; border-radius:10px; padding:1.1rem 1.25rem; display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; }
+        .sa-danger > div:first-child { flex:1 1 300px; }
+        .sa-danger-title { font-weight:800; color:#b91c1c; font-size:0.92rem; }
+        .sa-danger-desc  { font-size:0.82rem; color:#8b6a6a; }
+        /* ── Modal de aprobación (motivo + PIN) ── */
+        .ap-label { display:block; font-size:0.75rem; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:0.6px; margin-bottom:0.35rem; }
+        .ap-input, .ap-textarea { width:100%; padding:0.7rem; border:1.5px solid #dee2e6; border-radius:8px;
+            font-size:0.9rem; box-sizing:border-box; font-family:inherit; }
+        .ap-textarea { min-height:78px; resize:vertical; }
+        .ap-input:focus, .ap-textarea:focus { outline:none; border-color:#d97706; box-shadow:0 0 0 3px rgba(217,119,6,0.12); }
+        .ap-hint { font-size:0.76rem; color:#8b93a3; margin-top:0.35rem; line-height:1.5; }
         /* ── Top Navbar ── */
         .top-navbar {
             background: white; border-bottom: 1px solid #eaeaea;
@@ -1065,20 +1116,104 @@
             <div class="header-section">
                 <div>
                     <h1><i class="fas fa-user-shield" style="color:var(--primary);font-size:1.4rem;vertical-align:middle;margin-right:0.5rem;"></i>Gestión de Usuarios</h1>
-                    <small>Administradores con acceso al panel</small>
+                    <small>Administra los usuarios y permisos del sistema.</small>
                 </div>
-                <div style="display:flex;gap:0.6rem;">
-                    <button class="btn" style="background:#7c3aed;color:white;" onclick="document.getElementById('modalAgregarAdmin').style.display='block'">
-                        <i class="fas fa-user-plus"></i> + Agregar Admin
-                    </button>
-                    <button class="btn" style="background:#001A55;color:white;" onclick="loadAdminUsers()">
-                        <i class="fas fa-sync-alt"></i> Actualizar
-                    </button>
+                <button class="btn" style="background:#001A55;color:white;" onclick="loadAdminUsers()">
+                    <i class="fas fa-sync-alt"></i> Actualizar
+                </button>
+            </div>
+
+            <!-- Generar Token Admin -->
+            <div class="admin-card">
+                <h3>🔑 Generar Token Admin</h3>
+                <p>Crea un nuevo usuario administrador o super administrador. El token de acceso se enviará automáticamente por correo.</p>
+                <div class="gu-form">
+                    <div class="gu-field">
+                        <label for="guEmail">Email *</label>
+                        <input id="guEmail" type="email" placeholder="email@ejemplo.com" autocomplete="off">
+                    </div>
+                    <div class="gu-field">
+                        <label for="guNombre">Nombre *</label>
+                        <input id="guNombre" type="text" placeholder="Nombre completo" autocomplete="off">
+                    </div>
+                    <div class="gu-field">
+                        <label for="guRol">Rol *</label>
+                        <select id="guRol">
+                            <option value="admin">Administrador</option>
+                            <option value="superadmin">Super Administrador</option>
+                        </select>
+                    </div>
+                    <div class="gu-field">
+                        <label for="guPin">PIN Super Admin *</label>
+                        <input id="guPin" type="password" placeholder="Tu PIN de autorización" autocomplete="off">
+                    </div>
+                    <div class="gu-field">
+                        <label for="guPinNuevo">PIN para el nuevo usuario <span style="font-weight:400;color:#9ca3af;">(opcional, mín. 4)</span></label>
+                        <input id="guPinNuevo" type="text" placeholder="Con el que firmará sus aprobaciones" autocomplete="off">
+                    </div>
+                </div>
+                <button id="guBtn" class="gu-submit" onclick="submitGenerarTokenAdmin()">
+                    🔑 Generar Token y Enviar por Correo
+                </button>
+                <div id="guMsg" style="display:none;margin-top:1rem;padding:0.75rem 1rem;border-radius:8px;font-size:0.85rem;"></div>
+                <div id="guTokenResult" style="display:none;margin-top:0.75rem;"></div>
+            </div>
+
+            <!-- Contadores -->
+            <div class="gu-stats">
+                <div class="gu-stat">
+                    <div><div class="gu-stat-label">Total Usuarios</div><div class="gu-stat-value" id="guTotal">0</div></div>
+                    <div class="gu-stat-ico" style="background:#eef2ff;color:#4f46e5;"><i class="fas fa-users"></i></div>
+                </div>
+                <div class="gu-stat">
+                    <div><div class="gu-stat-label">Super Admins</div><div class="gu-stat-value" id="guSupers">0</div></div>
+                    <div class="gu-stat-ico" style="background:#fff7ed;color:#d97706;"><i class="fas fa-shield-alt"></i></div>
+                </div>
+                <div class="gu-stat">
+                    <div><div class="gu-stat-label">Activos</div><div class="gu-stat-value" id="guActivos">0</div></div>
+                    <div class="gu-stat-ico" style="background:#dcfce7;color:#15803d;"><i class="fas fa-check"></i></div>
                 </div>
             </div>
-            <div class="admin-card" style="padding:0;overflow:hidden;">
+
+            <!-- Usuarios Registrados -->
+            <div class="admin-card">
+                <h3 style="margin-bottom:1rem;">Usuarios Registrados</h3>
                 <div id="usersTableWrap" style="overflow-x:auto;">
                     <div class="resp-empty"><i class="fas fa-spinner fa-spin"></i>Cargando usuarios...</div>
+                </div>
+            </div>
+
+            <!-- Roles y Permisos -->
+            <div class="admin-card">
+                <h3 style="margin-bottom:1rem;">Roles y Permisos</h3>
+                <div class="gu-roles">
+                    <div class="gu-role-card super">
+                        <div class="gu-role-title" style="color:#4f46e5;"><i class="fas fa-shield-alt" style="margin-right:6px;"></i>Super Admin</div>
+                        <div class="gu-perm"><span class="yes">✅</span><span>Acceso total al sistema</span></div>
+                        <div class="gu-perm"><span class="yes">✅</span><span>Crear/desactivar tokens admin</span></div>
+                        <div class="gu-perm"><span class="yes">✅</span><span>Gestionar profesionales</span></div>
+                        <div class="gu-perm"><span class="yes">✅</span><span>Aprobar exámenes E1, E2, E3 y entrevista</span></div>
+                        <div class="gu-perm"><span class="yes">✅</span><span>Enviar emails manuales</span></div>
+                        <div class="gu-perm"><span class="yes">✅</span><span>Ver analítica completa</span></div>
+                        <div class="gu-perm"><span class="yes">✅</span><span>Ver documentos legales</span></div>
+                        <div class="gu-perm"><span class="yes">✅</span><span>System Health y diagnósticos</span></div>
+                        <div class="gu-perm"><span class="yes">✅</span><span>Configuración del sistema y PIN</span></div>
+                    </div>
+                    <div class="gu-role-card">
+                        <div class="gu-role-title" style="color:#111827;"><i class="fas fa-user" style="margin-right:6px;"></i>Administrador</div>
+                        <div class="gu-perm"><span class="yes">✅</span><span>Ver dashboard y profesionales</span></div>
+                        <div class="gu-perm"><span class="yes">✅</span><span>Gestionar profesionales</span></div>
+                        <div class="gu-perm"><span class="yes">✅</span><span>Aprobar exámenes E1, E2, E3 y entrevista</span></div>
+                        <div class="gu-perm"><span class="yes">✅</span><span>Enviar emails manuales</span></div>
+                        <div class="gu-perm"><span class="yes">✅</span><span>Ver documentos legales</span></div>
+                        <div class="gu-perm"><span class="yes">✅</span><span>Ver analítica</span></div>
+                        <div class="gu-perm"><span class="no">❌</span><span>No puede crear tokens</span></div>
+                        <div class="gu-perm"><span class="no">❌</span><span>Sin acceso a System Health</span></div>
+                        <div class="gu-perm"><span class="no">❌</span><span>Sin acceso a Super Admin</span></div>
+                    </div>
+                </div>
+                <div style="margin-top:1rem;font-size:0.8rem;color:#8b93a3;">
+                    <i class="fas fa-info-circle"></i> Cada aprobación queda firmada con el PIN personal de quien la autorizó y el motivo que escribió.
                 </div>
             </div>
         </div>
@@ -1090,54 +1225,78 @@
             <div class="header-section">
                 <div>
                     <h1><i class="fas fa-crown" style="color:#f0a500;font-size:1.4rem;vertical-align:middle;margin-right:0.5rem;"></i>Super Admin</h1>
-                    <small>Herramientas avanzadas de administración</small>
+                    <small>Herramientas avanzadas de administración del sistema.</small>
                 </div>
             </div>
 
-            <!-- Token de acceso -->
-            <div class="admin-card">
-                <div class="admin-section-title">Token de acceso</div>
-                <h3>Generar enlace de administrador</h3>
-                <p>Crea un token seguro para acceder al panel sin contraseña. Válido por tiempo limitado.</p>
-                <div style="display:flex;gap:0.75rem;align-items:flex-start;margin-top:1rem;flex-wrap:wrap;">
-                    <div style="flex:1;min-width:200px;">
-                        <label style="font-size:0.78rem;color:#888;display:block;margin-bottom:4px;">Para usuario (email)</label>
-                        <input id="superTokenEmail" type="email" placeholder="admin@catholizare.com"
-                               style="width:100%;padding:0.5rem 0.75rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;outline:none;">
+            <div class="sa-grid" style="margin-bottom:1.25rem;">
+                <!-- PIN de administrador -->
+                <div class="admin-card" style="margin-bottom:0;">
+                    <h3>🔒 PIN de Administrador</h3>
+                    <p>Tu PIN personal: firma cada aprobación que haces y autoriza la creación de nuevos administradores en Gestión de Usuarios.</p>
+                    <div id="saPinStatus" style="margin:0.9rem 0;font-size:0.85rem;color:#8b93a3;">
+                        <i class="fas fa-spinner fa-spin"></i> Verificando…
                     </div>
-                    <button class="btn" style="background:#001A55;color:white;margin-top:auto;white-space:nowrap;"
-                            onclick="generateAdminTokenAction()">
-                        <i class="fas fa-key"></i> Generar Token
-                    </button>
+                    <div class="gu-field" style="margin-bottom:0.75rem;">
+                        <label for="saPinActual">PIN actual</label>
+                        <input id="saPinActual" type="password" placeholder="PIN actual" autocomplete="off">
+                    </div>
+                    <div class="gu-field" style="margin-bottom:0.75rem;">
+                        <label for="saPinNuevo">Nuevo PIN (mín. 4 caracteres)</label>
+                        <input id="saPinNuevo" type="password" placeholder="Nuevo PIN" autocomplete="off">
+                    </div>
+                    <div class="gu-field">
+                        <label for="saPinConfirmar">Confirmar nuevo PIN</label>
+                        <input id="saPinConfirmar" type="password" placeholder="Confirmar PIN" autocomplete="off">
+                    </div>
+                    <button id="saPinBtn" class="gu-submit" onclick="guardarNuevoPin()">💾 Guardar PIN</button>
+                    <div id="saPinMsg" style="display:none;margin-top:0.9rem;padding:0.75rem 1rem;border-radius:8px;font-size:0.85rem;"></div>
                 </div>
-                <div id="superTokenResult"></div>
+
+                <!-- Configuración del Sistema -->
+                <div class="admin-card" style="margin-bottom:0;">
+                    <h3>⚙️ Configuración del Sistema</h3>
+                    <p style="margin-bottom:1rem;">Estado de las integraciones. No se muestra ninguna credencial.</p>
+                    <div id="saConfigList">
+                        <div class="resp-empty" style="padding:2rem 1rem;"><i class="fas fa-spinner fa-spin"></i>Verificando…</div>
+                    </div>
+                </div>
             </div>
 
-            <!-- Accesos rápidos -->
+            <!-- Registro de Sesiones -->
             <div class="admin-card">
-                <div class="admin-section-title">Accesos rápidos</div>
-                <div class="quick-grid">
-                    <button class="quick-btn" onclick="showView('health')">
-                        <i class="fas fa-heartbeat"></i>System Health
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1rem;">
+                    <h3 style="margin:0;">📋 Registro de Sesiones</h3>
+                    <button class="btn" style="background:#f8f9fc;border:1.5px solid #e8e8e8;color:#333;font-size:0.82rem;padding:0.4rem 0.9rem;" onclick="loadSessionLog()">
+                        <i class="fas fa-sync-alt"></i> Refrescar
                     </button>
-                    <button class="quick-btn" onclick="showView('usuarios')">
-                        <i class="fas fa-users-cog"></i>Gestión Usuarios
-                    </button>
-                    <button class="quick-btn" onclick="showView('respuestas')">
-                        <i class="fas fa-clipboard-list"></i>Ver Respuestas
-                    </button>
-                    <button class="quick-btn" onclick="showView('dashboard')">
-                        <i class="fas fa-chart-bar"></i>Dashboard
-                    </button>
+                </div>
+                <div id="saSessionsWrap" class="sa-log-wrap">
+                    <div class="resp-empty" style="padding:2rem 1rem;"><i class="fas fa-spinner fa-spin"></i>Cargando sesiones…</div>
                 </div>
             </div>
 
-            <!-- Info de sesión -->
+            <!-- Zona de Peligro -->
+            <div class="admin-card">
+                <h3 style="margin-bottom:1rem;">⚠️ Zona de Peligro</h3>
+                <div class="sa-danger">
+                    <div>
+                        <div class="sa-danger-title">Reiniciar Sistema</div>
+                        <div class="sa-danger-desc">Elimina todos los datos de candidatos y resetea el proceso de admisión. Antes de borrar se guarda una copia de seguridad completa en Drive. No se tocan usuarios, preguntas ni configuración.</div>
+                    </div>
+                    <button class="btn" style="background:#fff;border:1.5px solid #dc2626;color:#dc2626;font-weight:700;white-space:nowrap;" onclick="abrirReinicioSistema()">
+                        Reiniciar
+                    </button>
+                </div>
+                <div id="saResetMsg" style="display:none;margin-top:0.9rem;padding:0.75rem 1rem;border-radius:8px;font-size:0.85rem;"></div>
+            </div>
+
+            <!-- Sesión actual -->
             <div class="admin-card">
                 <div class="admin-section-title">Sesión actual</div>
                 <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:center;">
                     <div>
-                        <div style="font-size:0.75rem;color:#aaa;margin-bottom:2px;">Token activo</div>
+                        <div style="font-size:0.75rem;color:#aaa;margin-bottom:2px;">Usuario</div>
                         <code id="superCurrentToken" style="font-size:0.78rem;background:#f0f4ff;padding:3px 8px;border-radius:4px;color:#001A55;word-break:break-all;"></code>
                     </div>
                     <button class="btn" style="background:#dc3545;color:white;margin-left:auto;" onclick="logout()">
@@ -1245,64 +1404,33 @@
       </div>
     </div>
 
-    <!-- Modal: Agregar Admin -->
-    <div id="modalAgregarAdmin" class="modal">
-      <div class="modal-content" style="max-width:440px;padding:0;border-radius:12px;overflow:hidden;">
-        <div style="background:#5b21b6;color:white;padding:1.1rem 1.4rem;display:flex;align-items:center;justify-content:space-between;">
-          <div style="font-weight:800;font-size:1rem;"><i class="fas fa-user-shield" style="margin-right:8px;"></i>Agregar Administrador</div>
-          <button onclick="document.getElementById('modalAgregarAdmin').style.display='none'" style="background:none;border:none;color:white;font-size:1.4rem;cursor:pointer;line-height:1;">&times;</button>
+    <!-- Modal: firma del paso — motivo + PIN personal -->
+    <div id="modalAprobacion" class="modal" style="z-index:10000;">
+      <div class="modal-content" style="max-width:460px;padding:0;border-radius:12px;overflow:hidden;">
+        <div id="apModalHeader" style="background:#d97706;color:white;padding:1.1rem 1.4rem;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-weight:800;font-size:1rem;"><i class="fas fa-signature" style="margin-right:8px;"></i><span id="apModalTitle">Firmar aprobación</span></div>
+          <button onclick="cerrarModalAprobacion()" style="background:none;border:none;color:white;font-size:1.4rem;cursor:pointer;line-height:1;">&times;</button>
         </div>
         <div style="padding:1.4rem;background:white;">
-          <div id="aaMensaje" style="display:none;margin-bottom:1rem;padding:0.75rem 1rem;border-radius:8px;font-size:0.85rem;"></div>
-          <div style="display:flex;flex-direction:column;gap:0.85rem;">
-            <div>
-              <label style="font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">Email del nuevo admin *</label>
-              <input id="aaEmail" type="email" placeholder="admin@catholizare.com" style="width:100%;padding:0.5rem 0.75rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;">
-            </div>
-            <div>
-              <label style="font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">Rol *</label>
-              <select id="aaRol" style="width:100%;padding:0.5rem 0.75rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;">
-                <option value="admin">Admin — acceso estándar</option>
-                <option value="super_admin">Super Admin — acceso total</option>
-              </select>
-            </div>
-            <div>
-              <label style="font-size:0.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">PIN de autorización *</label>
-              <input id="aaPIN" type="password" placeholder="PIN de administrador" style="width:100%;padding:0.5rem 0.75rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;">
-            </div>
-          </div>
-          <div id="aaTokenResult" style="display:none;margin-top:1rem;padding:0.75rem 1rem;background:#f0fff4;border:1px solid #a3cfbb;border-radius:8px;font-size:0.82rem;"></div>
-          <div style="display:flex;gap:0.75rem;margin-top:1.25rem;">
-            <button onclick="document.getElementById('modalAgregarAdmin').style.display='none'"
-                    style="flex:1;padding:0.65rem;border:1.5px solid #dee2e6;border-radius:8px;background:white;color:#555;font-weight:600;cursor:pointer;">
-                Cancelar
-            </button>
-            <button id="aaBtn" onclick="submitAgregarAdmin()"
-                    style="flex:2;padding:0.65rem;border:none;border-radius:8px;background:#5b21b6;color:white;font-weight:700;cursor:pointer;">
-                <i class="fas fa-user-shield"></i> Crear Admin
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+          <p id="apModalDesc" style="margin-bottom:1.1rem;color:#555;font-size:0.9rem;"></p>
 
-    <!-- Modal: firma del admin para avances manuales de fase -->
-    <div id="modalSuperAdminAuth" class="modal" style="z-index:10000;">
-      <div class="modal-content" style="max-width:420px;padding:0;border-radius:12px;overflow:hidden;">
-        <div style="background:#d97706;color:white;padding:1.1rem 1.4rem;display:flex;align-items:center;justify-content:space-between;">
-          <div style="font-weight:800;font-size:1rem;"><i class="fas fa-signature" style="margin-right:8px;"></i>Firma con tu PIN</div>
-          <button onclick="document.getElementById('modalSuperAdminAuth').style.display='none'" style="background:none;border:none;color:white;font-size:1.4rem;cursor:pointer;line-height:1;">&times;</button>
-        </div>
-        <div style="padding:1.4rem;background:white;">
-          <p style="margin-bottom:1rem;color:#555;font-size:0.9rem;">Vas a avanzar la fase de forma manual. Ingresa <strong>tu PIN personal</strong> para que la acción quede firmada a tu nombre en la bitácora del candidato.</p>
-          <div style="margin-bottom:1rem;">
-            <input id="superAdminPin" type="password" placeholder="Tu PIN personal" style="width:100%;padding:0.7rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;" autocomplete="off">
+          <div style="margin-bottom:1.1rem;">
+            <label class="ap-label" for="apMotivo"><span id="apMotivoLabel">Motivo de la aprobación</span> *</label>
+            <textarea id="apMotivo" class="ap-textarea" placeholder="Ej: Cumple el perfil, examen revisado y sin alertas." autocomplete="off"></textarea>
+            <div class="ap-hint">Queda guardado en el expediente del candidato junto con tu nombre y la fecha.</div>
           </div>
-          <div style="display:flex;gap:0.75rem;">
-            <button onclick="document.getElementById('modalSuperAdminAuth').style.display='none'" style="flex:1;padding:0.65rem;border:1.5px solid #dee2e6;border-radius:8px;background:white;color:#555;font-weight:600;cursor:pointer;">Cancelar</button>
-            <button id="superAdminAuthBtn" onclick="validateSuperAdminPin()" style="flex:1;padding:0.65rem;border:none;border-radius:8px;background:#d97706;color:white;font-weight:700;cursor:pointer;">Validar PIN</button>
+
+          <div>
+            <label class="ap-label" for="apPin">Tu PIN personal *</label>
+            <input id="apPin" class="ap-input" type="password" placeholder="PIN personal" autocomplete="off">
+            <div class="ap-hint">El PIN no da permiso —eso lo hace tu sesión—: identifica <strong>quién</strong> firma este paso.</div>
           </div>
-          <div id="superAdminAuthMsg" style="margin-top:1rem;display:none;padding:0.75rem;border-radius:8px;font-size:0.85rem;"></div>
+
+          <div style="display:flex;gap:0.75rem;margin-top:1.25rem;">
+            <button onclick="cerrarModalAprobacion()" style="flex:1;padding:0.65rem;border:1.5px solid #dee2e6;border-radius:8px;background:white;color:#555;font-weight:600;cursor:pointer;">Cancelar</button>
+            <button id="apConfirmBtn" onclick="confirmarAprobacion()" style="flex:1.4;padding:0.65rem;border:none;border-radius:8px;background:#d97706;color:white;font-weight:700;cursor:pointer;">Confirmar</button>
+          </div>
+          <div id="apModalMsg" style="margin-top:1rem;display:none;padding:0.75rem;border-radius:8px;font-size:0.85rem;"></div>
         </div>
       </div>
     </div>
@@ -1361,7 +1489,6 @@
         let ADMIN_TOKEN        = '';
         let USER_ROLE          = 'admin';  // default
         let USER_EMAIL         = '';
-        let SUPERADMIN_PIN_VALIDATED = false;
 
         document.addEventListener('DOMContentLoaded', function() {
             // Verificar token admin
@@ -1869,6 +1996,8 @@
             // Bitácora del candidato: se pide en segundo plano y repinta al llegar.
             tlEvents = null; tlEventsForId = null;
             loadTLEvents(candidateId);
+            // Quién aprobó cada paso y con qué motivo (también en segundo plano).
+            cargarAprobaciones(candidateId);
             document.getElementById('tlName').textContent = c.nombre || candidateId;
             document.getElementById('tlMeta').innerHTML =
                 `<span>${c.email||''}</span> <span>•</span> <span>${getCurrentPhaseLabel(c.status)}</span> <span>•</span> ${getStatusBadge(c.status)}`;
@@ -1889,6 +2018,8 @@
             el.classList.add('active');
             const body = document.getElementById('tlBody');
             body.innerHTML = tab === 'perfil' ? renderTLPerfil(tlCurrentCandidate) : renderTLTimeline(tlCurrentCandidate);
+            // Al abrir el Timeline nos aseguramos de tener las firmas al día.
+            if (tab !== 'perfil' && tlCurrentCandidate) cargarAprobaciones(tlCurrentCandidate.candidato_id);
         }
 
         // ── Fechas de las fases, leídas de la hoja Timeline ───────────────────
@@ -1939,6 +2070,68 @@
 
         let tlEvents      = null;   // eventos del candidato abierto, null = sin cargar
         let tlEventsForId = null;   // candidato al que pertenecen
+        let TL_APPROVALS  = [];     // aprobaciones firmadas del candidato abierto
+
+        /** Trae de la hoja Aprobaciones quién firmó cada paso y por qué. */
+        async function cargarAprobaciones(candidateId) {
+            TL_APPROVALS = [];
+            try {
+                const res = await fetch(API_BASE, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'getApprovals', candidateId, adminToken: ADMIN_TOKEN })
+                });
+                const data = await res.json();
+                if (data.success) TL_APPROVALS = (data.data && data.data.approvals) || [];
+            } catch (e) {
+                console.warn('No se pudo cargar el historial de aprobaciones', e);
+            }
+            // Repintar si sigue abierto el mismo candidato en la pestaña Timeline
+            if (tlCurrentCandidate && tlCurrentCandidate.candidato_id === candidateId) {
+                const activa = document.querySelector('.tl-tab.active');
+                if (activa && activa.textContent.trim() === 'Timeline') {
+                    document.getElementById('tlBody').innerHTML = renderTLTimeline(tlCurrentCandidate);
+                }
+            }
+        }
+
+        /** Aprobaciones registradas para una fase concreta del timeline. */
+        function aprobacionesDeFase(phaseKey) {
+            const mapa = {
+                registro:   ['REGISTRO'],
+                e1:         ['E1'],
+                e2:         ['E2'],
+                e3:         ['E3'],
+                entrevista: ['ENTREVISTA'],
+                categoria:  ['CATEGORIA_JUNIOR', 'CATEGORIA_SENIOR', 'CATEGORIA_EXPERT']
+            };
+            const pasos = mapa[phaseKey];
+            if (!pasos) return [];
+            return TL_APPROVALS.filter(a => pasos.indexOf(String(a.step || '').toUpperCase()) !== -1);
+        }
+
+        /** Bloque "aprobado por … · motivo" que se pinta dentro de cada fase. */
+        function renderAprobacionesFase(phaseKey) {
+            const items = aprobacionesDeFase(phaseKey);
+            if (!items.length) return '';
+            const fmt = d => { try { return new Date(d).toLocaleString('es-MX'); } catch (e) { return d || ''; } };
+            return items.map(a => {
+                const rechazo = String(a.decision || '').toLowerCase() === 'rechazado';
+                const color   = rechazo ? '#dc3545' : '#198754';
+                const fondo   = rechazo ? '#fff5f5' : '#f0fdf4';
+                const icono   = rechazo ? 'fa-times-circle' : 'fa-check-circle';
+                const quien   = a.by_name || a.by_email || 'Administrador';
+                const rol     = a.by_role === 'superadmin' ? 'Superadmin' : 'Admin';
+                return `<div style="margin:10px 0;padding:10px 14px;background:${fondo};border-left:3px solid ${color};border-radius:0 6px 6px 0;">
+                    <div style="font-size:.78rem;font-weight:700;color:${color};margin-bottom:4px;">
+                        <i class="fas ${icono}" style="margin-right:5px"></i>${rechazo ? 'RECHAZADO' : 'APROBADO'} POR ${quien.toUpperCase()}
+                        <span style="font-weight:500;color:#8b93a3;"> · ${rol} · ${fmt(a.timestamp)}</span>
+                    </div>
+                    ${a.motivo
+                        ? `<div style="font-size:.82rem;color:#444;font-style:italic;">"${a.motivo}"</div>`
+                        : `<div style="font-size:.82rem;color:#999;font-style:italic;">Sin motivo registrado.</div>`}
+                </div>`;
+            }).join('');
+        }
 
         /** Formatea un ISO como fecha y hora legibles; '' si no hay dato. */
         function formatTLDate(iso) {
@@ -2187,6 +2380,9 @@
                     inner += `<p class="tl-phase-dtxt">${phase.desc}</p>`;
                 }
 
+                // Quién aprobó este paso y por qué: queda visible en las fases ya superadas.
+                inner += renderAprobacionesFase(phase.key);
+
                 // Si es la fase de términos y el candidato declinó, añadir bloque informativo
                 if (phase.key === 'terminos' && c.declined_at) {
                     const fmtDec = d => { try { return new Date(d).toLocaleString('es-MX'); } catch(e) { return d; } };
@@ -2312,38 +2508,43 @@
             const c = tlCurrentCandidate;
             if (!c) return;
             if (c.status === 'awaiting_category') { showToast('Selecciona una categoría en el Timeline', 'error'); return; }
-            const map = {
-                'registered':               { action:'autoApproveE1',          msg:'E1 aprobado con 70%' },
-                'pending_review_E1':        { action:'sendEmailManual',        emailType:'terms',       msg:'Correo de Información general enviado' },
-                'awaiting_terms_acceptance':{ action:'sendEmailManual',        emailType:'e2',          msg:'Token E2 enviado' },
-                'pending_review_E2':        { action:'approveExam',            exam:'E2', notes:'',     msg:'E2 aprobado' },
-                'pending_review_E3':        { action:'approveExam',            exam:'E3', notes:'',     msg:'E3 aprobado' },
-                'awaiting_interview':       { action:'registerInterviewResult', result:'pass', interviewNotes:'', msg:'Entrevista PASS' }
+
+            // Pasos que solo mandan un correo: no son aprobaciones, no piden
+            // motivo ni PIN.
+            const correos = {
+                'pending_review_E1':         { emailType: 'terms', msg: 'Correo de Información general enviado' },
+                'awaiting_terms_acceptance': { emailType: 'e2',    msg: 'Token E2 enviado' }
             };
-            const entry = map[c.status];
-            if (!entry) return;
-            if (!confirm(`¿Avanzar a "${c.nombre}" a la siguiente fase?`)) return;
-            const { msg, ...body } = entry;
-            try {
-                const resp = await fetch(API_BASE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: ADMIN_TOKEN, candidateId: c.candidato_id, ...body }) });
-                const data = await resp.json();
-                if (data.success) {
-                    showToast(msg, 'success');
-                    // Recargar datos y actualizar timeline
-                    await loadData();
-                    // Volver a cargar el candidato actualizado
-                    if (candidates && candidates.length > 0) {
-                        const updatedCandidate = candidates.find(cd => cd.candidato_id === c.candidato_id);
-                        if (updatedCandidate) {
-                            tlCurrentCandidate = updatedCandidate;  // Actualizar tlCurrentCandidate
-                            document.getElementById('tlBody').innerHTML = renderTLPerfil(updatedCandidate) + renderTLTimeline(updatedCandidate);
-                            updateAvanzarBtn(updatedCandidate);     // Actualizar estado del botón
-                        }
-                    }
-                } else {
-                    showToast(data.message || 'Error al avanzar fase', 'error');
-                }
-            } catch (e) { showToast('Error de conexión', 'error'); }
+            if (correos[c.status]) {
+                const { emailType, msg } = correos[c.status];
+                if (!confirm(`¿Avanzar a "${c.nombre}" a la siguiente fase?`)) return;
+                try {
+                    const resp = await fetch(API_BASE, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'sendEmailManual', adminToken: ADMIN_TOKEN, candidateId: c.candidato_id, emailType })
+                    });
+                    const data = await resp.json();
+                    showToast(data.success ? msg : (data.message || 'Error al avanzar fase'), data.success ? 'success' : 'error');
+                    if (data.success) await refrescarTimelineActual();
+                } catch (e) { showToast('Error de conexión', 'error'); }
+                return;
+            }
+
+            // Pasos que son una aprobación: motivo + PIN, igual que en el timeline.
+            if (c.status === 'registered') {
+                pedirAutorizacion({
+                    title: 'Aprobar Registro Inicial',
+                    desc: `Vas a aprobar el E1 de ${c.nombre} con 70% y pasarlo a revisión.`,
+                    motivoPlaceholder: 'Ej: Perfil verificado en el registro; se aprueba el E1 de oficio.',
+                    confirmText: 'Aprobar E1',
+                    color: '#198754',
+                    payload: { action: 'autoApproveE1', candidateId: c.candidato_id }
+                });
+                return;
+            }
+            if (c.status === 'pending_review_E2')  { approveExamWithPin('E2'); return; }
+            if (c.status === 'pending_review_E3')  { approveExamWithPin('E3'); return; }
+            if (c.status === 'awaiting_interview') { doInterviewResultTL('pass'); return; }
         }
 
         // ── Acciones del encabezado del modal ────────────────────────────────
@@ -2459,31 +2660,77 @@
                 if (msg) msg.textContent = 'Error de red.';
             }
         }
-        async function doApproveExamTL(exam) {
-            if (!confirm(`¿Aprobar examen ${exam}?`)) return;
-            await callApi({ action:'approveExam', candidateId:currentCandidateId, exam, notes:'', adminToken:ADMIN_TOKEN }, `✅ Examen ${exam} aprobado`, true);
-        }
-        // Envuelve doApproveExamTL con validación de PIN del superadmin
+        // Aprobar un examen: lo puede hacer un administrador o un
+        // superadministrador; siempre con motivo + PIN personal.
         function approveExamWithPin(exam) {
-            requireAdminSignature(() => doApproveExamTL(exam));
+            const nombre = (tlCurrentCandidate && tlCurrentCandidate.nombre) || 'el candidato';
+            pedirAutorizacion({
+                title: `Aprobar Examen ${exam}`,
+                desc: `Vas a aprobar el Examen ${exam} de ${nombre}. Escribe el motivo y firma con tu PIN.`,
+                motivoLabel: 'Motivo de la aprobación',
+                motivoPlaceholder: `Ej: ${exam} revisado, puntaje suficiente y sin alertas de integridad.`,
+                confirmText: `Aprobar ${exam}`,
+                color: '#198754',
+                payload: { action: 'approveExam', candidateId: currentCandidateId, exam: exam }
+            });
         }
-        async function doFinalDecisionTL(category) {
-            if (!confirm(`¿Aprobar candidato como ${category}? Esta acción es definitiva.`)) return;
-            await callApi({ action:'assignCategory', candidateId:currentCandidateId, category, comments:'', adminToken:ADMIN_TOKEN }, `🎉 Aprobado como ${category}`, true);
+        // Compatibilidad: el flujo anterior llamaba a doApproveExamTL directo.
+        function doApproveExamTL(exam) { approveExamWithPin(exam); }
+
+        function doFinalDecisionTL(category) {
+            const nombre = (tlCurrentCandidate && tlCurrentCandidate.nombre) || 'el candidato';
+            pedirAutorizacion({
+                title: `Aprobar como ${category}`,
+                desc: `Vas a cerrar el proceso de ${nombre} con la categoría ${category}. Esta acción es definitiva.`,
+                motivoLabel: 'Motivo de la categorización',
+                motivoPlaceholder: `Ej: Desempeño consistente en los tres exámenes y en la entrevista; perfil ${category}.`,
+                confirmText: `Aprobar ${category}`,
+                color: '#198754',
+                payload: { action: 'assignCategory', candidateId: currentCandidateId, category: category }
+            });
         }
-        async function doInterviewResultTL(result) {
-            const notes = (document.getElementById('tlInterviewNotes')||{}).value||'';
-            if (result==='fail' && !notes.trim()) { showToast('Escribe las notas antes de rechazar','error'); return; }
-            if (!confirm(result==='pass' ? '¿Confirmar PASS?' : '¿Confirmar FAIL? Se registrará la evaluación y se notificará al candidato.')) return;
-            await callApi({ action:'registerInterviewResult', candidateId:currentCandidateId, result, interviewNotes:notes, adminToken:ADMIN_TOKEN },
-                result==='pass' ? '✅ Entrevista aprobada' : '✉️ Evaluación registrada — correo enviado al candidato', true);
+
+        // Entrevista personal: PASS y FAIL, ambos con motivo obligatorio.
+        function doInterviewResultTL(result) {
+            const nombre = (tlCurrentCandidate && tlCurrentCandidate.nombre) || 'el candidato';
+            const notas  = ((document.getElementById('tlInterviewNotes')||{}).value || '').trim();
+            const esPass = result === 'pass';
+            pedirAutorizacion({
+                title: esPass ? 'Aprobar Entrevista Personal' : 'Rechazar Entrevista Personal',
+                desc: esPass
+                    ? `Vas a aprobar la entrevista personal de ${nombre} y avanzar a la categorización.`
+                    : `Vas a registrar la entrevista de ${nombre} como no aprobada. Se le enviará un correo con la retroalimentación.`,
+                motivoLabel: esPass ? 'Motivo de la aprobación' : 'Motivo del rechazo',
+                motivoPlaceholder: esPass
+                    ? 'Ej: Entrevista realizada; claridad vocacional y experiencia clínica adecuadas.'
+                    : 'Ej: No cumple el perfil requerido en esta convocatoria porque…',
+                motivoInicial: notas,
+                confirmText: esPass ? 'Aprobar entrevista' : 'Registrar rechazo',
+                color: esPass ? '#198754' : '#dc3545',
+                payload: {
+                    action: 'registerInterviewResult',
+                    candidateId: currentCandidateId,
+                    result: result,
+                    interviewNotes: notas
+                }
+            });
         }
-        async function tlRechazarProceso() {
-            const input = document.getElementById('tlRejectReason');
+
+        function tlRechazarProceso() {
+            const input  = document.getElementById('tlRejectReason');
             const reason = input ? input.value.trim() : '';
-            if (!reason) { showToast('Escribe el motivo de rechazo','error'); return; }
-            if (!confirm('¿Registrar evaluación y notificar al candidato?')) return;
-            await callApi({ action:'rejectExam', candidateId:currentCandidateId, exam:'PROCESO', reason, adminToken:ADMIN_TOKEN }, '✉️ Evaluación registrada — correo enviado al candidato', true);
+            const nombre = (tlCurrentCandidate && tlCurrentCandidate.nombre) || 'el candidato';
+            pedirAutorizacion({
+                title: 'Rechazar Proceso',
+                desc: `Vas a rechazar el proceso de ${nombre}. Se le enviará un correo con el motivo.`,
+                motivoLabel: 'Motivo del rechazo',
+                motivoPlaceholder: 'Ej: No cumple los requisitos mínimos de la convocatoria porque…',
+                motivoInicial: reason,
+                confirmText: 'Rechazar proceso',
+                color: '#dc3545',
+                motivoKey: 'reason',
+                payload: { action: 'rejectExam', candidateId: currentCandidateId, exam: 'PROCESO' }
+            });
         }
         async function callApi(body, successMsg, reload) {
             // Capa 2: inyecta siempre el token de admin de la sesion (autoritativo)
@@ -2953,30 +3200,53 @@
         }
 
         function renderUsersTable(data) {
-            const wrap = document.getElementById('usersTableWrap');
-            const users = data.users || data.admins || (Array.isArray(data) ? data : []);
+            const wrap  = document.getElementById('usersTableWrap');
+            const users = data.users || [];
+            const stats = data.stats || {
+                total: users.length,
+                superadmins: users.filter(u => u.role === 'superadmin').length,
+                activos: users.filter(u => (u.status || 'active') === 'active').length
+            };
+            document.getElementById('guTotal').textContent   = stats.total || 0;
+            document.getElementById('guSupers').textContent  = stats.superadmins || 0;
+            document.getElementById('guActivos').textContent = stats.activos || 0;
+
             if (!users.length) {
                 wrap.innerHTML = '<div class="resp-empty"><i class="fas fa-user-slash"></i>No hay usuarios registrados</div>';
                 return;
             }
             let html = `<table class="users-table">
                 <thead><tr>
-                    <th>Nombre</th><th>Email</th><th>Rol</th>
-                    <th>Último acceso</th><th>Estado</th><th>Acción</th>
+                    <th>Nombre</th><th>Email</th><th>Rol</th><th>Estado</th>
+                    <th>Fecha</th><th>Token</th><th>PIN</th><th></th>
                 </tr></thead><tbody>`;
             users.forEach(u => {
-                const role   = u.role || u.rol || 'admin';
-                const active = u.active !== false && u.status !== 'inactive';
+                const role   = u.role || 'admin';
+                const activo = (u.status || 'active') === 'active';
+                const email  = u.email || '';
+                const nombre = (u.name || '').replace(/'/g, "\\'");
                 html += `<tr>
-                    <td><strong>${u.nombre || u.name || '—'}</strong></td>
-                    <td style="color:#555;">${u.email || '—'}</td>
-                    <td><span class="role-badge ${role}">${role}</span></td>
-                    <td style="color:#aaa;font-size:0.82rem;">${u.last_login ? formatDate(u.last_login) : '—'}</td>
-                    <td><span class="badge ${active ? 'badge-junior' : 'badge-rejected'}" style="font-size:0.72rem;">${active ? 'Activo' : 'Inactivo'}</span></td>
                     <td>
-                        <button class="btn" style="font-size:0.78rem;padding:0.3rem 0.7rem;background:#001A55;color:white;"
-                                onclick="generateTokenForUser('${u.email || ''}')">
-                            <i class="fas fa-key"></i> Token
+                        <strong>${u.name || '—'}</strong>
+                        <i class="fas fa-pen" title="Editar nombre" style="margin-left:6px;font-size:0.7rem;color:#c3c8d4;cursor:pointer;"
+                           onclick="renombrarAdminUser('${email}', '${nombre}')"></i>
+                    </td>
+                    <td style="color:#555;">${email || '—'}</td>
+                    <td><span class="role-badge ${role}">${role}</span></td>
+                    <td><span class="status-pill ${activo ? 'on' : 'off'}">${activo ? 'Activo' : 'Inactivo'}</span></td>
+                    <td style="color:#aaa;font-size:0.82rem;">${u.created_date ? formatDate(u.created_date) : '—'}</td>
+                    <td><code style="font-size:0.75rem;background:#f5f5f5;padding:2px 7px;border-radius:4px;color:#555;">${u.token_hint || '—'}</code></td>
+                    <td>
+                        ${u.has_pin
+                            ? '<span class="status-pill on" style="font-size:0.7rem;">Con PIN</span>'
+                            : '<span class="status-pill off" style="font-size:0.7rem;">Sin PIN</span>'}
+                        <i class="fas fa-key" title="Asignar o restablecer PIN" style="margin-left:6px;font-size:0.7rem;color:#c3c8d4;cursor:pointer;"
+                           onclick="asignarPinUsuario('${email}')"></i>
+                    </td>
+                    <td style="text-align:right;">
+                        <button class="btn" style="font-size:0.76rem;padding:0.28rem 0.7rem;background:${activo ? '#fff' : '#001A55'};color:${activo ? '#dc3545' : '#fff'};border:1.5px solid ${activo ? '#f5c2c7' : '#001A55'};"
+                                onclick="toggleAdminUser('${email}', ${activo ? 'false' : 'true'})">
+                            ${activo ? 'Desactivar' : 'Activar'}
                         </button>
                     </td>
                 </tr>`;
@@ -2985,48 +3255,258 @@
             wrap.innerHTML = html;
         }
 
-        async function generateTokenForUser(email) {
+        /** Acciones de superadmin sobre un usuario: piden su PIN para firmar. */
+        async function accionUsuario(payload, exito) {
+            const pin = prompt('Confirma con tu PIN personal:');
+            if (pin === null) return;
+            if (!pin.trim()) { showToast('El PIN es obligatorio', 'error'); return; }
+            try {
+                const res = await fetch(API_BASE, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(Object.assign({}, payload, { adminToken: ADMIN_TOKEN, pin: pin.trim() }))
+                });
+                const data = await res.json();
+                showToast(data.message || (data.success ? exito : 'Error'), data.success ? 'success' : 'error');
+                if (data.success) loadAdminUsers();
+            } catch (e) { showToast('Error de conexión', 'error'); }
+        }
+
+        function toggleAdminUser(email, activar) {
             if (!email) return;
-            document.getElementById('superTokenEmail').value = email;
-            showView('superadmin');
-            await generateAdminTokenAction();
+            if (!confirm(`¿Seguro que quieres ${activar ? 'activar' : 'desactivar'} el acceso de ${email}?`)) return;
+            accionUsuario({ action: 'toggleAdminUser', email, status: activar ? 'active' : 'inactive' }, 'Usuario actualizado');
+        }
+
+        function renombrarAdminUser(email, actual) {
+            if (!email) return;
+            const nombre = prompt('Nombre visible para ' + email + ':', actual || '');
+            if (nombre === null) return;
+            if (!nombre.trim()) { showToast('El nombre no puede quedar vacío', 'error'); return; }
+            accionUsuario({ action: 'setAdminUserName', email, name: nombre.trim() }, 'Nombre actualizado');
+        }
+
+        function asignarPinUsuario(email) {
+            if (!email) return;
+            const nuevo = prompt('PIN para ' + email + ' (mín. 4 caracteres).\nCon él firmará sus aprobaciones:');
+            if (nuevo === null) return;
+            if (nuevo.trim().length < 4) { showToast('El PIN debe tener al menos 4 caracteres', 'error'); return; }
+            accionUsuario({ action: 'setUserPin', email, new_pin: nuevo.trim() }, 'PIN asignado');
+        }
+
+        function guMensaje(texto, ok) {
+            const msg = document.getElementById('guMsg');
+            msg.style.display    = 'block';
+            msg.style.background = ok ? '#f0fff4' : '#fff5f5';
+            msg.style.color      = ok ? '#15803d' : '#b91c1c';
+            msg.textContent      = texto;
+        }
+
+        async function submitGenerarTokenAdmin() {
+            const email    = (document.getElementById('guEmail').value    || '').trim();
+            const nombre   = (document.getElementById('guNombre').value   || '').trim();
+            const rol      = document.getElementById('guRol').value;
+            const pin      = (document.getElementById('guPin').value      || '').trim();
+            const pinNuevo = (document.getElementById('guPinNuevo').value || '').trim();
+            const btn      = document.getElementById('guBtn');
+            const result   = document.getElementById('guTokenResult');
+            result.style.display = 'none';
+
+            const faltan = [];
+            if (!email)  faltan.push('Email');
+            if (!nombre) faltan.push('Nombre');
+            if (!pin)    faltan.push('PIN Super Admin');
+            if (faltan.length) { guMensaje('Campos obligatorios faltantes: ' + faltan.join(', '), false); return; }
+            if (pinNuevo && pinNuevo.length < 4) { guMensaje('El PIN del nuevo usuario debe tener al menos 4 caracteres.', false); return; }
+
+            btn.disabled  = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando...';
+            try {
+                const res = await fetch(API_BASE, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'generateAdminToken', email, name: nombre, role: rol,
+                                           admin_pin: pin, new_pin: pinNuevo, adminToken: ADMIN_TOKEN })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    guMensaje('✓ ' + (data.message || 'Usuario creado.'), true);
+                    const tok = data.data && data.data.token;
+                    if (tok && data.data.emailSent === false) {
+                        // El correo no salió: hay que entregar el token a mano.
+                        result.style.display = 'block';
+                        result.innerHTML = `
+                            <div style="font-size:0.78rem;color:#555;margin-bottom:4px;">Token de acceso (compártelo solo con la persona):</div>
+                            <div class="token-box" onclick="copyText('${tok}', this)" title="Clic para copiar">${tok}</div>`;
+                    }
+                    ['guEmail','guNombre','guPin','guPinNuevo'].forEach(id => { document.getElementById(id).value = ''; });
+                    loadAdminUsers();
+                } else {
+                    guMensaje(data.message || 'No se pudo crear el usuario.', false);
+                }
+            } catch (e) {
+                guMensaje('Error de conexión.', false);
+            }
+            btn.disabled  = false;
+            btn.innerHTML = '🔑 Generar Token y Enviar por Correo';
         }
 
         // ── Super Admin ─────────────────────────────────────────────────────
         function initSuperAdmin() {
             const el = document.getElementById('superCurrentToken');
-            if (el) el.textContent = ADMIN_TOKEN || '(no token en sesión)';
+            if (el) el.textContent = (USER_EMAIL || '') + ' · ' + (USER_ROLE === 'superadmin' ? 'SUPERADMIN' : 'ADMIN');
+            loadPinStatus();
+            loadSystemConfigStatus();
+            loadSessionLog();
         }
 
-        async function generateAdminTokenAction() {
-            const email  = (document.getElementById('superTokenEmail').value || '').trim();
-            const result = document.getElementById('superTokenResult');
-            result.innerHTML = '<div style="font-size:0.83rem;color:#888;padding:0.5rem 0;"><i class="fas fa-spinner fa-spin"></i> Generando...</div>';
+        async function loadPinStatus() {
+            const el = document.getElementById('saPinStatus');
+            if (!el) return;
             try {
                 const res  = await fetch(API_BASE, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'generateAdminToken', email: email || undefined, adminToken: ADMIN_TOKEN })
+                    body: JSON.stringify({ action: 'getPinStatus', adminToken: ADMIN_TOKEN })
                 });
                 const data = await res.json();
+                const configurado = data.success && data.data && data.data.configured;
+                el.innerHTML = configurado
+                    ? '<span style="color:#15803d;font-weight:600;">✓ PIN configurado.</span> Para cambiarlo, ingresa el PIN actual y el nuevo.'
+                    : '<span style="color:#b45309;font-weight:600;">⚠ Todavía no tienes PIN.</span> Créalo ahora: deja vacío el campo "PIN actual".';
+                const actual = document.getElementById('saPinActual');
+                if (actual) actual.disabled = !configurado;
+            } catch (e) {
+                el.textContent = 'No se pudo verificar el estado del PIN.';
+            }
+        }
+
+        function saPinMensaje(texto, ok) {
+            const msg = document.getElementById('saPinMsg');
+            msg.style.display    = 'block';
+            msg.style.background = ok ? '#f0fff4' : '#fff5f5';
+            msg.style.color      = ok ? '#15803d' : '#b91c1c';
+            msg.textContent      = texto;
+        }
+
+        async function guardarNuevoPin() {
+            const actual    = (document.getElementById('saPinActual').value    || '').trim();
+            const nuevo     = (document.getElementById('saPinNuevo').value     || '').trim();
+            const confirmar = (document.getElementById('saPinConfirmar').value || '').trim();
+            const btn       = document.getElementById('saPinBtn');
+
+            if (nuevo.length < 4)    { saPinMensaje('El nuevo PIN debe tener al menos 4 caracteres.', false); return; }
+            if (nuevo !== confirmar) { saPinMensaje('El nuevo PIN y su confirmación no coinciden.', false); return; }
+
+            btn.disabled  = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+            try {
+                const res = await fetch(API_BASE, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'setAdminPin', currentPin: actual, newPin: nuevo, confirmPin: confirmar, adminToken: ADMIN_TOKEN })
+                });
+                const data = await res.json();
+                saPinMensaje(data.message || (data.success ? 'PIN actualizado.' : 'No se pudo guardar el PIN.'), !!data.success);
                 if (data.success) {
-                    const token    = data.data?.token || data.token || data.data || '';
-                    const loginUrl = token ? `${window.location.origin}${window.location.pathname.replace('admin-dashboard.html', '')}acceso.html` : '';
-                    result.innerHTML = `
-                        <div style="margin-top:0.75rem;">
-                            ${token ? `
-                            <div style="font-size:0.78rem;color:#888;margin-bottom:4px;">PIN / Token de acceso (comparte solo con la persona):</div>
-                            <div class="token-box" onclick="copyText('${token}', this)" title="Clic para copiar">${token}</div>
-                            <div style="margin-top:0.75rem;font-size:0.78rem;color:#888;">Enlace de inicio de sesión (sin token):</div>
-                            <div class="token-box" onclick="copyText('${loginUrl}', this)" style="margin-top:3px;" title="Clic para copiar">${loginUrl}</div>
-                            <div style="font-size:0.76rem;color:#6c757d;margin-top:6px;"><i class="fas fa-info-circle"></i> El admin debe abrir el enlace y pegar su PIN manualmente.</div>` : ''}
-                            <div style="font-size:0.78rem;color:#198754;margin-top:0.5rem;"><i class="fas fa-check-circle"></i> ${data.message || 'Token generado exitosamente'}</div>
-                        </div>`;
-                } else {
-                    result.innerHTML = `<div style="font-size:0.83rem;color:#dc3545;padding:0.5rem 0;"><i class="fas fa-exclamation-triangle"></i> ${data.message || 'Error al generar token'}</div>`;
+                    ['saPinActual','saPinNuevo','saPinConfirmar'].forEach(id => { document.getElementById(id).value = ''; });
+                    loadPinStatus();
                 }
             } catch (e) {
-                result.innerHTML = '<div style="font-size:0.83rem;color:#dc3545;padding:0.5rem 0;"><i class="fas fa-exclamation-triangle"></i> Error de conexión</div>';
+                saPinMensaje('Error de conexión.', false);
             }
+            btn.disabled  = false;
+            btn.innerHTML = '💾 Guardar PIN';
+        }
+
+        async function loadSystemConfigStatus() {
+            const wrap = document.getElementById('saConfigList');
+            if (!wrap) return;
+            try {
+                const res  = await fetch(API_BASE, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'getSystemConfigStatus', adminToken: ADMIN_TOKEN })
+                });
+                const data  = await res.json();
+                const items = (data.data && data.data.items) || [];
+                if (!data.success || !items.length) {
+                    wrap.innerHTML = `<div class="resp-empty" style="padding:2rem 1rem;color:#dc3545;"><i class="fas fa-exclamation-triangle"></i>${data.message || 'Sin datos'}</div>`;
+                    return;
+                }
+                wrap.innerHTML = items.map(it => `
+                    <div class="sa-cfg-row">
+                        <div>
+                            <div class="sa-cfg-name">${it.label}</div>
+                            <div class="sa-cfg-desc">${it.desc || ''}</div>
+                        </div>
+                        <span class="sa-badge ${it.ok ? 'ok' : 'warn'}">${it.ok ? (it.detail || 'Configurado') : 'Verificar'}</span>
+                    </div>`).join('');
+            } catch (e) {
+                wrap.innerHTML = '<div class="resp-empty" style="padding:2rem 1rem;color:#dc3545;"><i class="fas fa-exclamation-triangle"></i>Error de conexión</div>';
+            }
+        }
+
+        async function loadSessionLog() {
+            const wrap = document.getElementById('saSessionsWrap');
+            if (!wrap) return;
+            wrap.innerHTML = '<div class="resp-empty" style="padding:2rem 1rem;"><i class="fas fa-spinner fa-spin"></i>Cargando sesiones…</div>';
+            try {
+                const res  = await fetch(API_BASE, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'getSessionLog', limit: 50, adminToken: ADMIN_TOKEN })
+                });
+                const data     = await res.json();
+                const sesiones = (data.data && data.data.sessions) || [];
+                if (!data.success) {
+                    wrap.innerHTML = `<div class="resp-empty" style="padding:2rem 1rem;color:#dc3545;"><i class="fas fa-exclamation-triangle"></i>${data.message || 'Error'}</div>`;
+                    return;
+                }
+                if (!sesiones.length) {
+                    wrap.innerHTML = '<div class="resp-empty" style="padding:2rem 1rem;"><i class="fas fa-clock"></i>Aún no hay sesiones registradas</div>';
+                    return;
+                }
+                wrap.innerHTML = `<table class="sa-log">
+                    <thead><tr><th>Fecha</th><th>Usuario</th><th>Email</th><th>Rol</th><th>Navegador</th></tr></thead>
+                    <tbody>${sesiones.map(se => `
+                        <tr>
+                            <td style="white-space:nowrap;color:#555;">${se.fecha || '—'}</td>
+                            <td><strong>${se.name || '—'}</strong></td>
+                            <td style="color:#555;">${se.email || '—'}</td>
+                            <td><span class="role-badge ${se.role}">${se.role}</span></td>
+                            <td class="ua">${se.user_agent || '—'}</td>
+                        </tr>`).join('')}</tbody></table>`;
+            } catch (e) {
+                wrap.innerHTML = '<div class="resp-empty" style="padding:2rem 1rem;color:#dc3545;"><i class="fas fa-exclamation-triangle"></i>Error de conexión</div>';
+            }
+        }
+
+        // Reinicio del sistema: irreversible salvo por la copia de seguridad que
+        // el backend crea antes de borrar. Por eso pide palabra exacta + PIN.
+        function abrirReinicioSistema() {
+            const palabra = prompt('Esto borrará TODOS los candidatos, tokens, respuestas y aprobaciones.\n\nSe guardará una copia de seguridad en Drive antes de borrar.\n\nEscribe REINICIAR para continuar:');
+            if (palabra === null) return;
+            if (String(palabra).trim().toUpperCase() !== 'REINICIAR') {
+                saResetMensaje('Reinicio cancelado: la palabra de confirmación no coincide.', false);
+                return;
+            }
+            pedirAutorizacion({
+                title: 'Reiniciar Sistema',
+                desc: 'Firma con tu PIN. Antes de borrar se guardará una copia de seguridad completa en Drive.',
+                motivoLabel: 'Motivo del reinicio',
+                motivoPlaceholder: 'Ej: Cierre de la convocatoria 2026 y limpieza de datos de prueba.',
+                confirmText: 'Reiniciar sistema',
+                color: '#dc3545',
+                payload: { action: 'resetSystem', confirm: 'REINICIAR' },
+                onSuccess: (data) => {
+                    const url = data.data && data.data.backupUrl;
+                    saResetMensaje('Sistema reiniciado.' + (url ? ' Copia de seguridad: ' + url : ''), true);
+                    loadData();
+                }
+            });
+        }
+
+        function saResetMensaje(texto, ok) {
+            const msg = document.getElementById('saResetMsg');
+            msg.style.display    = 'block';
+            msg.style.background = ok ? '#f0fff4' : '#fff5f5';
+            msg.style.color      = ok ? '#15803d' : '#b91c1c';
+            msg.textContent      = texto;
         }
 
         function copyText(text, el) {
@@ -3237,52 +3717,6 @@
                 msg.style.display='block'; msg.style.background='#fff5f5'; msg.style.color='#b91c1c';
                 msg.textContent='Error de conexión.';
                 btn.disabled=false; btn.innerHTML='<i class="fas fa-user-plus"></i> Registrar Profesional';
-            }
-        }
-
-        // ── Agregar Admin ─────────────────────────────────────────────────────
-        async function submitAgregarAdmin() {
-            const email = (document.getElementById('aaEmail').value || '').trim();
-            const rol   = document.getElementById('aaRol').value;
-            const pin   = (document.getElementById('aaPIN').value  || '').trim();
-            const msg   = document.getElementById('aaMensaje');
-            const res2  = document.getElementById('aaTokenResult');
-            const btn   = document.getElementById('aaBtn');
-            if (!email || !pin) {
-                msg.style.display='block'; msg.style.background='#fff5f5'; msg.style.color='#b91c1c';
-                msg.textContent='Completa email y PIN de autorización.'; return;
-            }
-            btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Creando...';
-            try {
-                const resp = await fetch(API_BASE, { method:'POST', headers:{'Content-Type':'application/json'},
-                    body: JSON.stringify({ action:'generateAdminToken', email, role:rol, admin_pin:pin, adminToken:ADMIN_TOKEN }) });
-                const data = await resp.json();
-                msg.style.display='block';
-                if (data.success) {
-                    msg.style.background='#f0fff4'; msg.style.color='#15803d';
-                    msg.textContent='✓ Admin creado correctamente.';
-                    if (data.data && data.data.token) {
-                        const tok      = data.data.token;
-                        const loginUrl = window.location.origin + window.location.pathname.replace('admin-dashboard.html','') + 'acceso.html';
-                        res2.style.display='block';
-                        res2.innerHTML=`
-                            <div style="margin-bottom:6px;font-size:0.78rem;color:#555;"><strong>PIN / Token de acceso</strong> (comparte solo con el nuevo admin):</div>
-                            <code style="display:block;word-break:break-all;font-size:0.8rem;background:#f8f9fa;padding:8px 12px;border-radius:8px;border:1px solid #dee2e6;cursor:pointer;" onclick="copyText('${tok}',this)" title="Clic para copiar">${tok}</code>
-                            <div style="margin:10px 0 4px;font-size:0.78rem;color:#555;">Enlace de inicio de sesión (no contiene el token):</div>
-                            <code style="display:block;word-break:break-all;font-size:0.78rem;background:#f8f9fa;padding:6px 12px;border-radius:8px;border:1px solid #dee2e6;cursor:pointer;" onclick="copyText('${loginUrl}',this)" title="Clic para copiar">${loginUrl}</code>
-                            <div style="font-size:0.75rem;color:#6c757d;margin-top:8px;"><i class="fas fa-info-circle"></i> El admin abre el enlace y pega su PIN manualmente en acceso.html.</div>`;
-                    }
-                    loadAdminUsers();
-                    btn.innerHTML='<i class="fas fa-check"></i> Creado';
-                } else {
-                    msg.style.background='#fff5f5'; msg.style.color='#b91c1c';
-                    msg.textContent='Error: ' + (data.message || 'Inténtalo de nuevo.');
-                    btn.disabled=false; btn.innerHTML='<i class="fas fa-user-shield"></i> Crear Admin';
-                }
-            } catch(e) {
-                msg.style.display='block'; msg.style.background='#fff5f5'; msg.style.color='#b91c1c';
-                msg.textContent='Error de conexión.';
-                btn.disabled=false; btn.innerHTML='<i class="fas fa-user-shield"></i> Crear Admin';
             }
         }
 
@@ -3504,95 +3938,111 @@
             </div>`;
         }
 
-        // ─── FIRMA DEL ADMIN PARA AVANCES MANUALES DE FASE ────────────────
-        // El sistema avanza solo entre etapas. Cuando un admin salta una fase a
-        // mano, se le pide su PIN personal (columna pin_admin de la hoja
-        // Usuarios) para firmar la acción: así la bitácora distingue lo que hizo
-        // el sistema de lo que hizo una persona, y de cuál.
-        let PENDING_CRITICAL_ACTION = null;  // Almacena qué acción espera validación
+        // ─── FIRMA DE PASOS: MOTIVO + PIN PERSONAL ────────────────────────
+        // Administradores Y superadministradores aprueban todos los pasos del
+        // proceso. Antes de ejecutar, este modal pide siempre dos cosas: el
+        // motivo (queda en el expediente del candidato) y el PIN personal, que
+        // no autoriza —eso ya lo hizo el token de sesión— sino que identifica
+        // a quién firma el paso.
+        let APPROVAL_CTX = null;
 
-        async function validateSuperAdminPin() {
-            const pin = document.getElementById('superAdminPin').value;
-            const btn = document.getElementById('superAdminAuthBtn');
-            const msg = document.getElementById('superAdminAuthMsg');
+        /**
+         * opts = { title, desc, motivoLabel, motivoPlaceholder, motivoInicial,
+         *          confirmText, color, motivoKey, payload, onSuccess }
+         */
+        function pedirAutorizacion(opts) {
+            APPROVAL_CTX = opts || {};
+            const color = opts.color || '#d97706';
+            document.getElementById('apModalHeader').style.background = color;
+            document.getElementById('apModalTitle').textContent  = opts.title || 'Firmar aprobación';
+            document.getElementById('apModalDesc').textContent   = opts.desc  || '';
+            document.getElementById('apMotivoLabel').textContent = opts.motivoLabel || 'Motivo de la aprobación';
+            const motivo = document.getElementById('apMotivo');
+            motivo.value       = opts.motivoInicial || '';
+            motivo.placeholder = opts.motivoPlaceholder || 'Ej: Cumple el perfil, examen revisado y sin alertas.';
+            const btn = document.getElementById('apConfirmBtn');
+            btn.textContent      = opts.confirmText || 'Confirmar';
+            btn.style.background = color;
+            btn.disabled         = false;
+            document.getElementById('apPin').value = '';
+            document.getElementById('apModalMsg').style.display = 'none';
+            document.getElementById('modalAprobacion').style.display = 'block';
+            setTimeout(() => motivo.focus(), 50);
+        }
 
-            if (!pin) {
-                msg.style.display = 'block';
-                msg.style.background = '#fee2e2';
-                msg.style.color = '#dc2626';
-                msg.textContent = 'Por favor ingresa el PIN';
-                return;
-            }
+        function cerrarModalAprobacion() {
+            document.getElementById('modalAprobacion').style.display = 'none';
+            APPROVAL_CTX = null;
+        }
 
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Validando...';
+        function apModalError(texto) {
+            const msg = document.getElementById('apModalMsg');
+            msg.style.display    = 'block';
+            msg.style.background = '#fee2e2';
+            msg.style.color      = '#dc2626';
+            msg.textContent      = texto;
+        }
+
+        async function confirmarAprobacion() {
+            if (!APPROVAL_CTX) return;
+            const motivo = (document.getElementById('apMotivo').value || '').trim();
+            const pin    = (document.getElementById('apPin').value || '').trim();
+            const btn    = document.getElementById('apConfirmBtn');
+
+            if (!motivo) { apModalError('Escribe el motivo: quedará registrado en el expediente.'); return; }
+            if (!pin)    { apModalError('Ingresa tu PIN personal para firmar el paso.'); return; }
+
+            const textoOriginal = btn.textContent;
+            btn.disabled  = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
+
+            const body = Object.assign({}, APPROVAL_CTX.payload || {}, {
+                adminToken: sessionStorage.getItem('adminToken') || '',
+                pin: pin
+            });
+            body[APPROVAL_CTX.motivoKey || 'motivo'] = motivo;
 
             try {
                 const resp = await fetch(API_BASE, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'verifyAdminPin', pin: pin, adminToken: ADMIN_TOKEN })
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
                 });
                 const data = await resp.json();
-
                 if (data.success) {
-                    SUPERADMIN_PIN_VALIDATED = true;
-                    msg.style.display = 'block';
-                    msg.style.background = '#dcfce7';
-                    msg.style.color = '#15803d';
-                    const firmante = (data.data && data.data.email) ? data.data.email : 'tu usuario';
-                    msg.textContent = '✓ PIN válido. La acción quedará firmada por ' + firmante;
-
-                    setTimeout(() => {
-                        document.getElementById('modalSuperAdminAuth').style.display = 'none';
-                        document.getElementById('superAdminPin').value = '';
-                        btn.disabled = false;
-                        btn.innerHTML = '<i class="fas fa-lock"></i> Validar PIN';
-                        msg.style.display = 'none';
-
-                        // Ejecutar acción pendiente
-                        if (PENDING_CRITICAL_ACTION) {
-                            PENDING_CRITICAL_ACTION();
-                            PENDING_CRITICAL_ACTION = null;
-                        }
-                        // Auto-reset después de 1 acción
-                        SUPERADMIN_PIN_VALIDATED = false;
-                    }, 1500);
+                    const ctx = APPROVAL_CTX;
+                    cerrarModalAprobacion();
+                    showToast(data.message || 'Acción registrada', 'success');
+                    if (ctx.onSuccess) ctx.onSuccess(data);
+                    await refrescarTimelineActual();
                 } else {
-                    msg.style.display = 'block';
-                    msg.style.background = '#fee2e2';
-                    msg.style.color = '#dc2626';
-                    msg.textContent = '✗ ' + (data.message || 'PIN incorrecto');
+                    apModalError(data.message || 'No se pudo completar la acción.');
                     btn.disabled = false;
-                    btn.innerHTML = '<i class="fas fa-lock"></i> Validar PIN';
+                    btn.textContent = textoOriginal;
                 }
             } catch (e) {
-                msg.style.display = 'block';
-                msg.style.background = '#fee2e2';
-                msg.style.color = '#dc2626';
-                msg.textContent = 'Error de conexión';
+                apModalError('Error de conexión. Inténtalo de nuevo.');
                 btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-lock"></i> Validar PIN';
+                btn.textContent = textoOriginal;
             }
         }
 
-        /**
-         * Pide la firma del admin antes de un avance manual de fase.
-         * Se le pide a TODOS, superadmins incluidos: el PIN no autoriza —eso ya
-         * lo hace el token de sesión— sino que identifica a quién firma. Un
-         * superadmin exento dejaría avances manuales sin autor en la bitácora.
-         */
-        function requireAdminSignature(action) {
-            if (SUPERADMIN_PIN_VALIDATED) {
-                action();
-                SUPERADMIN_PIN_VALIDATED = false;  // La firma vale para una sola acción
-                return;
-            }
-            PENDING_CRITICAL_ACTION = action;
-            document.getElementById('superAdminPin').value = '';
-            document.getElementById('superAdminAuthMsg').style.display = 'none';
-            document.getElementById('modalSuperAdminAuth').style.display = 'block';
-            document.getElementById('superAdminPin').focus();
+        /** Recarga los datos y repinta el timeline abierto, si lo hay. */
+        async function refrescarTimelineActual() {
+            await loadData();
+            if (!tlCurrentCandidate) return;
+            const actualizado = candidates.find(c => c.candidato_id === tlCurrentCandidate.candidato_id);
+            if (!actualizado) { closeModal('accionesModal'); return; }
+            tlCurrentCandidate = actualizado;
+            const meta = document.getElementById('tlMeta');
+            if (meta) meta.innerHTML =
+                `<span>${actualizado.email||''}</span> <span>•</span> <span>${getCurrentPhaseLabel(actualizado.status)}</span> <span>•</span> ${getStatusBadge(actualizado.status)}`;
+            if (typeof updateAvanzarBtn === 'function') updateAvanzarBtn(actualizado);
+            await cargarAprobaciones(actualizado.candidato_id);
+            const activa = document.querySelector('.tl-tab.active');
+            const esTimeline = !activa || activa.textContent.trim() === 'Timeline';
+            document.getElementById('tlBody').innerHTML = esTimeline
+                ? renderTLTimeline(actualizado)
+                : renderTLPerfil(actualizado);
         }
 
         // ────────────────────────────────────────────────────────────────────

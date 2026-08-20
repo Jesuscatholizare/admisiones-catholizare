@@ -43,7 +43,7 @@ El campo `action` en el body/query string determina qué función se invoca.
 | `acceptTerms`            | `handleAcceptTerms`          | Aceptar T&C antes de E2                  |
 | `get_exam`               | vía `doGet`                  | Obtener preguntas del examen             |
 | `getDashboardData`       | `handleGetDashboardData`     | Datos para el panel admin                |
-| `approveExam`            | `handleApproveExam`          | Aprobar examen (requiere PIN)            |
+| `approveExam`            | `handleApproveExam`          | Aprobar examen (motivo + PIN)            |
 | `autoApproveE1`          | `handleAutoApproveE1`        | Auto-aprobar E1                          |
 | `rejectExam`             | `handleRejectExam`           | Rechazar candidato                       |
 | `assignCategory`         | `handleAssignCategory`       | Asignar categoría (Junior/Senior/Expert) |
@@ -134,8 +134,18 @@ timestamp | email | subject | provider | status | iso_timestamp
 
 **Usuarios** — admins del dashboard
 ```
-email | password_hash | role | created_date | last_login | status
+email | password_hash | role | created_date | last_login | status | pin_admin | name
 ```
+`password_hash` guarda el token de acceso; `pin_admin` el PIN personal con el
+que la persona **firma** cada aprobación; `name` el nombre visible en Gestión de
+Usuarios.
+
+**Aprobaciones** — quién aprobó cada paso y por qué
+```
+timestamp | candidate_id | step | decision | motivo | approved_by_email | approved_by_name | approved_by_role
+```
+`step`: `REGISTRO`, `E1`, `E2`, `E3`, `ENTREVISTA`, `CATEGORIA_<JUNIOR|SENIOR|EXPERT>`.
+La hoja se crea sola la primera vez que se registra una aprobación.
 
 **Sessions** — sesiones activas de admins
 ```
@@ -276,3 +286,34 @@ Estos datos quedan en `Test_Ex_Respuestas` y son visibles en el dashboard admin.
 Ejecutar UNA SOLA VEZ desde el editor GAS:
 - `initializeSpreadsheet()` — crea todas las hojas con headers y configuración por defecto
 - `migrateCandidatosSheet()` — si ya hay datos y se necesita actualizar el schema de Candidatos
+
+
+---
+
+## Firma de aprobaciones (motivo + PIN)
+
+Administradores **y** superadministradores pueden aprobar todos los pasos del
+proceso: registro, E1, E2, E3, entrevista personal y categoría final. No hay
+pasos reservados al superadmin.
+
+Cada aprobación exige dos cosas, pedidas en el mismo modal:
+
+1. **Motivo** — obligatorio, validado en el backend. Se guarda en la hoja
+   `Aprobaciones` y se muestra dentro de la fase del timeline del candidato.
+2. **PIN personal** — columna `pin_admin` de la hoja `Usuarios`. El PIN **no
+   autoriza** (eso ya lo hace el token de sesión): identifica *quién* firma.
+
+`authorizeApproval_(data)` resuelve ambas cosas y devuelve el actor
+(`email`, `name`, `role`), que se escribe en `Aprobaciones` y en la columna
+`actor` de `Timeline`.
+
+### Sobre el PIN
+
+- Cada persona tiene el suyo. Se crea y se cambia en **Super Admin → PIN de
+  Administrador** (`setAdminPin`, exige el PIN actual si ya existe), y un
+  superadministrador puede asignarlo a otros desde Gestión de Usuarios
+  (`setUserPin`).
+- Se compara siempre como texto vía `normalizePin_()`. Google Sheets guarda
+  `104566` como número; sin esa normalización un PIN con cero delante (`0104`)
+  se leería como `104` y nunca coincidiría.
+- El PIN nunca se devuelve al frontend: `getAdminUsers` solo informa `has_pin`.

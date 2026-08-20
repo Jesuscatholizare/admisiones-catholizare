@@ -159,6 +159,17 @@ $allowed_actions = [
     'getNotificaciones',
     'getCandidateTimeline',
     'verifyAdminPin',
+    // Aprobaciones firmadas con motivo
+    'getApprovals',
+    // Super Admin y gestión de usuarios
+    'getPinStatus',
+    'setAdminPin',
+    'setUserPin',
+    'getSessionLog',
+    'getSystemConfigStatus',
+    'toggleAdminUser',
+    'setAdminUserName',
+    'resetSystem',
 ];
 
 if (!in_array($action, $allowed_actions)) {
