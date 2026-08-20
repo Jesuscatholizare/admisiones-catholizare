@@ -1286,6 +1286,27 @@
       </div>
     </div>
 
+    <!-- Modal: firma del admin para avances manuales de fase -->
+    <div id="modalSuperAdminAuth" class="modal" style="z-index:10000;">
+      <div class="modal-content" style="max-width:420px;padding:0;border-radius:12px;overflow:hidden;">
+        <div style="background:#d97706;color:white;padding:1.1rem 1.4rem;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-weight:800;font-size:1rem;"><i class="fas fa-signature" style="margin-right:8px;"></i>Firma con tu PIN</div>
+          <button onclick="document.getElementById('modalSuperAdminAuth').style.display='none'" style="background:none;border:none;color:white;font-size:1.4rem;cursor:pointer;line-height:1;">&times;</button>
+        </div>
+        <div style="padding:1.4rem;background:white;">
+          <p style="margin-bottom:1rem;color:#555;font-size:0.9rem;">Vas a avanzar la fase de forma manual. Ingresa <strong>tu PIN personal</strong> para que la acción quede firmada a tu nombre en la bitácora del candidato.</p>
+          <div style="margin-bottom:1rem;">
+            <input id="superAdminPin" type="password" placeholder="Tu PIN personal" style="width:100%;padding:0.7rem;border:1.5px solid #dee2e6;border-radius:7px;font-size:0.875rem;box-sizing:border-box;" autocomplete="off">
+          </div>
+          <div style="display:flex;gap:0.75rem;">
+            <button onclick="document.getElementById('modalSuperAdminAuth').style.display='none'" style="flex:1;padding:0.65rem;border:1.5px solid #dee2e6;border-radius:8px;background:white;color:#555;font-weight:600;cursor:pointer;">Cancelar</button>
+            <button id="superAdminAuthBtn" onclick="validateSuperAdminPin()" style="flex:1;padding:0.65rem;border:none;border-radius:8px;background:#d97706;color:white;font-weight:700;cursor:pointer;">Validar PIN</button>
+          </div>
+          <div id="superAdminAuthMsg" style="margin-top:1rem;display:none;padding:0.75rem;border-radius:8px;font-size:0.85rem;"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- Modal: Timeline del Candidato -->
     <div id="accionesModal" class="modal">
       <div class="modal-content" style="max-width:740px;height:88vh;display:flex;flex-direction:column;padding:0;overflow:hidden;">
@@ -1340,6 +1361,7 @@
         let ADMIN_TOKEN        = '';
         let USER_ROLE          = 'admin';  // default
         let USER_EMAIL         = '';
+        let SUPERADMIN_PIN_VALIDATED = false;
 
         document.addEventListener('DOMContentLoaded', function() {
             // Verificar token admin
@@ -1780,7 +1802,7 @@
                 desc:'El candidato completó el Examen E1. Revisa los resultados y aprueba para enviar la Información general sobre la Red Catholizare.',
                 emails:[{ label:'Reenviar Token E1', desc:'Si el candidato no recibió el acceso al E1', type:'welcome' }],
                 actions:[
-                    { label:'Aprobar y enviar Información general', btn:'✓ Aprobar', fn:"doApproveExamTL('E1')", cls:'green', info:'Aprueba E1 y envía automáticamente el correo con la Información general sobre la Red Catholizare' }
+                    { label:'Aprobar y enviar Información general', btn:'✓ Aprobar', fn:"approveExamWithPin('E1')", cls:'green', info:'Aprueba E1 y envía automáticamente el correo con la Información general sobre la Red Catholizare' }
                 ], hasNotes:false
             },
             {
@@ -1796,7 +1818,7 @@
                 desc:'El candidato completó el Examen E2. Revisa los resultados y aprueba para enviar el token del Examen E3.',
                 emails:[{ label:'Reenviar Token E2', desc:'Si el candidato no recibió el acceso al E2', type:'e2' }],
                 actions:[
-                    { label:'Aprobar y enviar Token E3', btn:'✓ Aprobar', fn:"doApproveExamTL('E2')", cls:'green', info:'Aprueba E2 y envía automáticamente el token del Examen E3' }
+                    { label:'Aprobar y enviar Token E3', btn:'✓ Aprobar', fn:"approveExamWithPin('E2')", cls:'green', info:'Aprueba E2 y envía automáticamente el token del Examen E3' }
                 ], hasNotes:false
             },
             {
@@ -1805,7 +1827,7 @@
                 desc:'El candidato completó el Examen E3. Revisa los resultados y aprueba para agendar la Entrevista Personal.',
                 emails:[{ label:'Reenviar Token E3', desc:'Si el candidato no recibió el acceso al E3', type:'e3' }],
                 actions:[
-                    { label:'Aprobar y agendar Entrevista', btn:'✓ Aprobar', fn:"doApproveExamTL('E3')", cls:'green', info:'Aprueba E3 y envía el correo de agendamiento de la entrevista personal' }
+                    { label:'Aprobar y agendar Entrevista', btn:'✓ Aprobar', fn:"approveExamWithPin('E3')", cls:'green', info:'Aprueba E3 y envía el correo de agendamiento de la entrevista personal' }
                 ], hasNotes:false
             },
             {
@@ -2442,6 +2464,9 @@
             await callApi({ action:'approveExam', candidateId:currentCandidateId, exam, notes:'', adminToken:ADMIN_TOKEN }, `✅ Examen ${exam} aprobado`, true);
         }
         // Envuelve doApproveExamTL con validación de PIN del superadmin
+        function approveExamWithPin(exam) {
+            requireAdminSignature(() => doApproveExamTL(exam));
+        }
         async function doFinalDecisionTL(category) {
             if (!confirm(`¿Aprobar candidato como ${category}? Esta acción es definitiva.`)) return;
             await callApi({ action:'assignCategory', candidateId:currentCandidateId, category, comments:'', adminToken:ADMIN_TOKEN }, `🎉 Aprobado como ${category}`, true);
@@ -3479,6 +3504,96 @@
             </div>`;
         }
 
+        // ─── FIRMA DEL ADMIN PARA AVANCES MANUALES DE FASE ────────────────
+        // El sistema avanza solo entre etapas. Cuando un admin salta una fase a
+        // mano, se le pide su PIN personal (columna pin_admin de la hoja
+        // Usuarios) para firmar la acción: así la bitácora distingue lo que hizo
+        // el sistema de lo que hizo una persona, y de cuál.
+        let PENDING_CRITICAL_ACTION = null;  // Almacena qué acción espera validación
+
+        async function validateSuperAdminPin() {
+            const pin = document.getElementById('superAdminPin').value;
+            const btn = document.getElementById('superAdminAuthBtn');
+            const msg = document.getElementById('superAdminAuthMsg');
+
+            if (!pin) {
+                msg.style.display = 'block';
+                msg.style.background = '#fee2e2';
+                msg.style.color = '#dc2626';
+                msg.textContent = 'Por favor ingresa el PIN';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Validando...';
+
+            try {
+                const resp = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'verifyAdminPin', pin: pin, adminToken: ADMIN_TOKEN })
+                });
+                const data = await resp.json();
+
+                if (data.success) {
+                    SUPERADMIN_PIN_VALIDATED = true;
+                    msg.style.display = 'block';
+                    msg.style.background = '#dcfce7';
+                    msg.style.color = '#15803d';
+                    const firmante = (data.data && data.data.email) ? data.data.email : 'tu usuario';
+                    msg.textContent = '✓ PIN válido. La acción quedará firmada por ' + firmante;
+
+                    setTimeout(() => {
+                        document.getElementById('modalSuperAdminAuth').style.display = 'none';
+                        document.getElementById('superAdminPin').value = '';
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fas fa-lock"></i> Validar PIN';
+                        msg.style.display = 'none';
+
+                        // Ejecutar acción pendiente
+                        if (PENDING_CRITICAL_ACTION) {
+                            PENDING_CRITICAL_ACTION();
+                            PENDING_CRITICAL_ACTION = null;
+                        }
+                        // Auto-reset después de 1 acción
+                        SUPERADMIN_PIN_VALIDATED = false;
+                    }, 1500);
+                } else {
+                    msg.style.display = 'block';
+                    msg.style.background = '#fee2e2';
+                    msg.style.color = '#dc2626';
+                    msg.textContent = '✗ ' + (data.message || 'PIN incorrecto');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-lock"></i> Validar PIN';
+                }
+            } catch (e) {
+                msg.style.display = 'block';
+                msg.style.background = '#fee2e2';
+                msg.style.color = '#dc2626';
+                msg.textContent = 'Error de conexión';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-lock"></i> Validar PIN';
+            }
+        }
+
+        /**
+         * Pide la firma del admin antes de un avance manual de fase.
+         * Se le pide a TODOS, superadmins incluidos: el PIN no autoriza —eso ya
+         * lo hace el token de sesión— sino que identifica a quién firma. Un
+         * superadmin exento dejaría avances manuales sin autor en la bitácora.
+         */
+        function requireAdminSignature(action) {
+            if (SUPERADMIN_PIN_VALIDATED) {
+                action();
+                SUPERADMIN_PIN_VALIDATED = false;  // La firma vale para una sola acción
+                return;
+            }
+            PENDING_CRITICAL_ACTION = action;
+            document.getElementById('superAdminPin').value = '';
+            document.getElementById('superAdminAuthMsg').style.display = 'none';
+            document.getElementById('modalSuperAdminAuth').style.display = 'block';
+            document.getElementById('superAdminPin').focus();
+        }
 
         // ────────────────────────────────────────────────────────────────────
     </script>

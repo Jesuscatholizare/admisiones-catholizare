@@ -158,6 +158,7 @@ $allowed_actions = [
     'uploadCandidateCV',
     'getNotificaciones',
     'getCandidateTimeline',
+    'verifyAdminPin',
 ];
 
 if (!in_array($action, $allowed_actions)) {
