@@ -522,6 +522,14 @@
         .tl-act-warn:hover { background: #fdeecd; }
         .tl-act-danger { border-color: #f1a9a0; color: #c0392b; background: #fdecea; }
         .tl-act-danger:hover { background: #f9d9d4; }
+        .tl-phase-date { font-size: 0.72rem; color: #6b7280; white-space: nowrap; margin-left: auto; margin-right: 0.5rem; }
+        .tl-phase-date i { margin-right: 3px; opacity: 0.7; }
+        .tl-log { margin-top: 0.9rem; background: #fff; border-radius: 10px; padding: 0.85rem 1rem; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+        .tl-log-row { display: flex; align-items: baseline; gap: 0.6rem; padding: 0.35rem 0; border-bottom: 1px solid #f5f5f5; font-size: 0.79rem; }
+        .tl-log-row:last-child { border-bottom: none; }
+        .tl-log-date { color: #9ca3af; white-space: nowrap; font-variant-numeric: tabular-nums; }
+        .tl-log-evt { color: #374151; font-weight: 600; }
+        .tl-log-actor { color: #9ca3af; margin-left: auto; white-space: nowrap; font-size: 0.72rem; }
         .tl-act-handoff { border-color: #c4b5fd; color: #5b21b6; background: #ede9fe; }
         .tl-act-handoff:hover { background: #ddd6fe; }
         .tl-act-archive { border-color: #cbd5e1; color: #475569; background: #f1f5f9; }
@@ -1858,6 +1866,9 @@
             if (!c) return;
             currentCandidateId = candidateId;
             tlCurrentCandidate = c;
+            // Bitácora del candidato: se pide en segundo plano y repinta al llegar.
+            tlEvents = null; tlEventsForId = null;
+            loadTLEvents(candidateId);
             document.getElementById('tlName').textContent = c.nombre || candidateId;
             document.getElementById('tlMeta').innerHTML =
                 `<span>${c.email||''}</span> <span>•</span> <span>${getCurrentPhaseLabel(c.status)}</span> <span>•</span> ${getStatusBadge(c.status)}`;
@@ -1878,6 +1889,106 @@
             el.classList.add('active');
             const body = document.getElementById('tlBody');
             body.innerHTML = tab === 'perfil' ? renderTLPerfil(tlCurrentCandidate) : renderTLTimeline(tlCurrentCandidate);
+        }
+
+        // ── Fechas de las fases, leídas de la hoja Timeline ───────────────────
+        // Cada fase se fecha con el evento que la CIERRA (el que hizo avanzar al
+        // candidato), salvo Registro, que se fecha con su propio alta.
+        const TL_PHASE_EVENTS = {
+            registro:   ['CANDIDATO_REGISTRADO'],
+            e1:         ['EXAMEN_E1_APROBADO_ADMIN', 'EXAMEN_E1_RECHAZADO_ADMIN', 'E1_APROBADO_AUTOMATICAMENTE_REGISTRO'],
+            terminos:   ['TERMINOS_ACEPTADOS', 'INFORMACION_GENERAL_DECLINADA'],
+            e2:         ['EXAMEN_E2_APROBADO_ADMIN', 'EXAMEN_E2_RECHAZADO_ADMIN'],
+            e3:         ['EXAMEN_E3_APROBADO_ADMIN', 'EXAMEN_E3_RECHAZADO_ADMIN'],
+            entrevista: ['ENTREVISTA_APROBADA', 'ENTREVISTA_RECHAZADA'],
+            categoria:  ['CANDIDATO_CATEGORIZADO_APROBADO'],
+            aprobado:   ['CANDIDATO_CATEGORIZADO_APROBADO']
+        };
+
+        /** Etiquetas legibles de los eventos de la bitácora. */
+        const TL_EVENT_LABEL = {
+            CANDIDATO_REGISTRADO:                 'Registro del candidato',
+            TEST_E1_COMPLETADO:                   'Examen E1 contestado',
+            TEST_E2_COMPLETADO:                   'Examen E2 contestado',
+            TEST_E3_COMPLETADO:                   'Examen E3 contestado',
+            EXAMEN_E1_APROBADO_ADMIN:             'E1 aprobado por admin',
+            EXAMEN_E2_APROBADO_ADMIN:             'E2 aprobado por admin',
+            EXAMEN_E3_APROBADO_ADMIN:             'E3 aprobado por admin',
+            EXAMEN_E1_RECHAZADO_ADMIN:            'E1 rechazado por admin',
+            EXAMEN_E2_RECHAZADO_ADMIN:            'E2 rechazado por admin',
+            EXAMEN_E3_RECHAZADO_ADMIN:            'E3 rechazado por admin',
+            E1_APROBADO_AUTOMATICAMENTE_REGISTRO: 'E1 aprobado automáticamente',
+            TERMINOS_ACEPTADOS:                   'Términos aceptados',
+            INFORMACION_GENERAL_DECLINADA:        'Información general declinada',
+            ENTREVISTA_APROBADA:                  'Entrevista aprobada',
+            ENTREVISTA_RECHAZADA:                 'Entrevista rechazada',
+            CANDIDATO_CATEGORIZADO_APROBADO:      'Categoría asignada y aprobado',
+            HANDOFF_COMPLETADO:                   'Handoff al Onboarding',
+            HANDOFF_OMITIDO:                      'Handoff omitido (ya existía)',
+            CANDIDATO_ARCHIVADO:                  'Candidato archivado',
+            CANDIDATO_REACTIVADO:                 'Candidato reactivado',
+            CANDIDATO_INCOMPLETO:                 'Marcado como incompleto',
+            CANDIDATO_PAUSADO:                    'Candidato pausado',
+            CANDIDATO_ATRASADO:                   'Marcado como atrasado',
+            PROCESO_REINICIADO:                   'Proceso reiniciado',
+            EMAIL_MANUAL_ENVIADO:                 'Correo enviado manualmente',
+            BREVO_LISTA_MANUAL:                   'Añadido a lista de Brevo',
+            CV_ACTUALIZADO:                       'CV actualizado',
+            TOKEN_ATTEMPT_RESET:                  'Intento de token reiniciado'
+        };
+
+        let tlEvents      = null;   // eventos del candidato abierto, null = sin cargar
+        let tlEventsForId = null;   // candidato al que pertenecen
+
+        /** Formatea un ISO como fecha y hora legibles; '' si no hay dato. */
+        function formatTLDate(iso) {
+            if (!iso) return '';
+            const d = new Date(iso);
+            if (isNaN(d)) return '';
+            return d.toLocaleString('es-MX', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+        }
+
+        /**
+         * Fecha con la que se etiqueta una fase. Prioriza la bitácora Timeline y
+         * cae a las fechas que ya vienen en el candidato (registro y exámenes),
+         * para que el Timeline siga fechado aunque la hoja no tenga el evento.
+         */
+        function phaseDate(phaseKey, c) {
+            const tipos = TL_PHASE_EVENTS[phaseKey] || [];
+            if (tlEvents && tlEvents.length) {
+                const ev = tlEvents.find(e => tipos.includes(e.event_type));
+                if (ev && ev.timestamp) return formatTLDate(ev.timestamp);
+            }
+            const fallback = {
+                registro: c.registration_date,
+                e1:       c.E1_date,
+                e2:       c.E2_date,
+                e3:       c.E3_date,
+                terminos: c.declined_at
+            }[phaseKey];
+            return fallback ? formatDate(fallback) : '';
+        }
+
+        /** Carga la bitácora del candidato y repinta el Timeline al terminar. */
+        async function loadTLEvents(candidateId) {
+            if (tlEventsForId === candidateId) return;   // ya cargada
+            tlEvents      = null;
+            tlEventsForId = candidateId;
+            try {
+                const res  = await fetch(API_BASE, { method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({ action:'getCandidateTimeline', candidateId, adminToken: ADMIN_TOKEN }) });
+                const data = await res.json();
+                tlEvents = (data.success && data.data && data.data.events) ? data.data.events : [];
+            } catch (e) {
+                tlEvents = [];   // sin bitácora se usan las fechas del candidato
+            }
+            // Repintar solo si sigue abierto el mismo candidato y en la pestaña Timeline
+            if (tlCurrentCandidate && tlCurrentCandidate.candidato_id === candidateId) {
+                const activa = document.querySelector('.tl-tab.active');
+                if (activa && activa.textContent.trim() === 'Timeline') {
+                    document.getElementById('tlBody').innerHTML = renderTLTimeline(tlCurrentCandidate);
+                }
+            }
         }
 
         function renderTLPerfil(c) {
@@ -2068,6 +2179,9 @@
                 else if (idx < currentIdx)            { state = 'done';     badge = 'Completado'; }
                 else if (idx === currentIdx)          { state = 'active';   badge = 'En Curso'; }
 
+                // Solo se fechan las fases ya alcanzadas; las pendientes no tienen fecha.
+                const fecha = state === 'pending' ? '' : phaseDate(phase.key, c);
+
                 let inner = '';
                 if (state !== 'pending') {
                     inner += `<p class="tl-phase-dtxt">${phase.desc}</p>`;
@@ -2133,6 +2247,7 @@
                         <div class="tl-phase-hdr">
                             <div class="tl-phase-ico ${state}"><i class="fas ${state === 'done' ? 'fa-check' : phase.icon}"></i></div>
                             <span class="tl-phase-lbl ${state}">${phase.label}</span>
+                            ${fecha ? `<span class="tl-phase-date"><i class="fas fa-calendar-day"></i> ${fecha}</span>` : ''}
                             <span class="tl-phase-bdg ${state}">${badge}</span>
                         </div>
                         ${inner}
@@ -2156,7 +2271,33 @@
                     </div>
                 </div>` : '';
 
-            return `<div class="tl-timeline">${phases}${rejectedPanel}</div>`;
+            return `<div class="tl-timeline">${phases}${rejectedPanel}${renderTLBitacora()}</div>`;
+        }
+
+        /**
+         * Bitácora completa del candidato: todos los eventos de la hoja Timeline
+         * con su fecha, incluidos los que no pertenecen a ninguna fase (handoff,
+         * archivado, correos, notas). Se omite si aún no cargó o si está vacía.
+         */
+        function renderTLBitacora() {
+            if (tlEvents === null) {
+                return `<div class="tl-log"><div class="tl-log-row" style="color:#9ca3af;">
+                    <i class="fas fa-spinner fa-spin"></i> Cargando bitácora...</div></div>`;
+            }
+            if (!tlEvents.length) return '';
+            const rows = tlEvents.slice().reverse().map(e => {
+                const label = TL_EVENT_LABEL[e.event_type] || e.event_type;
+                const actor = e.actor && e.actor !== 'SISTEMA' ? e.actor : '';
+                return `<div class="tl-log-row">
+                    <span class="tl-log-date">${formatTLDate(e.timestamp) || '—'}</span>
+                    <span class="tl-log-evt">${label}</span>
+                    ${actor ? `<span class="tl-log-actor">${actor}</span>` : ''}
+                </div>`;
+            }).join('');
+            return `<div class="tl-log">
+                <div class="tl-slbl" style="margin-top:0">Bitácora (${tlEvents.length} eventos)</div>
+                ${rows}
+            </div>`;
         }
 
         function updateAvanzarBtn(c) {

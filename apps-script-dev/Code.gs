@@ -420,6 +420,7 @@ const ACCIONES_SOLO_ADMIN = {
   handoff:               true,
   uploadCandidateCV:     true,
   getNotificaciones:     true,
+  getCandidateTimeline:  true,
   health:                true
 };
 
@@ -504,6 +505,7 @@ function doPost(e) {
       case 'handoff':                   return handleHandoff(data);
       case 'uploadCandidateCV':         return handleUploadCandidateCV(data);
       case 'getNotificaciones':         return handleGetNotificaciones(data);
+      case 'getCandidateTimeline':      return handleGetCandidateTimeline(data);
       default:
         return jsonResponse(false, 'Accion no valida: ' + action);
     }
@@ -2756,6 +2758,43 @@ function handleGetNotificaciones(data) {
     return jsonResponse(true, 'OK', { rows: result, total: total, offset: offset });
   } catch (e) {
     Logger.log('[handleGetNotificaciones Error] ' + e.message);
+    return jsonResponse(false, 'Error: ' + e.message);
+  }
+}
+
+/**
+ * Devuelve los eventos de la hoja Timeline de un candidato, del más antiguo
+ * al más reciente. Es la bitácora que ya escribe addTimelineEvent y que hasta
+ * ahora nunca se leía; el dashboard la usa para fechar cada fase.
+ *
+ * Hoja Timeline: 0=timestamp, 1=candidate_id, 2=event_type, 3=details_json, 4=actor
+ */
+function handleGetCandidateTimeline(data) {
+  try {
+    const { candidateId } = data;
+    if (!candidateId) return jsonResponse(false, 'candidateId requerido');
+
+    const sheet = SS.getSheetByName('Timeline');
+    if (!sheet) return jsonResponse(true, 'OK', { events: [] });
+    const rows = sheet.getDataRange().getValues();
+
+    const events = [];
+    for (let i = 1; i < rows.length; i++) {
+      if (String(rows[i][1] || '').trim() !== String(candidateId).trim()) continue;
+      const ts = rows[i][0];
+      let details = {};
+      try { details = JSON.parse(rows[i][3] || '{}'); } catch (err) { details = {}; }
+      events.push({
+        timestamp:  ts ? new Date(ts).toISOString() : '',
+        event_type: String(rows[i][2] || ''),
+        details:    details,
+        actor:      String(rows[i][4] || '')
+      });
+    }
+    events.sort((a, b) => new Date(a.timestamp || 0) - new Date(b.timestamp || 0));
+    return jsonResponse(true, 'OK', { events: events });
+  } catch (e) {
+    Logger.log('[handleGetCandidateTimeline Error] ' + e.message);
     return jsonResponse(false, 'Error: ' + e.message);
   }
 }

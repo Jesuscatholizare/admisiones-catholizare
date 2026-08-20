@@ -157,6 +157,7 @@ $allowed_actions = [
     'handoffCandidate',
     'uploadCandidateCV',
     'getNotificaciones',
+    'getCandidateTimeline',
 ];
 
 if (!in_array($action, $allowed_actions)) {
