@@ -249,7 +249,8 @@
       const resp = await fetch(API_BASE, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ action: 'adminLogin', pin: token })
+        // userAgent alimenta el "Registro de Sesiones" del panel Super Admin.
+        body:    JSON.stringify({ action: 'adminLogin', pin: token, userAgent: navigator.userAgent })
       });
       const data = await resp.json();
 

@@ -67,10 +67,15 @@ function initializeSpreadsheet() {
                 'rubric_red_flags', 'rubric_raw']
     },
     'Usuarios': {
-      headers: ['email', 'password_hash', 'role', 'created_date', 'last_login', 'status']
+      headers: ['email', 'password_hash', 'role', 'created_date', 'last_login', 'status', 'pin_admin', 'name']
     },
     'Sessions': {
-      headers: ['session_id', 'user_email', 'created_at', 'expires_at', 'ip_address', 'user_agent']
+      headers: ['session_id', 'user_email', 'created_at', 'expires_at', 'ip_address', 'user_agent',
+                'user_name', 'role']
+    },
+    'Aprobaciones': {
+      headers: ['timestamp', 'candidate_id', 'step', 'decision', 'motivo',
+                'approved_by_email', 'approved_by_name', 'approved_by_role']
     },
     'Login_Audit': {
       headers: ['timestamp', 'email', 'attempt_type', 'success', 'ip_address', 'notes']
@@ -403,6 +408,13 @@ const ACCIONES_SOLO_ADMIN = {
   sendEmailManual:       true,
   addToBrevoListManual:  true,
   markAsIncomplete:      true,
+  resetCandidate:        true,
+  pauseCandidate:        true,
+  markDelayed:           true,
+  deleteCandidate:       true,
+  archiveCandidate:      true,
+  unarchiveCandidate:    true,
+  handoffCandidate:      true,
   registerInterviewResult: true,
   getExamResponses:      true,
   getAdminUsers:         true,
@@ -413,6 +425,17 @@ const ACCIONES_SOLO_ADMIN = {
   handoff:               true,
   uploadCandidateCV:     true,
   getNotificaciones:     true,
+  getCandidateTimeline:  true,
+  verifyAdminPin:        true,
+  getApprovals:          true,
+  getPinStatus:          true,
+  setAdminPin:           true,
+  setUserPin:            true,
+  getSessionLog:         true,
+  getSystemConfigStatus: true,
+  toggleAdminUser:       true,
+  setAdminUserName:      true,
+  resetSystem:           true,
   health:                true
 };
 
@@ -479,6 +502,13 @@ function doPost(e) {
       case 'sendEmailManual':      return handleSendEmailManual(data);
       case 'addToBrevoListManual': return handleAddToBrevoListManual(data);
       case 'markAsIncomplete':          return handleMarkAsIncomplete(data);
+      case 'resetCandidate':            return handleResetCandidate(data);
+      case 'pauseCandidate':            return handlePauseCandidate(data);
+      case 'markDelayed':               return handleMarkDelayed(data);
+      case 'deleteCandidate':           return handleDeleteCandidate(data);
+      case 'archiveCandidate':          return handleArchiveCandidate(data);
+      case 'unarchiveCandidate':        return handleUnarchiveCandidate(data);
+      case 'handoffCandidate':          return handleHandoffCandidate(data);
       case 'registerInterviewResult':   return handleRegisterInterviewResult(data);
       case 'getExamResponses':          return handleGetExamResponses(data);
       case 'getAdminUsers':             return handleGetAdminUsers();
@@ -490,6 +520,17 @@ function doPost(e) {
       case 'handoff':                   return handleHandoff(data);
       case 'uploadCandidateCV':         return handleUploadCandidateCV(data);
       case 'getNotificaciones':         return handleGetNotificaciones(data);
+      case 'getCandidateTimeline':      return handleGetCandidateTimeline(data);
+      case 'getApprovals':              return handleGetApprovals(data);
+      case 'getPinStatus':              return handleGetPinStatus(data);
+      case 'setAdminPin':               return handleSetAdminPin(data);
+      case 'setUserPin':                return handleSetUserPin(data);
+      case 'getSessionLog':             return handleGetSessionLog(data);
+      case 'getSystemConfigStatus':     return handleGetSystemConfigStatus(data);
+      case 'toggleAdminUser':           return handleToggleAdminUser(data);
+      case 'setAdminUserName':          return handleSetAdminUserName(data);
+      case 'resetSystem':               return handleResetSystem(data);
+      case 'verifyAdminPin':            return handleVerifyAdminPin(data);
       default:
         return jsonResponse(false, 'Accion no valida: ' + action);
     }
@@ -1033,9 +1074,16 @@ function handleApproveExam(data) {
   try {
     const candidateId = data.candidateId;
     const exam        = data.exam;
+    const motivo      = String(data.motivo || data.notes || '').trim();
     if (!candidateId || !exam) return jsonResponse(false, 'candidateId y exam requeridos');
-    const result = approveExamAdmin(candidateId, exam);
-    if (result.success) return jsonResponse(true, 'Examen ' + exam + ' aprobado');
+    if (!motivo) return jsonResponse(false, 'Escribe el motivo de la aprobación');
+
+    // Admin y superadmin por igual: el PIN firma, no autoriza.
+    const auth = authorizeApproval_(data);
+    if (!auth.ok) return jsonResponse(false, auth.error);
+
+    const result = approveExamAdmin(candidateId, exam, actorLabel_(auth.actor), motivo, auth.actor);
+    if (result.success) return jsonResponse(true, 'Examen ' + exam + ' aprobado por ' + actorLabel_(auth.actor));
     return jsonResponse(false, result.error || 'Error al aprobar');
   } catch (error) {
     Logger.log('[ERROR handleApproveExam] ' + error.message);
@@ -1051,13 +1099,18 @@ function handleApproveExam(data) {
 function handleAutoApproveE1(data) {
   try {
     const candidateId = data.candidateId;
+    const motivo      = String(data.motivo || '').trim();
 
     if (!candidateId) {
       return jsonResponse(false, 'candidateId requerido');
     }
+    if (!motivo) return jsonResponse(false, 'Escribe el motivo de la aprobación');
 
-    const result = autoApproveE1Admin(candidateId);
-    if (result.success) return jsonResponse(true, 'E1 aprobado automáticamente con 70%', result);
+    const auth = authorizeApproval_(data);
+    if (!auth.ok) return jsonResponse(false, auth.error);
+
+    const result = autoApproveE1Admin(candidateId, motivo, auth.actor);
+    if (result.success) return jsonResponse(true, 'E1 aprobado con 70% por ' + actorLabel_(auth.actor), result);
     return jsonResponse(false, result.error || 'Error al aprobar E1');
   } catch (error) {
     Logger.log('[ERROR handleAutoApproveE1] ' + error.message);
@@ -1073,9 +1126,14 @@ function handleRejectExam(data) {
   try {
     const candidateId = data.candidateId;
     const exam        = data.exam;
-    const reason      = data.reason || '';
+    const reason      = String(data.reason || data.motivo || '').trim();
     if (!candidateId || !exam) return jsonResponse(false, 'candidateId y exam requeridos');
-    const result = rejectExamAdmin(candidateId, exam, reason);
+    if (!reason) return jsonResponse(false, 'Escribe el motivo del rechazo');
+
+    const auth = authorizeApproval_(data);
+    if (!auth.ok) return jsonResponse(false, auth.error);
+
+    const result = rejectExamAdmin(candidateId, exam, reason, actorLabel_(auth.actor), auth.actor);
     if (result.success) return jsonResponse(true, 'Evaluación registrada. Correo de seguimiento enviado al candidato.');
     return jsonResponse(false, 'Error al rechazar');
   } catch (error) {
@@ -1092,9 +1150,15 @@ function handleAssignCategory(data) {
   try {
     const candidateId = data.candidateId;
     const category    = data.category;
+    const motivo      = String(data.motivo || data.comments || '').trim();
     if (!candidateId || !category) return jsonResponse(false, 'candidateId y category requeridos');
-    const result = assignCategoryAndApprove(candidateId, category);
-    if (result.success) return jsonResponse(true, 'Categoría asignada: ' + result.category, result);
+    if (!motivo) return jsonResponse(false, 'Escribe el motivo de la aprobación');
+
+    const auth = authorizeApproval_(data);
+    if (!auth.ok) return jsonResponse(false, auth.error);
+
+    const result = assignCategoryAndApprove(candidateId, category, actorLabel_(auth.actor), motivo, auth.actor);
+    if (result.success) return jsonResponse(true, 'Categoría ' + result.category + ' asignada por ' + actorLabel_(auth.actor), result);
     return jsonResponse(false, 'Error al asignar categoría');
   } catch (error) {
     Logger.log('[ERROR handleAssignCategory] ' + error.message);
@@ -1125,8 +1189,9 @@ function handleAdminLogin(data) {
         return jsonResponse(false, 'Tu cuenta está inactiva. Contacta a coordinación.');
       }
       touchUserLastLogin(user.rowIndex);
+      logAdminSession_(user, data.userAgent);
       return jsonResponse(true, 'Acceso concedido', {
-        requiresOTP: false, role: user.role, email: user.email
+        requiresOTP: false, role: user.role, email: user.email, name: user.name || ''
       });
     }
 
@@ -1152,11 +1217,164 @@ function findAdminUserByToken(token) {
         email:    data[i][0],
         role:     normalizeRole(data[i][2]),
         status:   data[i][5] || 'active',
+        pinAdmin: normalizePin_(data[i][6]),                            // col G: PIN personal
+        name:     String(data[i][7] == null ? '' : data[i][7]).trim(),  // col H: nombre visible
         rowIndex: i + 1
       };
     }
   }
   return null;
+}
+
+/**
+ * Valida el PIN PERSONAL del administrador que tiene la sesión abierta.
+ *
+ * El PIN no es una capa de seguridad extra —la autorización ya la da el token
+ * de la sesión— sino de TRAZABILIDAD: los saltos manuales de fase quedan
+ * firmados con el correo del admin que los hizo, para poder distinguirlos de
+ * los avances automáticos del sistema.
+ *
+ * Cada admin tiene su PIN en la columna pin_admin de la hoja Usuarios.
+ * Body: { pin, adminToken }
+ * Devuelve { email, role } del admin cuando el PIN coincide.
+ */
+/**
+ * Normaliza un PIN venido de la hoja o del formulario.
+ *
+ * POR QUE: Google Sheets guarda 104566 como NUMERO. Al leerlo llega como
+ * number, y un PIN escrito con cero delante (0104) se guardaria como 104,
+ * perdiendo el cero. Aqui todo se compara como texto y, si el valor venia
+ * como numero, se conserva tal cual lo escribio la persona.
+ */
+function normalizePin_(valor) {
+  if (valor === null || valor === undefined) return '';
+  return String(valor).trim();
+}
+
+/**
+ * Autoriza y FIRMA un paso del proceso con el PIN personal de quien lo ejecuta.
+ *
+ * El PIN no da permiso —eso ya lo hace el token de sesion— sino que identifica
+ * a la persona: sirve para que la bitacora sepa quien aprobo. Por eso se le pide
+ * a TODOS, administradores y superadministradores por igual.
+ *
+ * Devuelve { ok, error, actor:{ email, name, role } }.
+ */
+function authorizeApproval_(data) {
+  const pin  = normalizePin_(data && data.pin);
+  const user = findAdminUserByToken(data && data.adminToken);
+
+  if (!user) return { ok: false, error: 'Sesión no reconocida. Vuelve a iniciar sesión.', actor: null };
+  if (String(user.status).toLowerCase() !== 'active') {
+    return { ok: false, error: 'El usuario no está activo', actor: null };
+  }
+  if (!pin) return { ok: false, error: 'Ingresa tu PIN personal para firmar la aprobación', actor: null };
+  if (!user.pinAdmin) {
+    return { ok: false, error: 'No tienes un PIN asignado. Un superadministrador puede registrarlo en Gestión de Usuarios, o tú mismo en Super Admin → PIN de administrador.', actor: null };
+  }
+  if (pin !== user.pinAdmin) return { ok: false, error: 'PIN incorrecto', actor: null };
+
+  return {
+    ok: true, error: '',
+    actor: { email: user.email, name: user.name || user.email, role: user.role }
+  };
+}
+
+/** Etiqueta corta de quien firma, para el Timeline y los mensajes. */
+function actorLabel_(actor) {
+  if (!actor) return 'ADMIN';
+  return actor.name || actor.email || 'ADMIN';
+}
+
+/**
+ * Guarda en la hoja Aprobaciones quien aprobo/rechazo cada paso y por que.
+ * Es el registro que despues lee el timeline del candidato.
+ */
+function logApproval_(candidateId, step, decision, motivo, actor) {
+  try {
+    let sheet = SS.getSheetByName('Aprobaciones');
+    if (!sheet) {
+      sheet = SS.insertSheet('Aprobaciones');
+      _setSheetHeaders(sheet, ['timestamp', 'candidate_id', 'step', 'decision', 'motivo',
+                               'approved_by_email', 'approved_by_name', 'approved_by_role'],
+                       '#001A55', '#FFFFFF');
+    }
+    const a = actor || {};
+    insertNewRow(sheet, [
+      new Date(), candidateId, step, decision, String(motivo || ''),
+      a.email || '', a.name || '', a.role || ''
+    ]);
+  } catch (e) {
+    Logger.log('[logApproval_] ' + e.message);
+  }
+}
+
+/**
+ * POST action=getApprovals
+ * Body: { candidateId }
+ * Historial de aprobaciones de un candidato (mas reciente primero).
+ */
+function handleGetApprovals(data) {
+  try {
+    const candidateId = String(data.candidateId || data.candidate_id || '').trim();
+    if (!candidateId) return jsonResponse(false, 'candidateId requerido');
+    const sheet = SS.getSheetByName('Aprobaciones');
+    if (!sheet) return jsonResponse(true, 'OK', { approvals: [] });
+    const rows = sheet.getDataRange().getValues();
+    const approvals = [];
+    for (let i = 1; i < rows.length; i++) {
+      if (String(rows[i][1] || '').trim() !== candidateId) continue;
+      approvals.push({
+        timestamp: rows[i][0] ? new Date(rows[i][0]).toISOString() : '',
+        step:      String(rows[i][2] || ''),
+        decision:  String(rows[i][3] || ''),
+        motivo:    String(rows[i][4] || ''),
+        by_email:  String(rows[i][5] || ''),
+        by_name:   String(rows[i][6] || ''),
+        by_role:   String(rows[i][7] || '')
+      });
+    }
+    return jsonResponse(true, 'OK', { approvals: approvals });
+  } catch (e) {
+    Logger.log('[handleGetApprovals] ' + e.message);
+    return jsonResponse(false, 'Error: ' + e.message);
+  }
+}
+
+function handleVerifyAdminPin(data) {
+  try {
+    const pin = String(data.pin == null ? '' : data.pin).trim();
+    if (!pin) return jsonResponse(false, 'PIN requerido');
+
+    const user = findAdminUserByToken(data.adminToken);
+    if (!user) return jsonResponse(false, 'Sesión no reconocida. Vuelve a iniciar sesión.');
+    if (String(user.status).toLowerCase() !== 'active') {
+      return jsonResponse(false, 'El usuario no está activo');
+    }
+    if (!user.pinAdmin) {
+      return jsonResponse(false, 'No tienes un PIN asignado. Pídele a un superadministrador que lo registre en la columna pin_admin de la hoja Usuarios.');
+    }
+    if (pin !== user.pinAdmin) return jsonResponse(false, 'PIN incorrecto');
+
+    return jsonResponse(true, 'PIN válido', { email: user.email, role: user.role });
+  } catch (e) {
+    Logger.log('[handleVerifyAdminPin Error] ' + e.message);
+    return jsonResponse(false, 'Error: ' + e.message);
+  }
+}
+
+/**
+ * Resuelve quién firma una acción manual: el correo del admin dueño del token
+ * de la sesión. Cae a 'ADMIN' si no se puede identificar, para que la bitácora
+ * nunca marque como automático algo que sí fue manual.
+ */
+function resolveActor_(data) {
+  try {
+    const user = findAdminUserByToken(data && data.adminToken);
+    return (user && user.email) ? String(user.email) : 'ADMIN';
+  } catch (e) {
+    return 'ADMIN';
+  }
 }
 
 /**
@@ -1389,6 +1607,200 @@ function handleMarkAsIncomplete(data) {
 }
 
 /**
+ * Reinicia el proceso de un candidato: vuelve a 'registered' y limpia
+ * resultados de exámenes, entrevista, categoría y las marcas en notas.
+ * Columnas Candidatos: 11=status, 12-19=E1..final_category, 20=last_interaction, 21=notes
+ */
+function handleResetCandidate(data) {
+  try {
+    const { candidateId } = data;
+    if (!candidateId) return jsonResponse(false, 'candidateId requerido');
+
+    const sheet = SS.getSheetByName('Candidatos');
+    if (!sheet) return jsonResponse(false, 'Sheet Candidatos no encontrada');
+    const rows = sheet.getDataRange().getValues();
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][0] === candidateId) {
+        const rowNum = i + 1;
+        sheet.getRange(rowNum, 11).setValue('registered');   // status
+        sheet.getRange(rowNum, 12, 1, 8).clearContent();      // E1_score .. final_category (12-19)
+        sheet.getRange(rowNum, 20).setValue(new Date());      // last_interaction
+        sheet.getRange(rowNum, 21).setValue('');              // notes (limpia pausa/atraso)
+        addTimelineEvent(candidateId, 'PROCESO_REINICIADO', { por: 'Admin' });
+        return jsonResponse(true, 'Proceso del candidato reiniciado');
+      }
+    }
+    return jsonResponse(false, 'Candidato no encontrado');
+  } catch (error) {
+    Logger.log('[ERROR handleResetCandidate] ' + error.message);
+    return jsonResponse(false, 'Error: ' + error.message);
+  }
+}
+
+/**
+ * Marca al candidato como pausado dejando una etiqueta en la columna notas
+ * sin borrar el texto existente. Reversible con Reiniciar.
+ */
+function handlePauseCandidate(data) {
+  return setCandidateNoteTag_(data, 'Pausado', 'CANDIDATO_PAUSADO', 'Candidato pausado');
+}
+
+/**
+ * Marca al candidato como atrasado dejando una etiqueta en la columna notas.
+ * El frontend ya reconoce 'atrasado' en notas para mostrar el aviso.
+ */
+function handleMarkDelayed(data) {
+  return setCandidateNoteTag_(data, 'Atrasado', 'CANDIDATO_ATRASADO', 'Candidato marcado como atrasado');
+}
+
+/**
+ * Helper: agrega una etiqueta [Tag] a la columna notas (21) si no está ya,
+ * preservando el texto previo. Usado por Pausar y Atrasado.
+ */
+function setCandidateNoteTag_(data, tag, eventType, okMsg) {
+  try {
+    const { candidateId } = data;
+    if (!candidateId) return jsonResponse(false, 'candidateId requerido');
+
+    const sheet = SS.getSheetByName('Candidatos');
+    if (!sheet) return jsonResponse(false, 'Sheet Candidatos no encontrada');
+    const rows = sheet.getDataRange().getValues();
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][0] === candidateId) {
+        const rowNum = i + 1;
+        let notes = String(rows[i][20] || '');
+        if (notes.toLowerCase().indexOf(tag.toLowerCase()) === -1) {
+          notes = (notes ? notes.trim() + ' ' : '') + '[' + tag + ']';
+          sheet.getRange(rowNum, 21).setValue(notes);
+        }
+        sheet.getRange(rowNum, 20).setValue(new Date()); // last_interaction
+        addTimelineEvent(candidateId, eventType, { por: 'Admin' });
+        return jsonResponse(true, okMsg);
+      }
+    }
+    return jsonResponse(false, 'Candidato no encontrado');
+  } catch (error) {
+    Logger.log('[ERROR setCandidateNoteTag_] ' + error.message);
+    return jsonResponse(false, 'Error: ' + error.message);
+  }
+}
+
+/**
+ * Elimina por completo la fila del candidato en la hoja Candidatos.
+ * Acción irreversible (el frontend pide confirmación antes de llamar).
+ */
+function handleDeleteCandidate(data) {
+  try {
+    const { candidateId } = data;
+    if (!candidateId) return jsonResponse(false, 'candidateId requerido');
+
+    const sheet = SS.getSheetByName('Candidatos');
+    if (!sheet) return jsonResponse(false, 'Sheet Candidatos no encontrada');
+    const rows = sheet.getDataRange().getValues();
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][0] === candidateId) {
+        addTimelineEvent(candidateId, 'CANDIDATO_ELIMINADO', { nombre: rows[i][2], email: rows[i][3], por: 'Admin' });
+        sheet.deleteRow(i + 1);
+        return jsonResponse(true, 'Candidato eliminado');
+      }
+    }
+    return jsonResponse(false, 'Candidato no encontrado');
+  } catch (error) {
+    Logger.log('[ERROR handleDeleteCandidate] ' + error.message);
+    return jsonResponse(false, 'Error: ' + error.message);
+  }
+}
+
+/** Etiqueta en notas que guarda el status previo al archivar, para poder reactivar. */
+const ARCHIVE_TAG_RE = /\[Archivado:([^\]]*)\]/i;
+
+/**
+ * Archiva a un candidato: sale de la lista de Profesionales y se marca como
+ * inconcluso en Brevo. El status previo queda guardado en la columna notas
+ * como [Archivado:<status>] para poder reactivarlo tal como estaba.
+ * Columnas Candidatos: 11=status, 20=last_interaction, 21=notes
+ */
+function handleArchiveCandidate(data) {
+  try {
+    const { candidateId } = data;
+    if (!candidateId) return jsonResponse(false, 'candidateId requerido');
+
+    const sheet = SS.getSheetByName('Candidatos');
+    if (!sheet) return jsonResponse(false, 'Sheet Candidatos no encontrada');
+    const rows = sheet.getDataRange().getValues();
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][0] === candidateId) {
+        const rowNum   = i + 1;
+        const prevStat = String(rows[i][10] || '').trim();
+        if (prevStat === 'archived') return jsonResponse(false, 'El candidato ya está archivado');
+
+        const email = rows[i][3];
+        const name  = rows[i][2];
+
+        // Guardar el status previo en notas sin perder el texto existente.
+        let notes = String(rows[i][20] || '').replace(ARCHIVE_TAG_RE, '').trim();
+        notes = (notes ? notes + ' ' : '') + '[Archivado:' + prevStat + ']';
+
+        sheet.getRange(rowNum, 11).setValue('archived');
+        sheet.getRange(rowNum, 21).setValue(notes);
+        sheet.getRange(rowNum, 20).setValue(new Date());
+
+        // Grupo Brevo de inconclusos.
+        try {
+          addContactToBrevoList(email, name, '', CONFIG.brevo_list_inconclusos);
+        } catch (brevoErr) {
+          Logger.log('[handleArchiveCandidate] Brevo falló: ' + brevoErr.message);
+        }
+
+        addTimelineEvent(candidateId, 'CANDIDATO_ARCHIVADO', { status_previo: prevStat, por: 'Admin' });
+        return jsonResponse(true, 'Candidato archivado y marcado como inconcluso');
+      }
+    }
+    return jsonResponse(false, 'Candidato no encontrado');
+  } catch (error) {
+    Logger.log('[ERROR handleArchiveCandidate] ' + error.message);
+    return jsonResponse(false, 'Error: ' + error.message);
+  }
+}
+
+/**
+ * Reactiva a un candidato archivado devolviéndolo a la fase que tenía al
+ * archivarse (leída de la etiqueta [Archivado:<status>] en notas).
+ */
+function handleUnarchiveCandidate(data) {
+  try {
+    const { candidateId } = data;
+    if (!candidateId) return jsonResponse(false, 'candidateId requerido');
+
+    const sheet = SS.getSheetByName('Candidatos');
+    if (!sheet) return jsonResponse(false, 'Sheet Candidatos no encontrada');
+    const rows = sheet.getDataRange().getValues();
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][0] === candidateId) {
+        const rowNum = i + 1;
+        if (String(rows[i][10] || '').trim() !== 'archived') {
+          return jsonResponse(false, 'El candidato no está archivado');
+        }
+        const notes   = String(rows[i][20] || '');
+        const match   = notes.match(ARCHIVE_TAG_RE);
+        const restore = (match && match[1].trim()) ? match[1].trim() : 'registered';
+
+        sheet.getRange(rowNum, 11).setValue(restore);
+        sheet.getRange(rowNum, 21).setValue(notes.replace(ARCHIVE_TAG_RE, '').replace(/\s+/g, ' ').trim());
+        sheet.getRange(rowNum, 20).setValue(new Date());
+
+        addTimelineEvent(candidateId, 'CANDIDATO_REACTIVADO', { status_restaurado: restore, por: 'Admin' });
+        return jsonResponse(true, 'Candidato reactivado');
+      }
+    }
+    return jsonResponse(false, 'Candidato no encontrado');
+  } catch (error) {
+    Logger.log('[ERROR handleUnarchiveCandidate] ' + error.message);
+    return jsonResponse(false, 'Error: ' + error.message);
+  }
+}
+
+/**
  * POST action=registerInterviewResult
  * Body: { candidateId, result: 'pass'|'fail', interviewNotes }
  * Pass → status awaiting_category (admin asigna categoría después)
@@ -1399,10 +1811,23 @@ function handleRegisterInterviewResult(data) {
     const { candidateId, result, interviewNotes } = data;
     if (!candidateId || !result) return jsonResponse(false, 'candidateId y result requeridos');
     if (result !== 'pass' && result !== 'fail') return jsonResponse(false, 'result debe ser "pass" o "fail"');
-    const res = interviewResultAdmin(candidateId, result, interviewNotes || '');
+
+    // La entrevista personal se firma igual que los exámenes: motivo + PIN.
+    const motivo = String(data.motivo || interviewNotes || '').trim();
+    if (!motivo) {
+      return jsonResponse(false, result === 'pass'
+        ? 'Escribe el motivo de la aprobación de la entrevista'
+        : 'Escribe el motivo del rechazo de la entrevista');
+    }
+
+    const auth = authorizeApproval_(data);
+    if (!auth.ok) return jsonResponse(false, auth.error);
+
+    const res = interviewResultAdmin(candidateId, result, interviewNotes || motivo,
+                                     actorLabel_(auth.actor), motivo, auth.actor);
     if (res.success) {
       return jsonResponse(true, result === 'pass'
-        ? 'Entrevista aprobada. Asigna la categoría al candidato.'
+        ? 'Entrevista aprobada por ' + actorLabel_(auth.actor) + '. Asigna la categoría al candidato.'
         : 'Evaluación registrada. Correo de seguimiento enviado al candidato.');
     }
     return jsonResponse(false, res.error || 'Error al registrar resultado de entrevista');
@@ -1412,7 +1837,7 @@ function handleRegisterInterviewResult(data) {
   }
 }
 
-function interviewResultAdmin(candidateId, result, interviewNotes) {
+function interviewResultAdmin(candidateId, result, interviewNotes, actor, motivo, firmante) {
   try {
     const sheet = SS.getSheetByName('Candidatos');
     const data  = sheet.getDataRange().getValues();
@@ -1424,12 +1849,14 @@ function interviewResultAdmin(candidateId, result, interviewNotes) {
         sheet.getRange(i + 1, 18).setValue(interviewNotes);
         if (result === 'pass') {
           sheet.getRange(i + 1, 11).setValue('awaiting_category');
-          addTimelineEvent(candidateId, 'ENTREVISTA_APROBADA', { notas: interviewNotes });
+          addTimelineEvent(candidateId, 'ENTREVISTA_APROBADA', { notas: interviewNotes, motivo: motivo || '' }, actor);
+          logApproval_(candidateId, 'ENTREVISTA', 'aprobado', motivo, firmante);
         } else {
           sheet.getRange(i + 1, 11).setValue('rejected');
           moveContactBetweenLists(email, CONFIG.brevo_list_interesados, CONFIG.brevo_list_rechazados);
           sendEmailRejectedInterview(email, name, interviewNotes);
-          addTimelineEvent(candidateId, 'ENTREVISTA_RECHAZADA', { notas: interviewNotes });
+          addTimelineEvent(candidateId, 'ENTREVISTA_RECHAZADA', { notas: interviewNotes, motivo: motivo || '' }, actor);
+          logApproval_(candidateId, 'ENTREVISTA', 'rechazado', motivo, firmante);
         }
         updateLastInteraction(candidateId);
         return { success: true };
@@ -1488,7 +1915,7 @@ function getCandidatesForAdmin() {
   }
 }
 
-function approveExamAdmin(candidateId, exam) {
+function approveExamAdmin(candidateId, exam, actor, motivo, firmante) {
   try {
     const sheet = SS.getSheetByName('Candidatos');
     const data  = sheet.getDataRange().getValues();
@@ -1510,8 +1937,9 @@ function approveExamAdmin(candidateId, exam) {
           sendEmailAwaitingInterview(email, name, candidateId);
         }
         addTimelineEvent(candidateId, 'EXAMEN_' + exam + '_APROBADO_ADMIN', {
-          exam: exam, fecha: new Date().toISOString()
-        });
+          exam: exam, fecha: new Date().toISOString(), motivo: motivo || ''
+        }, actor);
+        logApproval_(candidateId, exam, 'aprobado', motivo, firmante);
         return { success: true };
       }
     }
@@ -1522,7 +1950,7 @@ function approveExamAdmin(candidateId, exam) {
   }
 }
 
-function rejectExamAdmin(candidateId, exam, reason) {
+function rejectExamAdmin(candidateId, exam, reason, actor, firmante) {
   try {
     const sheet = SS.getSheetByName('Candidatos');
     const data  = sheet.getDataRange().getValues();
@@ -1535,7 +1963,8 @@ function rejectExamAdmin(candidateId, exam, reason) {
         sendEmailRejected(email, name, exam, reason);
         addTimelineEvent(candidateId, 'EXAMEN_' + exam + '_RECHAZADO_ADMIN', {
           exam: exam, razon: reason
-        });
+        }, actor);
+        logApproval_(candidateId, exam, 'rechazado', reason, firmante);
         return { success: true };
       }
     }
@@ -1546,7 +1975,7 @@ function rejectExamAdmin(candidateId, exam, reason) {
   }
 }
 
-function autoApproveE1Admin(candidateId) {
+function autoApproveE1Admin(candidateId, motivo, firmante) {
   try {
     const sheet = SS.getSheetByName('Candidatos');
     const data  = sheet.getDataRange().getValues();
@@ -1565,9 +1994,11 @@ function autoApproveE1Admin(candidateId) {
         sheet.getRange(i + 1, 11).setValue('pending_review_E1');
 
         // Registrar evento
+        logApproval_(candidateId, 'REGISTRO', 'aprobado', motivo, firmante);
         addTimelineEvent(candidateId, 'E1_APROBADO_AUTOMATICAMENTE_REGISTRO', {
           score: score,
           timestamp: now,
+          motivo: motivo || '',
           reason: 'Aprobación automática desde fase de registro'
         });
 
@@ -1581,7 +2012,7 @@ function autoApproveE1Admin(candidateId) {
   }
 }
 
-function assignCategoryAndApprove(candidateId, category) {
+function assignCategoryAndApprove(candidateId, category, actor, motivo, firmante) {
   try {
     const sheet = SS.getSheetByName('Candidatos');
     const data  = sheet.getDataRange().getValues();
@@ -1599,8 +2030,9 @@ function assignCategoryAndApprove(candidateId, category) {
         sheet.getRange(i + 1, 19).setValue(category);
         sendEmailApproved(email, name, category);
         addTimelineEvent(candidateId, 'CANDIDATO_CATEGORIZADO_APROBADO', {
-          category: category, lista_brevo: toListId
-        });
+          category: category, lista_brevo: toListId, motivo: motivo || ''
+        }, actor);
+        logApproval_(candidateId, 'CATEGORIA_' + category, 'aprobado', motivo, firmante);
         return { success: true, category: category };
       }
     }
@@ -1655,8 +2087,10 @@ function getDashboardStats() {
     let total = 0, pending = 0, approved = 0, rejected = 0;
     for (let i = 1; i < data.length; i++) {
       if (!data[i][0]) continue;
-      total++;
       const status = String(data[i][10] || '');
+      // Archivados e historial de handoff salen del conteo, igual que de la lista
+      if (status === 'archived' || status === 'handoff_completed') continue;
+      total++;
       if (status.includes('pending') || status.includes('awaiting') || status === 'registered') pending++;
       else if (status.includes('approved')) approved++;
       else if (status === 'rejected')        rejected++;
@@ -2202,12 +2636,16 @@ function updateLastInteraction(candidate_id) {
 // ================================
 // MODULO: TIMELINE
 // ================================
-function addTimelineEvent(candidate_id, event_type, details) {
+/**
+ * @param {string} [actor] correo del admin que ejecutó la acción. Si se omite
+ *   queda 'SISTEMA', que es lo correcto para los pasos automáticos.
+ */
+function addTimelineEvent(candidate_id, event_type, details, actor) {
   try {
     const sheet = SS.getSheetByName('Timeline');
     if (!sheet) return;
-    insertNewRow(sheet, [new Date(), candidate_id, event_type, JSON.stringify(details || {}), 'SISTEMA']);
-    Logger.log('[Timeline] ' + event_type + ' para ' + candidate_id);
+    insertNewRow(sheet, [new Date(), candidate_id, event_type, JSON.stringify(details || {}), actor || 'SISTEMA']);
+    Logger.log('[Timeline] ' + event_type + ' para ' + candidate_id + ' por ' + (actor || 'SISTEMA'));
   } catch (error) { Logger.log('[Timeline Error] ' + error.message); }
 }
 
@@ -2550,22 +2988,85 @@ function handleGetNotificaciones(data) {
   }
 }
 
+/**
+ * Devuelve los eventos de la hoja Timeline de un candidato, del más antiguo
+ * al más reciente. Es la bitácora que ya escribe addTimelineEvent y que hasta
+ * ahora nunca se leía; el dashboard la usa para fechar cada fase.
+ *
+ * Hoja Timeline: 0=timestamp, 1=candidate_id, 2=event_type, 3=details_json, 4=actor
+ */
+function handleGetCandidateTimeline(data) {
+  try {
+    const { candidateId } = data;
+    if (!candidateId) return jsonResponse(false, 'candidateId requerido');
+
+    const sheet = SS.getSheetByName('Timeline');
+    if (!sheet) return jsonResponse(true, 'OK', { events: [] });
+    const rows = sheet.getDataRange().getValues();
+
+    const events = [];
+    for (let i = 1; i < rows.length; i++) {
+      if (String(rows[i][1] || '').trim() !== String(candidateId).trim()) continue;
+      const ts = rows[i][0];
+      let details = {};
+      try { details = JSON.parse(rows[i][3] || '{}'); } catch (err) { details = {}; }
+      events.push({
+        timestamp:  ts ? new Date(ts).toISOString() : '',
+        event_type: String(rows[i][2] || ''),
+        details:    details,
+        actor:      String(rows[i][4] || '')
+      });
+    }
+    events.sort((a, b) => new Date(a.timestamp || 0) - new Date(b.timestamp || 0));
+    return jsonResponse(true, 'OK', { events: events });
+  } catch (e) {
+    Logger.log('[handleGetCandidateTimeline Error] ' + e.message);
+    return jsonResponse(false, 'Error: ' + e.message);
+  }
+}
+
 function handleGetAdminUsers() {
   try {
     const sheet = SS.getSheetByName('Usuarios');
     if (!sheet) return jsonResponse(false, 'Hoja Usuarios no encontrada');
-    const data = sheet.getDataRange().getValues();
+    const data  = sheet.getDataRange().getValues();
     const users = [];
+    let superadmins = 0, activos = 0;
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
       if (!row[0]) continue;
-      users.push({ email: row[0], role: row[2] || 'admin', created_date: row[3], last_login: row[4], status: row[5] || 'active' });
+      const role   = normalizeRole(row[2]);
+      const status = String(row[5] || 'active').toLowerCase();
+      if (role === 'superadmin') superadmins++;
+      if (status === 'active')   activos++;
+      users.push({
+        email:        row[0],
+        name:         String(row[7] || '').trim(),
+        role:         role,
+        created_date: row[3],
+        last_login:   row[4],
+        status:       status,
+        // El token no se muestra entero en pantalla: solo lo justo para
+        // reconocer la fila sin exponerlo en una captura del panel.
+        token_hint:   maskAdminToken_(row[1]),
+        // Nunca se devuelve el PIN, solo si la persona ya tiene uno.
+        has_pin:      normalizePin_(row[6]) !== ''
+      });
     }
-    return jsonResponse(true, 'OK', { users });
+    return jsonResponse(true, 'OK', {
+      users: users,
+      stats: { total: users.length, superadmins: superadmins, activos: activos }
+    });
   } catch (e) {
     Logger.log('[handleGetAdminUsers Error] ' + e.message);
     return jsonResponse(false, 'Error: ' + e.message);
   }
+}
+
+/** Pista corta del token (ADMIN-xxxxxxxx), nunca el token completo. */
+function maskAdminToken_(token) {
+  const t = String(token || '').replace(/-/g, '');
+  return t ? 'ADMIN-' + t.substring(0, 8) : '';
 }
 
 /**
@@ -2603,22 +3104,376 @@ function handleGetUserRole(data) {
 
 function handleGenerateAdminToken(data) {
   try {
-    if (!validateAdminPin(data.admin_pin)) return jsonResponse(false, 'PIN de admin incorrecto');
+    // Solo un superadministrador crea accesos, y firma con su PIN personal.
+    const auth = authorizeApproval_({ pin: data.admin_pin || data.pin, adminToken: data.adminToken });
+    if (!auth.ok) return jsonResponse(false, auth.error);
+    if (auth.actor.role !== 'superadmin') {
+      return jsonResponse(false, 'Solo un superadministrador puede crear usuarios');
+    }
+
     const email = (data.email || '').trim().toLowerCase();
     if (!email || !isValidEmail(email)) return jsonResponse(false, 'Email invalido');
-    const role  = data.role || 'admin';
-    const token = Utilities.getUuid();
+    const name = String(data.name || '').trim();
+    if (!name) return jsonResponse(false, 'El nombre es obligatorio');
+    const role     = normalizeRole(data.role);
+    const pinNuevo = normalizePin_(data.new_pin);
+    if (pinNuevo && pinNuevo.length < 4) {
+      return jsonResponse(false, 'El PIN del nuevo usuario debe tener al menos 4 caracteres');
+    }
+
     const sheet = SS.getSheetByName('Usuarios');
     if (!sheet) return jsonResponse(false, 'Hoja Usuarios no encontrada');
     const existing = sheet.getDataRange().getValues();
     for (let i = 1; i < existing.length; i++) {
       if (String(existing[i][0]).toLowerCase() === email) return jsonResponse(false, 'El email ya esta registrado');
     }
-    insertNewRow(sheet, [email, token, role, new Date(), '', 'active']);
-    return jsonResponse(true, 'Usuario creado', { email, token, role });
+
+    const token = Utilities.getUuid();
+    insertNewRow(sheet, [email, token, role, new Date(), '', 'active', pinNuevo, name]);
+
+    const enviado = sendAdminAccessEmail_(email, name, token, role, pinNuevo);
+    addAdminAudit_(auth.actor, 'USUARIO_CREADO', email + ' (' + role + ')');
+
+    return jsonResponse(true,
+      enviado ? 'Usuario creado. El token de acceso se envió a ' + email
+              : 'Usuario creado, pero el correo no salió. Comparte el token manualmente.',
+      { email: email, name: name, role: role, token: token, emailSent: enviado });
   } catch (e) {
     Logger.log('[handleGenerateAdminToken Error] ' + e.message);
     return jsonResponse(false, 'Error: ' + e.message);
+  }
+}
+
+/** Envia al nuevo administrador su token de acceso y, si se le asignó, su PIN. */
+function sendAdminAccessEmail_(email, name, token, role, pin) {
+  try {
+    const url   = 'https://profesionales.catholizare.com/catholizare_sistem/acceso.html';
+    const label = role === 'superadmin' ? 'Super Administrador' : 'Administrador';
+    const html =
+      '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">' +
+      '<div style="background:linear-gradient(135deg,#001A55,#0966FF);color:white;padding:20px;text-align:center;border-radius:8px 8px 0 0;">' +
+      '<h1 style="margin:0;font-size:20px;">Acceso al Panel de Admisiones</h1><p style="margin:6px 0 0;">Catholizare.com</p></div>' +
+      '<div style="background:#f9f9f9;padding:24px;">' +
+      '<p>Hola <strong>' + name + '</strong>,</p>' +
+      '<p>Se creó tu acceso como <strong>' + label + '</strong> al panel de admisiones.</p>' +
+      '<p style="margin:18px 0 6px;font-size:13px;color:#555;">Tu token de acceso (con esto entras al panel):</p>' +
+      '<p style="font-family:monospace;font-size:15px;background:#eef2ff;border:1px solid #c7d2fe;padding:12px;border-radius:6px;word-break:break-all;">' + token + '</p>' +
+      (pin ? '<p style="margin:14px 0 6px;font-size:13px;color:#555;">Tu PIN personal (firma cada aprobación que hagas):</p>' +
+             '<p style="font-family:monospace;font-size:15px;background:#fff7ed;border:1px solid #fed7aa;padding:12px;border-radius:6px;">' + pin + '</p>' : '') +
+      '<p><a href="' + url + '" style="display:inline-block;background:#0966FF;color:white;padding:12px 24px;text-decoration:none;border-radius:4px;">Entrar al panel</a></p>' +
+      '<p style="font-size:12px;color:#666;">Ambos son personales e intransferibles: identifican todas las acciones que realices en el sistema.</p>' +
+      '</div></div>';
+    return !!sendEmail(email, 'Tu acceso al Panel de Admisiones — Catholizare', html);
+  } catch (e) {
+    Logger.log('[sendAdminAccessEmail_] ' + e.message);
+    return false;
+  }
+}
+
+/**
+ * POST action=setAdminPin
+ * Body: { currentPin, newPin, confirmPin }
+ * Cambia el PIN PERSONAL del usuario de la sesión: el actual por uno nuevo.
+ * Si todavía no tiene PIN, lo crea (currentPin se ignora).
+ */
+function handleSetAdminPin(data) {
+  try {
+    const user = findAdminUserByToken(data && data.adminToken);
+    if (!user) return jsonResponse(false, 'Sesión no reconocida. Vuelve a iniciar sesión.');
+    if (String(user.status).toLowerCase() !== 'active') return jsonResponse(false, 'El usuario no está activo');
+
+    const nuevo     = normalizePin_(data.newPin);
+    const confirmar = data.confirmPin === undefined ? nuevo : normalizePin_(data.confirmPin);
+    if (nuevo.length < 4)   return jsonResponse(false, 'El nuevo PIN debe tener al menos 4 caracteres');
+    if (/\s/.test(nuevo))   return jsonResponse(false, 'El PIN no puede contener espacios');
+    if (nuevo !== confirmar) return jsonResponse(false, 'El nuevo PIN y su confirmación no coinciden');
+
+    // Si ya tenía PIN, hay que escribir el actual para poder cambiarlo.
+    if (user.pinAdmin && normalizePin_(data.currentPin) !== user.pinAdmin) {
+      return jsonResponse(false, 'El PIN actual no coincide');
+    }
+    if (nuevo === user.pinAdmin) return jsonResponse(false, 'El nuevo PIN es igual al actual');
+
+    const sheet = SS.getSheetByName('Usuarios');
+    if (!sheet) return jsonResponse(false, 'Hoja Usuarios no encontrada');
+    // El PIN se guarda como texto para no perder ceros a la izquierda.
+    sheet.getRange(user.rowIndex, 7).setNumberFormat('@').setValue(nuevo);
+
+    addAdminAudit_({ email: user.email }, 'PIN_ACTUALIZADO', '');
+    return jsonResponse(true, 'PIN actualizado correctamente', { configured: true });
+  } catch (e) {
+    Logger.log('[handleSetAdminPin] ' + e.message);
+    return jsonResponse(false, 'Error: ' + e.message);
+  }
+}
+
+/**
+ * POST action=setUserPin
+ * Body: { email, new_pin }
+ * Un superadministrador asigna o restablece el PIN de otro usuario.
+ */
+function handleSetUserPin(data) {
+  try {
+    const auth = authorizeApproval_(data);
+    if (!auth.ok) return jsonResponse(false, auth.error);
+    if (auth.actor.role !== 'superadmin') {
+      return jsonResponse(false, 'Solo un superadministrador puede asignar el PIN de otro usuario');
+    }
+    const email = String(data.email || '').trim().toLowerCase();
+    const nuevo = normalizePin_(data.new_pin);
+    if (!email)           return jsonResponse(false, 'email requerido');
+    if (nuevo.length < 4) return jsonResponse(false, 'El PIN debe tener al menos 4 caracteres');
+
+    const sheet = SS.getSheetByName('Usuarios');
+    if (!sheet) return jsonResponse(false, 'Hoja Usuarios no encontrada');
+    const rows = sheet.getDataRange().getValues();
+    for (let i = 1; i < rows.length; i++) {
+      if (String(rows[i][0] || '').trim().toLowerCase() === email) {
+        sheet.getRange(i + 1, 7).setNumberFormat('@').setValue(nuevo);
+        addAdminAudit_(auth.actor, 'PIN_ASIGNADO', email);
+        return jsonResponse(true, 'PIN asignado a ' + email);
+      }
+    }
+    return jsonResponse(false, 'Usuario no encontrado');
+  } catch (e) {
+    Logger.log('[handleSetUserPin] ' + e.message);
+    return jsonResponse(false, 'Error: ' + e.message);
+  }
+}
+
+/** ¿El usuario de la sesión ya tiene PIN? Nunca revela su valor. */
+function handleGetPinStatus(data) {
+  try {
+    const user = findAdminUserByToken(data && data.adminToken);
+    if (!user) return jsonResponse(false, 'Sesión no reconocida');
+    return jsonResponse(true, 'OK', {
+      configured: !!user.pinAdmin, email: user.email, role: user.role
+    });
+  } catch (e) {
+    return jsonResponse(false, 'Error: ' + e.message);
+  }
+}
+
+/**
+ * POST action=toggleAdminUser — activa/desactiva un usuario. Solo superadmin.
+ */
+function handleToggleAdminUser(data) {
+  try {
+    const auth = authorizeApproval_(data);
+    if (!auth.ok) return jsonResponse(false, auth.error);
+    if (auth.actor.role !== 'superadmin') {
+      return jsonResponse(false, 'Solo un superadministrador puede cambiar el estado de un usuario');
+    }
+    const email  = String(data.email || '').trim().toLowerCase();
+    const status = String(data.status || '').trim().toLowerCase() === 'active' ? 'active' : 'inactive';
+    if (!email) return jsonResponse(false, 'email requerido');
+    if (email === String(auth.actor.email || '').toLowerCase() && status === 'inactive') {
+      return jsonResponse(false, 'No puedes desactivar tu propio usuario');
+    }
+    const sheet = SS.getSheetByName('Usuarios');
+    if (!sheet) return jsonResponse(false, 'Hoja Usuarios no encontrada');
+    const rows = sheet.getDataRange().getValues();
+    for (let i = 1; i < rows.length; i++) {
+      if (String(rows[i][0] || '').trim().toLowerCase() === email) {
+        sheet.getRange(i + 1, 6).setValue(status);
+        addAdminAudit_(auth.actor, 'USUARIO_' + (status === 'active' ? 'ACTIVADO' : 'DESACTIVADO'), email);
+        return jsonResponse(true, status === 'active' ? 'Usuario activado' : 'Usuario desactivado');
+      }
+    }
+    return jsonResponse(false, 'Usuario no encontrado');
+  } catch (e) {
+    Logger.log('[handleToggleAdminUser] ' + e.message);
+    return jsonResponse(false, 'Error: ' + e.message);
+  }
+}
+
+/**
+ * POST action=setAdminUserName — nombre visible de un usuario. Solo superadmin.
+ * Sirve para completar los usuarios creados antes de que existiera la columna.
+ */
+function handleSetAdminUserName(data) {
+  try {
+    const auth = authorizeApproval_(data);
+    if (!auth.ok) return jsonResponse(false, auth.error);
+    if (auth.actor.role !== 'superadmin') {
+      return jsonResponse(false, 'Solo un superadministrador puede editar los usuarios');
+    }
+    const email = String(data.email || '').trim().toLowerCase();
+    const name  = String(data.name || '').trim();
+    if (!email) return jsonResponse(false, 'email requerido');
+    if (!name)  return jsonResponse(false, 'El nombre no puede quedar vacío');
+
+    const sheet = SS.getSheetByName('Usuarios');
+    if (!sheet) return jsonResponse(false, 'Hoja Usuarios no encontrada');
+    if (sheet.getMaxColumns() < 8) sheet.insertColumnsAfter(sheet.getMaxColumns(), 8 - sheet.getMaxColumns());
+    if (String(sheet.getRange(1, 8).getValue() || '').trim() === '') sheet.getRange(1, 8).setValue('name');
+
+    const rows = sheet.getDataRange().getValues();
+    for (let i = 1; i < rows.length; i++) {
+      if (String(rows[i][0] || '').trim().toLowerCase() === email) {
+        sheet.getRange(i + 1, 8).setValue(name);
+        addAdminAudit_(auth.actor, 'USUARIO_RENOMBRADO', email + ' → ' + name);
+        return jsonResponse(true, 'Nombre actualizado', { email: email, name: name });
+      }
+    }
+    return jsonResponse(false, 'Usuario no encontrado');
+  } catch (e) {
+    Logger.log('[handleSetAdminUserName] ' + e.message);
+    return jsonResponse(false, 'Error: ' + e.message);
+  }
+}
+
+/**
+ * Deja constancia de un inicio de sesion en la hoja Sessions.
+ * Alimenta el "Registro de Sesiones" del panel Super Admin.
+ */
+function logAdminSession_(user, userAgent) {
+  try {
+    let sheet = SS.getSheetByName('Sessions');
+    if (!sheet) {
+      sheet = SS.insertSheet('Sessions');
+      _setSheetHeaders(sheet, ['session_id', 'user_email', 'created_at', 'expires_at',
+                               'ip_address', 'user_agent', 'user_name', 'role'],
+                       '#001A55', '#FFFFFF');
+    }
+    const u = user || {};
+    insertNewRow(sheet, [
+      Utilities.getUuid(), u.email || '', new Date(), '', '',
+      String(userAgent || '').substring(0, 300),
+      u.name || '', u.role || 'admin'
+    ]);
+  } catch (e) {
+    Logger.log('[logAdminSession_] ' + e.message);
+  }
+}
+
+/**
+ * POST action=getSessionLog — ultimos inicios de sesion. Solo superadmin.
+ */
+function handleGetSessionLog(data) {
+  try {
+    const user = findAdminUserByToken(data && data.adminToken);
+    if (!user || user.role !== 'superadmin') {
+      return jsonResponse(false, 'Solo un superadministrador puede ver el registro de sesiones');
+    }
+    const sheet = SS.getSheetByName('Sessions');
+    if (!sheet) return jsonResponse(true, 'OK', { sessions: [] });
+    const rows  = sheet.getDataRange().getValues();
+    const limit = Math.min(parseInt(data.limit || 50, 10) || 50, 200);
+    const tz    = CONFIG.timezone || 'America/Mexico_City';
+    const opts  = { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
+                    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
+    const sessions = [];
+    // insertNewRow escribe siempre en la fila 2: la hoja ya viene de mas
+    // reciente a mas antigua.
+    for (let i = 1; i < rows.length && sessions.length < limit; i++) {
+      if (!rows[i][1] && !rows[i][6]) continue;
+      sessions.push({
+        fecha:      rows[i][2] ? new Date(rows[i][2]).toLocaleString('es-MX', opts) : '',
+        email:      String(rows[i][1] || ''),
+        user_agent: String(rows[i][5] || ''),
+        name:       String(rows[i][6] || ''),
+        role:       normalizeRole(rows[i][7])
+      });
+    }
+    return jsonResponse(true, 'OK', { sessions: sessions });
+  } catch (e) {
+    Logger.log('[handleGetSessionLog] ' + e.message);
+    return jsonResponse(false, 'Error: ' + e.message);
+  }
+}
+
+/**
+ * POST action=getSystemConfigStatus — estado de las integraciones.
+ * Nunca devuelve una credencial, solo si esta puesta o no.
+ */
+function handleGetSystemConfigStatus(data) {
+  try {
+    let triggers = 0;
+    try { triggers = ScriptApp.getProjectTriggers().length; } catch (e) {}
+    const items = [
+      { key: 'resend',   label: 'Resend API',           desc: 'Servicio de envío de correos',        ok: !!CONFIG.resend_api_key },
+      { key: 'brevo',    label: 'Brevo API',            desc: 'Listas de contactos',                 ok: !!CONFIG.brevo_api_key },
+      { key: 'openai',   label: 'OpenAI API',           desc: 'Calificación asistida de exámenes',   ok: !!CONFIG.openai_api_key },
+      { key: 'drive',    label: 'Google Drive',         desc: 'Almacenamiento de documentos (CV)',   ok: driveIsAvailable_() },
+      { key: 'handoff',  label: 'Hoja de Onboarding',   desc: 'Destino del handoff de aprobados',    ok: !!CONFIG.handoff_spreadsheet_id },
+      { key: 'triggers', label: 'Triggers Automáticos', desc: 'Recordatorios y correos automáticos', ok: triggers > 0,
+        detail: triggers + ' trigger(s)' }
+    ];
+    return jsonResponse(true, 'OK', { items: items });
+  } catch (e) {
+    Logger.log('[handleGetSystemConfigStatus] ' + e.message);
+    return jsonResponse(false, 'Error: ' + e.message);
+  }
+}
+
+/** true si el script puede escribir en Drive (carpeta de CVs). */
+function driveIsAvailable_() {
+  try { DriveApp.getRootFolder().getName(); return true; } catch (e) { return false; }
+}
+
+/**
+ * POST action=resetSystem
+ * Body: { pin, confirm: 'REINICIAR' }
+ *
+ * Borra los datos de candidatos y reinicia el proceso de admisión.
+ * Salvaguardas: solo superadmin, PIN personal, palabra exacta y copia de
+ * seguridad del spreadsheet ANTES de borrar nada. No toca Usuarios, Config
+ * ni Preguntas.
+ */
+function handleResetSystem(data) {
+  try {
+    const auth = authorizeApproval_(data);
+    if (!auth.ok) return jsonResponse(false, auth.error);
+    if (auth.actor.role !== 'superadmin') {
+      return jsonResponse(false, 'Solo un superadministrador puede reiniciar el sistema');
+    }
+    if (String(data.confirm || '').trim().toUpperCase() !== 'REINICIAR') {
+      return jsonResponse(false, 'Escribe REINICIAR para confirmar');
+    }
+
+    // 1) Copia de seguridad antes de borrar. Sin ella no se borra nada.
+    let backupUrl = '';
+    try {
+      const file  = DriveApp.getFileById(SS.getId());
+      const stamp = Utilities.formatDate(new Date(), CONFIG.timezone || 'America/Mexico_City', 'yyyy-MM-dd_HH-mm');
+      backupUrl   = file.makeCopy('BACKUP Admisiones ' + stamp).getUrl();
+    } catch (e) {
+      return jsonResponse(false, 'No se pudo crear la copia de seguridad, no se borró nada: ' + e.message);
+    }
+
+    // 2) Vaciar solo las hojas de datos del proceso.
+    const hojas = ['Candidatos', 'Tokens', 'Timeline', 'Resultados', 'Aprobaciones',
+                   'Test_E1_Respuestas', 'Test_E2_Respuestas', 'Test_E3_Respuestas'];
+    const borradas = [];
+    hojas.forEach(function(nombre) {
+      const sheet = SS.getSheetByName(nombre);
+      if (!sheet) return;
+      const filas = sheet.getLastRow() - 1;   // preservar la cabecera
+      if (filas > 0) {
+        sheet.deleteRows(2, filas);
+        borradas.push(nombre + ': ' + filas);
+      }
+    });
+
+    addAdminAudit_(auth.actor, 'SISTEMA_REINICIADO', backupUrl);
+    return jsonResponse(true, 'Sistema reiniciado. Se guardó una copia de seguridad antes de borrar.', {
+      backupUrl: backupUrl, detalle: borradas
+    });
+  } catch (e) {
+    Logger.log('[handleResetSystem] ' + e.message);
+    return jsonResponse(false, 'Error: ' + e.message);
+  }
+}
+
+/** Registra una accion administrativa en Login_Audit (best-effort). */
+function addAdminAudit_(actor, tipo, notas) {
+  try {
+    const sheet = SS.getSheetByName('Login_Audit');
+    if (!sheet) return;
+    insertNewRow(sheet, [new Date(), (actor && actor.email) || '', tipo, true, '', notas || '']);
+  } catch (e) {
+    Logger.log('[addAdminAudit_] ' + e.message);
   }
 }
 
@@ -2636,42 +3491,164 @@ function handleGenerateAdminToken(data) {
  *   J: Estado        K: Categoria     L: Legal_Aceptacion
  *   M: Legal_Fecha
  */
+const ONBOARDING_SS_ID  = '1YgbnsB0_oLbSlYBUNqhe2V9QqlbEu8nGotYTWHHXW4I';
+const ONBOARDING_SHEET  = 'Onboarding';
+const APPROVED_STATUSES = ['approved_junior', 'approved_senior', 'approved_expert'];
+
+/**
+ * Abre la hoja de Onboarding destino del handoff.
+ * Lanza si el spreadsheet no se puede abrir.
+ */
+function openOnboardingSheet_() {
+  const onbSS = SpreadsheetApp.openById(ONBOARDING_SS_ID);
+  let onbSheet = onbSS.getSheetByName(ONBOARDING_SHEET);
+  if (!onbSheet) {
+    // Buscar cualquier hoja disponible y usarla, o crear nueva
+    const sheets = onbSS.getSheets();
+    onbSheet = sheets.length > 0 ? sheets[0] : onbSS.insertSheet(ONBOARDING_SHEET);
+  }
+  return onbSheet;
+}
+
+/**
+ * Set de emails (minúsculas) ya presentes en Onboarding.
+ * Base de la regla: un candidato ya existente por email se omite.
+ */
+function onboardingExistingEmails_(onbSheet) {
+  const onbData = onbSheet.getDataRange().getValues();
+  const existingEmails = new Set();
+  for (let i = 1; i < onbData.length; i++) {
+    const email = String(onbData[i][2] || '').trim().toLowerCase();
+    if (email) existingEmails.add(email);
+  }
+  return existingEmails;
+}
+
+/**
+ * Construye la fila de Onboarding (A..M) a partir de una fila de Candidatos.
+ * Candidatos sheet columns (0-indexed):
+ * 0=candidate_id, 1=registration_date, 2=name, 3=email, 4=phone
+ * 5=country, 6=birthday, 7=professional_type, 8=therapeutic_approach, 9=about
+ * 10=status, 11=E1_score, 12=E1_date, 13=E2_score, 14=E2_date
+ * 15=E3_score, 16=E3_date, 17=interview_notes, 18=final_category
+ * 19=last_interaction, 20=notes, 21=terms_accepted_at, 22=terms_ip, 23=terms_user_agent
+ */
+function buildOnboardingRow_(row) {
+  const onbToken        = 'ONB-' + Utilities.getUuid().replace(/-/g, '').substring(0, 8).toUpperCase();
+  const termsAcceptedAt = row[21] || '';   // Legal_Fecha
+  return [
+    onbToken,                                    // A: ID_Token
+    row[2] || '',                                // B: Nombre
+    String(row[3] || '').trim().toLowerCase(),   // C: Email
+    row[7] || '',                                // D: Especialidad
+    '',                                          // E: CV_Url
+    '',                                          // F: Docs_Profesion
+    '',                                          // G: Foto_Url
+    '',                                          // H: Carta_Sacerdote
+    'Fase 1',                                    // I: Fase_Actual
+    'Activo',                                    // J: Estado
+    row[18] || '',                               // K: Categoria
+    termsAcceptedAt ? 'ACEPTADO | v1' : '',      // L: Legal_Aceptacion
+    termsAcceptedAt                              // M: Legal_Fecha
+  ];
+}
+
+/** Etiqueta en notas con el resultado del handoff. */
+const HANDOFF_TAG_RE = /\[Handoff:([^\]]*)\]/i;
+
+/**
+ * Marca a un candidato como handoff resuelto: pasa a status 'handoff_completed'
+ * (sale de la lista de Profesionales y entra a Historial) y deja en notas la
+ * etiqueta [Handoff:transferido] o [Handoff:omitido] para poder distinguir
+ * en el historial a quién se transfirió y a quién se omitió por duplicado.
+ *
+ * @param {Sheet}  candSheet  hoja Candidatos
+ * @param {number} rowNum     fila 1-indexed del candidato
+ * @param {Array}  row        valores de esa fila (0-indexed)
+ * @param {string} resultado  'transferido' | 'omitido'
+ */
+function markHandoffDone_(candSheet, rowNum, row, resultado) {
+  let notes = String(row[20] || '').replace(HANDOFF_TAG_RE, '').trim();
+  notes = (notes ? notes + ' ' : '') + '[Handoff:' + resultado + ']';
+  candSheet.getRange(rowNum, 11).setValue('handoff_completed');  // status
+  candSheet.getRange(rowNum, 21).setValue(notes);                // notes
+  candSheet.getRange(rowNum, 20).setValue(new Date());           // last_interaction
+}
+
+/**
+ * Handoff de UN candidato aprobado, disparado desde el modal de acciones.
+ * Respeta la regla existente: si el correo ya está en Onboarding se omite
+ * la transferencia y se avisa (success con skipped:true).
+ */
+function handleHandoffCandidate(data) {
+  try {
+    const { candidateId } = data;
+    if (!candidateId) return jsonResponse(false, 'candidateId requerido');
+
+    const candSheet = SS.getSheetByName('Candidatos');
+    if (!candSheet) return jsonResponse(false, 'Hoja Candidatos no encontrada');
+    const candData = candSheet.getDataRange().getValues();
+
+    for (let i = 1; i < candData.length; i++) {
+      const row = candData[i];
+      if (row[0] !== candidateId) continue;
+
+      const status = String(row[10] || '').trim();
+      if (!APPROVED_STATUSES.includes(status)) {
+        return jsonResponse(false, 'Solo se puede transferir un candidato aprobado (Junior / Senior / Expert)');
+      }
+
+      const email = String(row[3] || '').trim().toLowerCase();
+      if (!email) return jsonResponse(false, 'El candidato no tiene correo registrado');
+
+      let onbSheet;
+      try {
+        onbSheet = openOnboardingSheet_();
+      } catch (err) {
+        return jsonResponse(false, 'No se pudo abrir la hoja de Onboarding: ' + err.message);
+      }
+
+      // Regla existente: si el correo ya está en Onboarding, se omite y se avisa.
+      // Igual pasa a Historial: el handoff se dio por resuelto para este candidato.
+      if (onboardingExistingEmails_(onbSheet).has(email)) {
+        markHandoffDone_(candSheet, i + 1, row, 'omitido');
+        addTimelineEvent(candidateId, 'HANDOFF_OMITIDO', { motivo: 'Email ya existe en Onboarding', email: email });
+        return jsonResponse(true, 'Omitido: ' + email + ' ya existe en Onboarding', {
+          transferred: 0, skipped: 1, email: email
+        });
+      }
+
+      insertNewRow(onbSheet, buildOnboardingRow_(row));
+      markHandoffDone_(candSheet, i + 1, row, 'transferido');
+      addTimelineEvent(candidateId, 'HANDOFF_COMPLETADO', { email: email, categoria: row[18] || '' });
+
+      return jsonResponse(true, (row[2] || email) + ' transferido al Onboarding', {
+        transferred: 1, skipped: 0, email: email
+      });
+    }
+    return jsonResponse(false, 'Candidato no encontrado');
+  } catch (e) {
+    Logger.log('[handleHandoffCandidate Error] ' + e.message);
+    return jsonResponse(false, 'Error en handoff: ' + e.message);
+  }
+}
+
 function handleHandoff(data) {
   try {
     if (!validateAdminPin(data.admin_pin)) {
       return jsonResponse(false, 'PIN de admin incorrecto');
     }
 
-    const ONBOARDING_SS_ID  = '1YgbnsB0_oLbSlYBUNqhe2V9QqlbEu8nGotYTWHHXW4I';
-    const ONBOARDING_SHEET  = 'Onboarding';
-    const APPROVED_STATUSES = ['approved_junior', 'approved_senior', 'approved_expert'];
-
     // Abrir spreadsheet de onboarding
-    let onbSS;
+    let onbSheet;
     try {
-      onbSS = SpreadsheetApp.openById(ONBOARDING_SS_ID);
+      onbSheet = openOnboardingSheet_();
     } catch (err) {
       return jsonResponse(false, 'No se pudo abrir la hoja de Onboarding: ' + err.message);
     }
 
-    let onbSheet = onbSS.getSheetByName(ONBOARDING_SHEET);
-    if (!onbSheet) {
-      // Buscar cualquier hoja disponible y usarla, o crear nueva
-      const sheets = onbSS.getSheets();
-      if (sheets.length > 0) {
-        onbSheet = sheets[0]; // usar la primera hoja
-      } else {
-        onbSheet = onbSS.insertSheet(ONBOARDING_SHEET);
-      }
-    }
-
     // Leer emails ya existentes en onboarding para evitar duplicados
-    const onbData = onbSheet.getDataRange().getValues();
-    const existingEmails = new Set();
-    for (let i = 1; i < onbData.length; i++) {
-      const email = String(onbData[i][2] || '').trim().toLowerCase();
-      if (email) existingEmails.add(email);
-    }
+    const existingEmails = onboardingExistingEmails_(onbSheet);
 
     // Leer candidatos de admisiones
     const candSheet = SS.getSheetByName('Candidatos');
@@ -2695,40 +3672,18 @@ function handleHandoff(data) {
 
       const email = String(row[3] || '').trim().toLowerCase();
       if (existingEmails.has(email)) {
+        // Omitido por duplicado, pero igual pasa a Historial.
+        markHandoffDone_(candSheet, i + 1, row, 'omitido');
         skipped++;
         continue;
       }
 
-      // Generar token ONB único
-      const onbToken = 'ONB-' + Utilities.getUuid().replace(/-/g, '').substring(0, 8).toUpperCase();
-
-      const name              = row[2]  || '';
-      const professionalType  = row[7]  || '';   // Especialidad
-      const finalCategory     = row[18] || '';   // Categoria
-      const termsAcceptedAt   = row[21] || '';   // Legal_Fecha
-
-      // Determinar etiqueta Legal_Aceptacion
-      const legalAceptacion   = termsAcceptedAt ? 'ACEPTADO | v1' : '';
-
-      insertNewRow(onbSheet, [
-        onbToken,           // A: ID_Token
-        name,               // B: Nombre
-        email,              // C: Email
-        professionalType,   // D: Especialidad
-        '',                 // E: CV_Url
-        '',                 // F: Docs_Profesion
-        '',                 // G: Foto_Url
-        '',                 // H: Carta_Sacerdote
-        'Fase 1',           // I: Fase_Actual
-        'Activo',           // J: Estado
-        finalCategory,      // K: Categoria
-        legalAceptacion,    // L: Legal_Aceptacion
-        termsAcceptedAt     // M: Legal_Fecha
-      ]);
+      insertNewRow(onbSheet, buildOnboardingRow_(row));
+      markHandoffDone_(candSheet, i + 1, row, 'transferido');
 
       existingEmails.add(email); // prevenir duplicados dentro de la misma ejecución
       transferred++;
-      transferredNames.push(name + ' <' + email + '>');
+      transferredNames.push((row[2] || '') + ' <' + email + '>');
     }
 
     return jsonResponse(true, 'Handoff completado', {

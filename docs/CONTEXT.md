@@ -128,3 +128,20 @@ El ID del Google Spreadsheet externo donde se registran los candidatos aprobados
 
 **¿Dónde está el ID del deployment de GAS?**  
 Solo en el servidor (en `proxy.php` ya configurado). No está en este repo por seguridad.
+
+
+---
+
+## El PIN dice "incorrecto" aunque sea el correcto
+
+El PIN es **personal**, no global: vive en la columna `pin_admin` de la hoja
+`Usuarios`, una fila por persona. Revisa, en orden:
+
+1. **Super Admin → PIN de Administrador** dice si tu usuario ya tiene PIN y
+   permite crearlo o cambiarlo (PIN actual → nuevo).
+2. Si el usuario no tiene PIN, el mensaje lo dice explícitamente en vez de
+   responder "PIN incorrecto".
+3. Un superadministrador puede asignarle el PIN a cualquiera desde **Gestión de
+   Usuarios**, con el icono de llave de la columna PIN.
+
+El `ADMIN_PIN` global de la hoja `Config` ya no interviene en las aprobaciones.
